@@ -70,136 +70,158 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
       format: 'a4'
     });
 
-    // Fix: Explicitly type color arrays as tuples to allow spreading into jsPDF methods.
+    // Color definitions
     const red: [number, number, number] = [204, 0, 0];
     const black: [number, number, number] = [10, 10, 10];
     const gray: [number, number, number] = [150, 150, 150];
+    const softGray: [number, number, number] = [240, 240, 240];
+    
     const orderId = `RL-PRT-${Math.floor(Math.random() * 90000) + 10000}`;
     const date = new Date().toLocaleDateString('pt-PT');
     const time = new Date().toLocaleTimeString('pt-PT');
 
-    // --- BACKGROUND GRID ---
-    doc.setDrawColor(245, 245, 245);
-    for (let i = 0; i < 210; i += 10) doc.line(i, 0, i, 297);
-    for (let i = 0; i < 297; i += 10) doc.line(0, i, 210, i);
+    // --- 1. INDUSTRIAL GRID BACKGROUND ---
+    doc.setDrawColor(...softGray);
+    doc.setLineWidth(0.1);
+    for (let i = 0; i <= 210; i += 5) doc.line(i, 0, i, 297);
+    for (let i = 0; i <= 297; i += 5) doc.line(0, i, 210, i);
 
-    // --- HEADER ---
+    // --- 2. HEADER BLOCK ---
     doc.setFillColor(...black);
-    doc.rect(0, 0, 210, 40, 'F');
+    doc.rect(0, 0, 210, 45, 'F');
+    
+    // Aesthetic red accent
     doc.setFillColor(...red);
-    doc.rect(0, 38, 210, 2, 'F');
+    doc.rect(0, 43, 210, 2, 'F');
 
+    // Logo & Title
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.text('REDLINE PRINT', 15, 22);
+    doc.setFontSize(28);
+    doc.text('REDLINE PRINT', 15, 20);
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('INDUSTRIAL PRINTING PROTOCOL // R2 FRANKFURT NODE', 15, 28);
-    
+    doc.text('INDUSTRIAL PRINTING ECOSYSTEM // QUANTUM PRODUCTION HUB', 15, 26);
+    doc.text('FRANKFURT NODE R2 // ISO 12647-2 CERTIFIED', 15, 30);
+
+    // Order Metadata
     doc.setFont('courier', 'bold');
     doc.setFontSize(10);
-    doc.text(`ID: ${orderId}`, 155, 18);
-    doc.text(`DATE: ${date}`, 155, 24);
-    doc.text(`TIME: ${time}`, 155, 30);
+    doc.text(`JOB_ID: ${orderId}`, 150, 15);
+    doc.text(`SYNC_DATE: ${date}`, 150, 21);
+    doc.text(`TIMESTAMP: ${time}`, 150, 27);
+    doc.text(`NODE: DE-FRA-02`, 150, 33);
 
-    // --- MAIN TITLE ---
+    // --- 3. CLIENT INFO SECTION ---
     doc.setTextColor(...black);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('FICHA TÉCNICA DE PRODUÇÃO', 15, 55);
-    doc.setDrawColor(...red);
-    doc.setLineWidth(1);
-    doc.line(15, 58, 60, 58);
-
-    // --- PRODUCT SECTION ---
-    doc.setFontSize(10);
-    doc.setTextColor(...gray);
-    doc.text('MATRIZ DE PRODUTO', 15, 70);
-    doc.setTextColor(...black);
-    doc.setFontSize(14);
-    doc.text(selectedProduct.name.toUpperCase(), 15, 78);
-
-    // --- SPECS GRID ---
-    const startY = 95;
-    const col1 = 15;
-    const col2 = 110;
+    doc.setFontSize(7);
+    doc.text('DESTINATÁRIO / CLIENTE NODE', 15, 55);
     
-    doc.setDrawColor(230, 230, 230);
-    doc.setLineWidth(0.2);
-    doc.line(15, startY - 5, 195, startY - 5);
+    doc.setFontSize(12);
+    doc.text(user?.name || 'GUEST_OPERATOR', 15, 62);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`EMAIL: ${user?.email || 'unauthorized@node.local'}`, 15, 67);
+    doc.text(`ROLE: ${user?.role || 'EXTERNAL'} // TIER: ${user?.tier || 'GUEST'}`, 15, 71);
+    if(user?.company) doc.text(`COMPANY: ${user.company.toUpperCase()}`, 15, 75);
 
-    const drawSpec = (x: number, y: number, label: string, value: string) => {
+    // Corner frame aesthetic
+    doc.setDrawColor(...red);
+    doc.setLineWidth(0.5);
+    doc.line(190, 50, 200, 50);
+    doc.line(200, 50, 200, 60);
+
+    // --- 4. PRODUCT SPECS SECTION ---
+    doc.setFillColor(252, 252, 252);
+    doc.rect(15, 85, 180, 120, 'F');
+    doc.setDrawColor(230, 230, 230);
+    doc.rect(15, 85, 180, 120, 'D');
+
+    doc.setTextColor(...gray);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MATRIZ DE PRODUÇÃO ATIVA', 20, 93);
+
+    doc.setTextColor(...red);
+    doc.setFontSize(16);
+    doc.text(selectedProduct.name.toUpperCase(), 20, 102);
+
+    // Technical Table Simulation
+    const tableY = 115;
+    const drawRow = (y: number, label: string, value: string) => {
+      doc.setDrawColor(240, 240, 240);
+      doc.line(20, y + 2, 190, y + 2);
       doc.setFontSize(7);
       doc.setTextColor(...gray);
-      doc.text(label.toUpperCase(), x, y);
-      doc.setFontSize(11);
+      doc.text(label.toUpperCase(), 20, y);
+      doc.setFontSize(9);
       doc.setTextColor(...black);
       doc.setFont('helvetica', 'bold');
-      doc.text(value, x, y + 6);
+      doc.text(value, 190, y, { align: 'right' });
     };
 
-    drawSpec(col1, startY, 'Material Base', options.material);
-    drawSpec(col2, startY, 'Acabamento Industrial', options.finish);
-    
-    drawSpec(col1, startY + 20, 'Dimensões Físicas', `${dimensions.width}m x ${dimensions.height}m (${(dimensions.width * dimensions.height).toFixed(2)} m2)`);
-    drawSpec(col2, startY + 20, 'Volume Solicitado', `${options.quantity} Unidades`);
-    
-    drawSpec(col1, startY + 40, 'Prioridade de Deploy', options.priority);
-    drawSpec(col2, startY + 40, 'Integridade de Arquivo', file ? 'VERIFICADO (MD5 OK)' : 'AGUARDANDO ASSET');
+    drawRow(tableY, 'Substrato Industrial', options.material);
+    drawRow(tableY + 12, 'Esquema de Acabamento', options.finish);
+    drawRow(tableY + 24, 'Geometria (Largura x Altura)', `${dimensions.width}m x ${dimensions.height}m`);
+    drawRow(tableY + 36, 'Área Total Calculada', `${(dimensions.width * dimensions.height).toFixed(3)} m2`);
+    drawRow(tableY + 48, 'Volume de Produção (Qtd)', `${options.quantity} Unidades`);
+    drawRow(tableY + 60, 'Prioridade de Deploy', options.priority.toUpperCase());
+    drawRow(tableY + 72, 'Asset Digital Sincronizado', file ? file.name : 'N/A (UPLOAD PENDENTE)');
 
-    // --- AI TECHNICAL NOTE ---
-    doc.setFillColor(250, 250, 250);
-    doc.rect(15, 155, 180, 40, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(15, 155, 180, 40, 'D');
-    
+    // --- 5. AI ENGINEERING NOTES ---
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 215, 180, 35, 'F');
+    doc.setDrawColor(...red);
+    doc.setLineWidth(0.5);
+    doc.line(15, 215, 20, 215); // Top left accent
+    doc.line(15, 215, 15, 220);
+
     doc.setTextColor(...red);
-    doc.setFontSize(8);
-    doc.text('NOTAS DE ENGENHARIA (GEMINI AI ANALYSIS)', 20, 163);
+    doc.setFontSize(7);
+    doc.text('GEMINI AI // TECHNICAL PRE-FLIGHT ANALYSIS', 20, 222);
     
-    doc.setTextColor(60, 60, 60);
+    doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(10);
-    const splitNote = doc.splitTextToSize(technicalNote || "Análise técnica pendente. O sistema utilizará perfis padrão ISO 12647-2 para garantir fidelidade cromática.", 170);
-    doc.text(splitNote, 20, 172);
+    doc.setFontSize(9);
+    const splitNote = doc.splitTextToSize(technicalNote || "Análise do motor Quantum pendente. O sistema assumirá calibração standard ISO 12647-2 para o substrato selecionado.", 170);
+    doc.text(splitNote, 20, 230);
 
-    // --- FINANCIAL SUMMARY ---
+    // --- 6. PRICING BLOCK ---
     doc.setFillColor(...black);
-    doc.rect(120, 210, 75, 35, 'F');
+    doc.rect(130, 255, 65, 30, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('TOTAL ESTIMADO (EUR)', 128, 220);
-    doc.setFontSize(22);
+    doc.setFontSize(7);
+    doc.text('TOTAL ESTIMADO (C/ IVA)', 135, 263);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${calculatePrice()} EUR`, 128, 235);
+    doc.text(`${calculatePrice()} EUR`, 135, 275);
 
-    // --- BARCODE SIMULATION ---
+    // --- 7. BARCODE & TRACKING ---
     doc.setFillColor(...black);
     const codeX = 15;
-    const codeY = 220;
-    for (let i = 0; i < 30; i++) {
-      const width = Math.random() * 1.5 + 0.2;
-      doc.rect(codeX + (i * 2), codeY, width, 15, 'F');
+    const codeY = 260;
+    for (let i = 0; i < 40; i++) {
+      const w = Math.random() * 1.2 + 0.1;
+      doc.rect(codeX + (i * 1.8), codeY, w, 12, 'F');
     }
     doc.setFontSize(6);
     doc.setTextColor(...black);
-    doc.text(`* ${orderId.replace('-', '')} *`, codeX + 15, codeY + 20, { align: 'center' });
+    doc.setFont('courier', 'bold');
+    doc.text(`* AUTH-TOKEN: ${Math.random().toString(36).substring(7).toUpperCase()} *`, codeX, codeY + 16);
 
-    // --- FOOTER ---
+    // --- 8. FOOTER BLOCK ---
     doc.setFillColor(...black);
-    doc.rect(0, 277, 210, 20, 'F');
+    doc.rect(0, 290, 210, 7, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(7);
-    doc.text('REDLINE PRINT INDUSTRIAL ECOSYSTEM - R2 NODE FRANKFURT', 105, 285, { align: 'center' });
-    doc.text('ESTE DOCUMENTO É UMA ORDEM DE PRODUÇÃO GERADA AUTOMATICAMENTE PELO MOTOR QUANTUM.', 105, 290, { align: 'center' });
-    
-    doc.setFillColor(...red);
-    doc.rect(10, 283, 2, 2, 'F');
+    doc.setFontSize(6);
+    doc.text('REDLINE PRINT INDUSTRIAL ECOSYSTEM // FRANKFURT R2 NODE // WWW.REDLINEPRINT.EU', 105, 294.5, { align: 'center' });
 
-    doc.save(`REDLINE_${orderId}.pdf`);
+    // Save PDF
+    doc.save(`REDLINE_BLUEPRINT_${orderId}.pdf`);
   };
 
   const handleSubmit = () => {
