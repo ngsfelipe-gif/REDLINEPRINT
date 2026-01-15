@@ -1,0 +1,7 @@
+{
+  "name": "Copy of REDLINE PRINT",
+  "description": "Next-generation digital printing marketplace and production management system featuring AI-powered prepress and product building.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
