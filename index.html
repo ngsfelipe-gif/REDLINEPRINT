@@ -7,6 +7,10 @@
     <title>REDLINE PRINT | Industrial Printing Ecosystem</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Exo+2:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        // Shim para compatibilidade com process.env no browser (Vercel/Static)
+        window.process = window.process || { env: {} };
+    </script>
     <style>
         :root {
             --red-brand: #CC0000;
@@ -18,12 +22,11 @@
             background-color: #ffffff;
             color: var(--black-brand);
             overflow-x: hidden;
-            font-size: 14px; /* Base font size reduced */
+            font-size: 14px;
         }
         .font-brand { font-family: 'Exo 2', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* Previne que o texto saia do alinhamento */
         h1, h2, h3, h4, h5, h6 {
             overflow-wrap: break-word;
             word-wrap: break-word;
@@ -83,20 +86,21 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #CC0000; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
-    "jspdf": "https://esm.sh/jspdf@^2.5.1"
-  }
-}
-</script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
+        "jspdf": "https://esm.sh/jspdf@^2.5.1"
+      }
+    }
+    </script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
