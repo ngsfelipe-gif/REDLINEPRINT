@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from './components/Layout';
 import Hero from './components/Hero';
 import ProductBuilder from './components/ProductBuilder';
@@ -9,22 +9,80 @@ import Backoffice from './components/Backoffice';
 import Account from './components/Account';
 import LoginPanel from './components/LoginPanel';
 import { FEATURES, PRODUCTS, MOCK_JOBS, MOCK_TICKETS } from './constants';
-import { ProductionJob, User, SupportTicket } from './types';
-import { ArrowUpRight, Activity, Trophy, Zap, Clock, Package, Monitor, Thermometer } from 'lucide-react';
+import { ProductionJob, User, SupportTicket, Notification } from './types';
+import { ArrowUpRight, Activity, Trophy, Zap, Clock, Package, Monitor, Thermometer, Mail, X, ShieldCheck, Cpu } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [orders, setOrders] = useState<ProductionJob[]>(MOCK_JOBS);
   const [tickets, setTickets] = useState<SupportTicket[]>(MOCK_TICKETS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [accountSubTab, setAccountSubTab] = useState('overview');
+  const [activeToast, setActiveToast] = useState<Notification | null>(null);
+  
+  const prevOrdersRef = useRef<Record<string, string>>({});
+
+  const handleLogout = () => {
+    setUser(null);
+    setActiveTab('home');
+    setAccountSubTab('overview');
+    setShowLogin(false);
+  };
+
+  const createNotification = (type: Notification['type'], orderId: string, productName: string) => {
+    const titles = {
+      Confirmed: "[RL-SYNC] Order Confirmed: Node R2 Validation Success",
+      Production: "[RL-CORE] Production Started: Molecular Calibration Active",
+      Shipped: "[RL-LOG] Transit Protocol Initiated: Hub Aéreo Node R2",
+      Delivered: "[RL-FINAL] Protocol Concluded: Destination Node Handover"
+    };
+
+    const messages = {
+      Confirmed: `Protocolo de sincronização RL-${orderId} validado. O asset digital foi injetado no cluster de pré-impressão de Frankfurt. Status: Aguardando fila de impressão.`,
+      Production: `O motor Quantum iniciou a deposição molecular para o produto ${productName}. Calibração de perfil ICC concluída. Temperatura do core estável em 39.2°C.`,
+      Shipped: `Carga industrial ${orderId} despachada via Hub DHL Express Redline. Previsão de chegada no seu node conforme prioridade contratada.`,
+      Delivered: `Handover concluído. O produto ${productName} foi entregue e assinado eletronicamente no node de destino. Protocolo de job encerrado.`
+    };
+
+    const newNotif: Notification = {
+      id: `NT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      title: titles[type],
+      message: messages[type],
+      timestamp: Date.now(),
+      read: false,
+      type,
+      orderId
+    };
+
+    setNotifications(prev => [newNotif, ...prev]);
+    setActiveToast(newNotif);
+    
+    setTimeout(() => {
+      setActiveToast(null);
+    }, 8000);
+  };
 
   const addOrder = (order: ProductionJob) => {
     setOrders(prev => [order, ...prev]);
     setAccountSubTab('orders');
     setActiveTab('account');
+    createNotification('Confirmed', order.id, order.product);
   };
+
+  // Status Change Detection Effect
+  useEffect(() => {
+    orders.forEach(order => {
+      const prevStatus = prevOrdersRef.current[order.id];
+      if (prevStatus && prevStatus !== order.status) {
+        if (order.status === 'Impressão') createNotification('Production', order.id, order.product);
+        if (order.status === 'Expedição') createNotification('Shipped', order.id, order.product);
+        if (order.status === 'Entregue') createNotification('Delivered', order.id, order.product);
+      }
+      prevOrdersRef.current[order.id] = order.status;
+    });
+  }, [orders]);
 
   const addTicket = (ticket: SupportTicket) => {
     setTickets(prev => [ticket, ...prev]);
@@ -39,19 +97,19 @@ const App: React.FC = () => {
     }
   };
 
-  // Quantum Industrial Simulation Logic
+  // Simulation Logic
   useEffect(() => {
     const interval = setInterval(() => {
       setOrders(currentOrders => {
         return currentOrders.map(order => {
-          if (order.status === 'Expedição') return order;
+          if (order.status === 'Entregue') return order;
           
-          const states: ProductionJob['status'][] = ['Orçamento Gerado', 'Pre-flight', 'Impressão', 'Acabamento', 'Expedição'];
+          const states: ProductionJob['status'][] = ['Orçamento Gerado', 'Pre-flight', 'Impressão', 'Acabamento', 'Expedição', 'Entregue'];
           const currentIndex = states.indexOf(order.status);
           
-          // Random chance of progress based on industry priority
-          if (Math.random() > 0.7 && currentIndex < states.length - 1) {
-            return { ...order, status: states[currentIndex + 1], progress: Math.min(100, order.progress + 25) };
+          if (Math.random() > 0.85 && currentIndex < states.length - 1) {
+            const nextStatus = states[currentIndex + 1];
+            return { ...order, status: nextStatus, progress: Math.min(100, order.progress + 20) };
           }
           return order;
         });
@@ -65,12 +123,11 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLoginClick={() => setShowLogin(true)}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout}>
       {activeTab === 'home' && (
         <div className="animate-in fade-in duration-1000 relative">
           <Hero onStart={() => setActiveTab('products')} onB2B={() => setShowLogin(true)} />
           
-          {/* Global Statistics Section */}
           <section className="bg-black py-56 relative overflow-hidden z-20 border-y-[20px] border-red-600">
             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
             <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-16 relative z-10">
@@ -88,7 +145,6 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          {/* Real-Time Factory Feed */}
           <section className="py-48 bg-white relative z-10 industrial-grid">
             <div className="max-w-7xl mx-auto px-6">
               <div className="flex flex-col md:flex-row justify-between items-end mb-32 gap-16">
@@ -136,69 +192,67 @@ const App: React.FC = () => {
                     </div>
                  ))}
               </div>
-
-              <div className="mt-32 text-center">
-                 <button onClick={() => setActiveTab('production')} className="bg-black text-white px-20 py-10 rounded-[3rem] font-black uppercase text-[12px] tracking-[0.6em] hover:bg-red-600 hover:scale-110 transition-all shadow-2xl group border-b-[10px] border-red-600">
-                   Aceder ao Terminal de Fábrica
-                   <ArrowUpRight className="inline ml-6 w-6 h-6 group-hover:translate-x-3 group-hover:-translate-y-3 transition-transform" />
-                 </button>
-              </div>
-            </div>
-          </section>
-
-          {/* B2B Section */}
-          <section className="py-64 bg-gray-900 text-white relative z-10 overflow-hidden border-t-[30px] border-black">
-            <div className="absolute top-0 right-0 w-1/2 h-full bg-red-600/5 skew-x-[-25deg] translate-x-1/2 pointer-events-none" />
-            <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-40 items-center relative z-20">
-               <div className="animate-in slide-in-from-left-20 duration-1000">
-                  <h2 className="text-[12rem] font-brand font-black italic uppercase tracking-tighter leading-[0.7] mb-20">B2B <br /> <span className="text-red-600">Elite.</span></h2>
-                  <p className="text-3xl text-white/50 font-medium leading-relaxed max-w-2xl mb-24 border-l-[16px] border-red-600 pl-16">
-                    A REDLINE PRINT não é apenas uma plataforma; é o sistema operativo da sua marca. Engenharia gráfica molecular para quem exige consistência absoluta.
-                  </p>
-                  <div className="grid grid-cols-2 gap-20">
-                     {FEATURES.map((f, i) => (
-                       <div key={i} className="group cursor-default border-t border-white/10 pt-10">
-                          <div className="text-red-600 mb-10 transform group-hover:scale-125 transition-transform duration-700">{f.icon}</div>
-                          <h4 className="text-[15px] font-black uppercase tracking-[0.5em] mb-6 group-hover:text-red-600 transition-colors">{f.title}</h4>
-                          <p className="text-[12px] text-white/40 uppercase font-bold leading-relaxed tracking-widest">{f.text}</p>
-                       </div>
-                     ))}
-                  </div>
-                  <button onClick={() => setShowLogin(true)} className="mt-32 bg-red-600 text-white px-24 py-12 rounded-[3.5rem] font-black uppercase text-[12px] tracking-[0.7em] hover:bg-white hover:text-black transition-all shadow-2xl hover:scale-110">Activar Unidade B2B</button>
-               </div>
-               <div className="relative group animate-in slide-in-from-right-20 duration-1000">
-                  <div className="aspect-[3/4] rounded-[8rem] overflow-hidden border-[32px] border-white/5 shadow-2xl relative transform rotate-6 hover:rotate-0 transition-all duration-[2s]">
-                     <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200" className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-[10s]" alt="Industrial Machine" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                     <div className="scanline"></div>
-                  </div>
-                  <div className="absolute -bottom-20 -left-20 bg-red-600 p-20 rounded-[6rem] shadow-[0_80px_160px_rgba(0,0,0,0.8)] border-8 border-white/10 group-hover:scale-110 transition-all duration-700">
-                     <Trophy className="w-20 h-20 text-white mb-10" />
-                     <p className="text-[12px] font-black uppercase tracking-[0.6em] text-white/60 mb-3">Rank EU</p>
-                     <p className="text-5xl font-brand font-black italic text-white uppercase tracking-tighter leading-none">Global Tier 1</p>
-                  </div>
-               </div>
             </div>
           </section>
         </div>
       )}
 
       {activeTab === 'products' && <ProductBuilder onAddOrder={addOrder} user={user} />}
-      {activeTab === 'production' && <Backoffice orders={orders} />}
+      {activeTab === 'production' && <Backoffice orders={orders} user={user} />}
       {activeTab === 'support' && <SupportCenter onOpenTicket={navigateToTickets} />}
       {activeTab === 'account' && (user ? (
         <Account 
           user={user} 
           orders={orders} 
           tickets={tickets} 
+          notifications={notifications}
           onAddTicket={addTicket}
           subTab={accountSubTab}
           setSubTab={setAccountSubTab}
+          onLogout={handleLogout}
         />
       ) : (
         <LoginPanel onLogin={(u) => { setUser(u); setActiveTab('account'); }} onBack={() => setActiveTab('home')} />
       ))}
       
+      {/* Real-time Industrial Email Toast */}
+      {activeToast && (
+        <div className="fixed top-32 right-8 z-[600] w-[420px] bg-white border-4 border-black p-0 rounded-[2rem] shadow-[0_40px_100px_rgba(0,0,0,0.4)] animate-in slide-in-from-right-10 duration-500 overflow-hidden">
+           <div className="bg-black text-white px-6 py-4 flex items-center justify-between border-b-4 border-red-600">
+              <div className="flex items-center space-x-3">
+                 <div className="bg-red-600 p-1.5 rounded-lg">
+                    <Mail className="w-4 h-4 text-white" />
+                 </div>
+                 <span className="text-[9px] font-black uppercase tracking-[0.3em]">Protocol Email Inbound</span>
+              </div>
+              <button onClick={() => setActiveToast(null)}><X className="w-5 h-5 text-white/40 hover:text-white transition-colors" /></button>
+           </div>
+           
+           <div className="p-8 industrial-grid">
+              <div className="flex justify-between items-start mb-4">
+                 <div className="flex items-center space-x-3">
+                    <ShieldCheck className="w-5 h-5 text-red-600" />
+                    <span className="text-[8px] font-black uppercase text-gray-300 tracking-widest">TLS 1.3 SECURE</span>
+                 </div>
+                 <span className="text-[8px] font-black uppercase text-gray-300 tracking-widest">HUB: DE-FRA-R2</span>
+              </div>
+              
+              <h4 className="text-xl font-brand font-black italic uppercase tracking-tighter text-black mb-3 leading-tight">{activeToast.title}</h4>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest line-clamp-3 leading-relaxed mb-6">
+                {activeToast.message}
+              </p>
+              
+              <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden mb-2">
+                 <div className="h-full bg-red-600 shimmer w-full animate-in slide-in-from-left duration-[8s]" />
+              </div>
+              <div className="flex justify-between items-center">
+                 <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">Auto-storing in Terminal...</span>
+                 <Cpu className="w-4 h-4 text-red-600 animate-pulse" />
+              </div>
+           </div>
+        </div>
+      )}
+
       <SupportChat />
     </Layout>
   );

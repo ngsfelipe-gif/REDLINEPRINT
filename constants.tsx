@@ -23,11 +23,11 @@ export const COLORS = {
 };
 
 export const MATERIALS = [
-  'Padrão Industrial 350g (Fosco)', 'Premium Silk Coated 400g', 'Reciclado Eco-Fibre 300g', 'Fosco Anti-Reflexo UV 500g', 'Brilho High-Gloss 500g', 'PVC Rígido 5mm Branco', 'Lona Mesh Pro Micro-Perfurada', 'Vinil Cast 3D Automotivo'
+  'Padrão Industrial 350g (Fosco)', 'Premium Silk Coated 400g', 'Reciclado Eco-Fibre 300g', 'Fosco Anti-Reflexo UV 500g', 'Brilho High-Gloss 500g', 'PVC Rígido 5mm Branco', 'Lona Mesh Pro Micro-Perfurada', 'Vinil Cast 3D Automotivo', 'Papel Offset Superior 90g', 'Couche Brilho 135g'
 ];
 
 export const FINISHES = [
-  'Sem Acabamento (Corte Bruto)', 'Corte Reto Laser de Precisão', 'Corte Especial (Die-Cut Digital)', 'Ilhós Perimetral Reforçado 15mm', 'Verniz Localizado 3D High-Build', 'Plastificação Mate Soft-Touch', 'Laminagem Anti-Graffiti'
+  'Sem Acabamento (Corte Bruto)', 'Corte Reto Laser de Precisão', 'Corte Especial (Die-Cut Digital)', 'Ilhós Perimetral Reforçado 15mm', 'Verniz Localizado 3D High-Build', 'Plastificação Mate Soft-Touch', 'Laminagem Anti-Graffiti', 'Dobra em Cruz (Flyers)', 'Dobra em Janela (Trifold)'
 ];
 
 export interface ExtendedProduct extends Product {
@@ -55,11 +55,41 @@ export const PRODUCTS: ExtendedProduct[] = [
     name: 'Cartões Visita Elite', 
     category: Category.SmallFormat, 
     description: 'Papel Mate Premium com corte laser de alta precisão e tecnologia de impressão molecular para cores vibrantes.', 
-    basePrice: 45.00, 
+    basePrice: 0.15, 
     unit: 'un', 
     image: 'https://images.unsplash.com/photo-1593005517304-1813914ad73f?q=80&w=1200', 
     featured: true,
     specs: { weight: '400g/m2', durability: 'Eterna', usage: 'Networking Pro' }
+  },
+  { 
+    id: '20', 
+    name: 'Flyers A5 Express', 
+    category: Category.CommercialPrint, 
+    description: 'A solução perfeita para promoções rápidas. Impressão offset de alta velocidade em papel couche brilhante de 135g.', 
+    basePrice: 0.08, 
+    unit: 'un', 
+    image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=1200',
+    specs: { weight: '135g/m2', durability: 'Curta', usage: 'Promoções' }
+  },
+  { 
+    id: '21', 
+    name: 'Folhetos Trifold Pro', 
+    category: Category.CommercialPrint, 
+    description: 'Brochuras tri-dobradas para apresentações de produto detalhadas. Acabamento mate com vincos de alta precisão.', 
+    basePrice: 0.45, 
+    unit: 'un', 
+    image: 'https://images.unsplash.com/photo-1586075010633-2470bb201c43?q=80&w=1200',
+    specs: { weight: '250g/m2', durability: 'Média', usage: 'Marketing' }
+  },
+  { 
+    id: '22', 
+    name: 'Papel Timbrado A4', 
+    category: Category.CommercialPrint, 
+    description: 'Identidade corporativa consistente. Papel offset premium de 90g compatível com impressoras laser e jacto de tinta.', 
+    basePrice: 0.12, 
+    unit: 'un', 
+    image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=1200',
+    specs: { weight: '90g/m2', durability: 'Longa', usage: 'Escritório' }
   },
   { 
     id: '5', 
@@ -87,7 +117,7 @@ export const PRODUCTS: ExtendedProduct[] = [
     name: 'Folders Corporativos', 
     category: Category.SmallFormat, 
     description: 'Dossiers com bolsas duplas e acabamento de luxo laminado. Apresentação profissional para propostas de valor.', 
-    basePrice: 120.00, 
+    basePrice: 1.20, 
     unit: 'un', 
     image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?q=80&w=1200',
     specs: { weight: '350g/m2', durability: 'Alta', usage: 'Corporate' }

@@ -1,13 +1,30 @@
 
 import React from 'react';
-import { ProductionJob } from '../types';
-import { Settings, Play, CheckCircle2, AlertTriangle, Package, Loader2, BarChart3, Clock, Activity, Monitor, Cpu, Truck, LayoutDashboard } from 'lucide-react';
+import { ProductionJob, User } from '../types';
+import { Settings, Play, CheckCircle2, AlertTriangle, Package, Loader2, BarChart3, Clock, Activity, Monitor, Cpu, Truck, LayoutDashboard, ShieldAlert } from 'lucide-react';
 
 interface BackofficeProps {
   orders: ProductionJob[];
+  user?: User | null;
 }
 
-const Backoffice: React.FC<BackofficeProps> = ({ orders }) => {
+const Backoffice: React.FC<BackofficeProps> = ({ orders, user }) => {
+  const hasAccess = user?.permissions.includes('ACCESS_BACKOFFICE');
+
+  if (!hasAccess) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-48 flex flex-col items-center justify-center text-center animate-in fade-in duration-700">
+         <div className="w-32 h-32 bg-red-50 rounded-[2.5rem] flex items-center justify-center mb-12 border-2 border-red-100">
+            <ShieldAlert className="w-16 h-16 text-red-600" />
+         </div>
+         <h2 className="text-5xl font-brand font-black italic uppercase tracking-tighter text-black mb-4">Access Restricted.</h2>
+         <p className="text-xl text-gray-400 font-bold uppercase max-w-xl border-l-8 border-red-600 pl-8 text-left mx-auto leading-relaxed">
+            Your authorization node does not have the required permissions to access Global Factory Telemetry. Please contact a Tier 1 Administrator.
+         </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-24 animate-in fade-in duration-1000 industrial-grid">
       {/* COMMAND HEADER */}

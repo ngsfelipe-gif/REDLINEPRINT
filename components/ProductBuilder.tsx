@@ -4,7 +4,8 @@ import { PRODUCTS, MATERIALS, FINISHES } from '../constants';
 import { 
   Check, Upload, ArrowRight, ArrowLeft, Loader2, FileText, Download, Send, 
   ShieldCheck, CheckCircle2, Maximize, Target, Activity, FileCheck, Cpu, 
-  Settings, Thermometer, Layers, Box, Info, Zap, Scale, Clock
+  Settings, Thermometer, Layers, Box, Info, Zap, Scale, Clock, Shield, ChevronRight,
+  Monitor, Info as InfoIcon, Hash, ShieldAlert
 } from 'lucide-react';
 import { generateTechnicalNote } from '../services/geminiService';
 import { jsPDF } from 'jspdf';
@@ -33,6 +34,8 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
   const [technicalNote, setTechnicalNote] = useState('');
   const [isScanningFile, setIsScanningFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const canPlaceOrders = !user || user.permissions.includes('PLACE_ORDERS');
 
   const calculatePrice = () => {
     const qty = parseFloat(options.quantity) || 1;
@@ -70,7 +73,6 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
       format: 'a4'
     });
 
-    // Color definitions
     const red: [number, number, number] = [204, 0, 0];
     const black: [number, number, number] = [10, 10, 10];
     const gray: [number, number, number] = [150, 150, 150];
@@ -80,21 +82,16 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     const date = new Date().toLocaleDateString('pt-PT');
     const time = new Date().toLocaleTimeString('pt-PT');
 
-    // --- 1. INDUSTRIAL GRID BACKGROUND ---
     doc.setDrawColor(...softGray);
     doc.setLineWidth(0.1);
     for (let i = 0; i <= 210; i += 5) doc.line(i, 0, i, 297);
     for (let i = 0; i <= 297; i += 5) doc.line(0, i, 210, i);
 
-    // --- 2. HEADER BLOCK ---
     doc.setFillColor(...black);
     doc.rect(0, 0, 210, 45, 'F');
-    
-    // Aesthetic red accent
     doc.setFillColor(...red);
     doc.rect(0, 43, 210, 2, 'F');
 
-    // Logo & Title
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(28);
@@ -105,7 +102,6 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     doc.text('INDUSTRIAL PRINTING ECOSYSTEM // QUANTUM PRODUCTION HUB', 15, 26);
     doc.text('FRANKFURT NODE R2 // ISO 12647-2 CERTIFIED', 15, 30);
 
-    // Order Metadata
     doc.setFont('courier', 'bold');
     doc.setFontSize(10);
     doc.text(`JOB_ID: ${orderId}`, 150, 15);
@@ -113,28 +109,23 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     doc.text(`TIMESTAMP: ${time}`, 150, 27);
     doc.text(`NODE: DE-FRA-02`, 150, 33);
 
-    // --- 3. CLIENT INFO SECTION ---
     doc.setTextColor(...black);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.text('DESTINATÁRIO / CLIENTE NODE', 15, 55);
-    
     doc.setFontSize(12);
     doc.text(user?.name || 'GUEST_OPERATOR', 15, 62);
-    
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`EMAIL: ${user?.email || 'unauthorized@node.local'}`, 15, 67);
     doc.text(`ROLE: ${user?.role || 'EXTERNAL'} // TIER: ${user?.tier || 'GUEST'}`, 15, 71);
     if(user?.company) doc.text(`COMPANY: ${user.company.toUpperCase()}`, 15, 75);
 
-    // Corner frame aesthetic
     doc.setDrawColor(...red);
     doc.setLineWidth(0.5);
     doc.line(190, 50, 200, 50);
     doc.line(200, 50, 200, 60);
 
-    // --- 4. PRODUCT SPECS SECTION ---
     doc.setFillColor(252, 252, 252);
     doc.rect(15, 85, 180, 120, 'F');
     doc.setDrawColor(230, 230, 230);
@@ -144,12 +135,10 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.text('MATRIZ DE PRODUÇÃO ATIVA', 20, 93);
-
     doc.setTextColor(...red);
     doc.setFontSize(16);
     doc.text(selectedProduct.name.toUpperCase(), 20, 102);
 
-    // Technical Table Simulation
     const tableY = 115;
     const drawRow = (y: number, label: string, value: string) => {
       doc.setDrawColor(240, 240, 240);
@@ -171,25 +160,22 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     drawRow(tableY + 60, 'Prioridade de Deploy', options.priority.toUpperCase());
     drawRow(tableY + 72, 'Asset Digital Sincronizado', file ? file.name : 'N/A (UPLOAD PENDENTE)');
 
-    // --- 5. AI ENGINEERING NOTES ---
     doc.setFillColor(245, 245, 245);
     doc.rect(15, 215, 180, 35, 'F');
     doc.setDrawColor(...red);
     doc.setLineWidth(0.5);
-    doc.line(15, 215, 20, 215); // Top left accent
+    doc.line(15, 215, 20, 215);
     doc.line(15, 215, 15, 220);
 
     doc.setTextColor(...red);
     doc.setFontSize(7);
     doc.text('GEMINI AI // TECHNICAL PRE-FLIGHT ANALYSIS', 20, 222);
-    
     doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9);
-    const splitNote = doc.splitTextToSize(technicalNote || "Análise do motor Quantum pendente. O sistema assumirá calibração standard ISO 12647-2 para o substrato selecionado.", 170);
+    const splitNote = doc.splitTextToSize(technicalNote || "Análise do motor Quantum pendente.", 170);
     doc.text(splitNote, 20, 230);
 
-    // --- 6. PRICING BLOCK ---
     doc.setFillColor(...black);
     doc.rect(130, 255, 65, 30, 'F');
     doc.setTextColor(255, 255, 255);
@@ -200,7 +186,6 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     doc.setFont('helvetica', 'bold');
     doc.text(`${calculatePrice()} EUR`, 135, 275);
 
-    // --- 7. BARCODE & TRACKING ---
     doc.setFillColor(...black);
     const codeX = 15;
     const codeY = 260;
@@ -213,18 +198,17 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     doc.setFont('courier', 'bold');
     doc.text(`* AUTH-TOKEN: ${Math.random().toString(36).substring(7).toUpperCase()} *`, codeX, codeY + 16);
 
-    // --- 8. FOOTER BLOCK ---
     doc.setFillColor(...black);
     doc.rect(0, 290, 210, 7, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(6);
     doc.text('REDLINE PRINT INDUSTRIAL ECOSYSTEM // FRANKFURT R2 NODE // WWW.REDLINEPRINT.EU', 105, 294.5, { align: 'center' });
 
-    // Save PDF
     doc.save(`REDLINE_BLUEPRINT_${orderId}.pdf`);
   };
 
   const handleSubmit = () => {
+    if (!canPlaceOrders) return;
     setIsSubmitting(true);
     setTimeout(() => {
       onAddOrder({
@@ -300,33 +284,94 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
              <div className="animate-in fade-in slide-in-from-right-4 duration-500 flex-grow">
                 <div className="mb-12">
                    <h4 className="text-[10px] font-black text-red-600 uppercase tracking-[0.6em] mb-2 flex items-center"><Layers className="w-4 h-4 mr-2" /> Phase 01 // Matrix</h4>
-                   <h3 className="text-3xl md:text-5xl font-brand font-black italic uppercase tracking-tighter leading-none mb-2">Selecione o <span className="text-red-600">Suporte.</span></h3>
+                   <h3 className="text-3xl md:text-6xl font-brand font-black italic uppercase tracking-tighter leading-none mb-2">Selecione o <span className="text-red-600">Suporte.</span></h3>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Industrial grade substrates for high-performance output.</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                    {PRODUCTS.map(p => (
                      <button 
                        key={p.id} 
                        onClick={() => setSelectedProduct(p)}
-                       className={`group/card relative rounded-[2.5rem] border-2 transition-all duration-500 overflow-hidden flex flex-col sm:flex-row ${selectedProduct.id === p.id ? 'border-red-600 bg-red-50/5 shadow-2xl scale-[1.02]' : 'border-gray-50 hover:border-gray-100'}`}
+                       className={`group/card relative rounded-[3rem] border-2 transition-all duration-700 overflow-hidden flex flex-col ${selectedProduct.id === p.id ? 'border-red-600 bg-red-50/10 shadow-[0_40px_80px_rgba(204,0,0,0.12)] scale-[1.01]' : 'border-gray-50 hover:border-gray-200 hover:bg-gray-50/50'}`}
                      >
-                        <div className="sm:w-1/2 aspect-square relative overflow-hidden bg-gray-100">
-                           <img src={p.image} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-[3s]" alt={p.name} />
+                        {/* High-Impact Immersive Image Container */}
+                        <div className="w-full aspect-[4/3] relative overflow-hidden bg-gray-100 border-b border-gray-100">
+                           <img src={p.image} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-[6s] ease-out" alt={p.name} />
+                           
+                           {/* Dynamic Scanline Overlay on Selected */}
                            {selectedProduct.id === p.id && <div className="scanline-fast"></div>}
-                        </div>
-                        <div className="sm:w-1/2 p-6 text-left flex flex-col justify-between">
-                           <div>
-                              <div className="flex justify-between items-start mb-2">
-                                 <h5 className="text-xl font-brand font-black italic uppercase tracking-tighter leading-tight group-hover/card:text-red-600 transition-colors">{p.name}</h5>
+                           
+                           {/* Category Badge */}
+                           <div className="absolute top-6 left-6 flex items-center space-x-2">
+                              <div className="bg-black/80 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/10 shadow-2xl">
+                                 <span className="text-[9px] font-black uppercase text-white tracking-[0.2em]">{p.category}</span>
                               </div>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed mb-4 line-clamp-3">{p.description}</p>
+                              {p.featured && (
+                                <div className="bg-red-600 px-3 py-2 rounded-xl border border-white/10 shadow-2xl">
+                                   <Zap className="w-3 h-3 text-white" />
+                                </div>
+                              )}
                            </div>
-                           <div className="space-y-1.5 border-t border-gray-50 pt-4">
-                              <div className="flex justify-between text-[8px] font-black uppercase tracking-widest">
-                                 <span className="text-gray-300">Grama:</span> <span className="text-black font-bold">{p.specs.weight}</span>
+
+                           {/* Price Tag Overlay */}
+                           <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-2xl border border-gray-100 flex items-center space-x-2">
+                              <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Base Rate</span>
+                              <span className="text-2xl font-brand font-black italic text-black">€{p.basePrice}</span>
+                              <span className="text-[10px] font-black text-red-600 uppercase">/{p.unit}</span>
+                           </div>
+                        </div>
+
+                        {/* Card Content with Refined Industrial Layout */}
+                        <div className="p-10 text-left flex flex-col flex-grow">
+                           <div className="mb-6">
+                              <h5 className="text-4xl font-brand font-black italic uppercase tracking-tighter leading-none group-hover/card:text-red-600 transition-colors mb-4">{p.name}</h5>
+                              <p className="text-[12px] font-medium text-gray-500 uppercase tracking-widest leading-relaxed">
+                                 {p.description}
+                              </p>
+                           </div>
+
+                           {/* Specification Modules with Distinct Icons */}
+                           <div className="mt-auto grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t border-gray-100">
+                              <div className="flex items-center space-x-4">
+                                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover/card:text-red-600 group-hover/card:bg-red-50 transition-all">
+                                    <Scale className="w-5 h-5" />
+                                 </div>
+                                 <div className="flex flex-col">
+                                    <span className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em] mb-1">Density</span>
+                                    <span className="text-[11px] font-black uppercase text-black tracking-tight">{p.specs.weight}</span>
+                                 </div>
                               </div>
-                              <div className="flex justify-between text-[8px] font-black uppercase tracking-widest">
-                                 <span className="text-gray-300">Uso:</span> <span className="text-black font-bold">{p.specs.usage}</span>
+
+                              <div className="flex items-center space-x-4">
+                                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover/card:text-red-600 group-hover/card:bg-red-50 transition-all">
+                                    <Shield className="w-5 h-5" />
+                                 </div>
+                                 <div className="flex flex-col">
+                                    <span className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em] mb-1">Resistance</span>
+                                    <span className="text-[11px] font-black uppercase text-black tracking-tight">{p.specs.durability}</span>
+                                 </div>
+                              </div>
+
+                              <div className="flex items-center space-x-4">
+                                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover/card:text-red-600 group-hover/card:bg-red-50 transition-all">
+                                    <Target className="w-5 h-5" />
+                                 </div>
+                                 <div className="flex flex-col">
+                                    <span className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em] mb-1">Application</span>
+                                    <span className="text-[11px] font-black uppercase text-black tracking-tight">{p.specs.usage}</span>
+                                 </div>
+                              </div>
+                           </div>
+
+                           {/* Selection Status Bar */}
+                           <div className={`mt-8 flex items-center justify-between p-4 rounded-2xl transition-all duration-500 ${selectedProduct.id === p.id ? 'bg-black text-white' : 'bg-transparent text-transparent'}`}>
+                              <span className="text-[9px] font-black uppercase tracking-[0.4em] flex items-center">
+                                 <CheckCircle2 className="w-4 h-4 mr-3 text-red-600" /> Activo no Buffer
+                              </span>
+                              <div className="flex items-center space-x-2">
+                                 <Hash className="w-4 h-4 text-red-600" />
+                                 <span className="text-[9px] font-mono">{p.id.padStart(4, '0')}</span>
                               </div>
                            </div>
                         </div>
@@ -468,9 +513,16 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
                          <button onClick={handleDownload} className="flex items-center justify-center space-x-4 bg-white border border-gray-200 p-6 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:border-red-600 transition-all shadow-md group">
                             <Download className="w-6 h-6 text-red-600 group-hover:-translate-y-1 transition-transform" /> <span>Download Blueprint PDF</span>
                          </button>
-                         <button onClick={handleSubmit} disabled={isSubmitting} className="flex items-center justify-center space-x-4 bg-red-600 text-white p-6 rounded-2xl font-black uppercase text-[9px] tracking-[0.4em] hover:bg-black transition-all shadow-xl group">
-                            {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6 group-hover:translate-x-1 transition-transform" />} <span>Deploy Node</span>
-                         </button>
+                         {canPlaceOrders ? (
+                           <button onClick={handleSubmit} disabled={isSubmitting} className="flex items-center justify-center space-x-4 bg-red-600 text-white p-6 rounded-2xl font-black uppercase text-[9px] tracking-[0.4em] hover:bg-black transition-all shadow-xl group">
+                              {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6 group-hover:translate-x-1 transition-transform" />} <span>Deploy Node</span>
+                           </button>
+                         ) : (
+                           <div className="flex flex-col items-center justify-center bg-gray-900 text-white/50 p-6 rounded-2xl border-2 border-dashed border-white/10">
+                              <ShieldAlert className="w-8 h-8 mb-2" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Order Authorization Required</span>
+                           </div>
+                         )}
                       </div>
                    </div>
                 )}

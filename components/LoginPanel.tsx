@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Mail, ArrowRight, ShieldCheck, Printer, X, AlertCircle, Building2, UserPlus, Loader2, Cpu, Zap } from 'lucide-react';
-import { User as UserType } from '../types';
+import { User as UserType, Permission } from '../types';
 
 interface LoginPanelProps {
   onLogin: (user: UserType) => void;
@@ -14,7 +14,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [role, setRole] = useState<'Client' | 'B2B'>('Client');
+  const [role, setRole] = useState<'Client' | 'B2B_Admin'>('Client');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
@@ -40,27 +40,36 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const completeAuth = () => {
     if (mode === 'login') {
       if (email === 'admin@redline.eu' && password === 'redline2025') {
-        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Admin', tier: 'Platina', joinedAt: Date.now() });
+        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Admin', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'], tier: 'Platina', joinedAt: Date.now() });
         return;
       }
       if (email === 'b2b@spacex.com' && password === 'redline2025') {
-        onLogin({ id: 'b2b-01', name: 'Elon Musk', email, role: 'B2B', tier: 'Platina', company: 'SpaceX EU', creditLimit: 50000, joinedAt: Date.now() });
+        onLogin({ id: 'b2b-01', name: 'Elon Musk', email, role: 'B2B_Admin', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM'], tier: 'Platina', company: 'SpaceX EU', creditLimit: 50000, joinedAt: Date.now() });
+        return;
+      }
+      if (email === 'viewer@spacex.com' && password === 'redline2025') {
+        onLogin({ id: 'b2b-02', name: 'Viewer Node', email, role: 'B2B_Viewer', permissions: ['VIEW_ORDERS'], tier: 'Bronze', company: 'SpaceX EU', joinedAt: Date.now() });
         return;
       }
       if (email === 'cliente@gmail.com' && password === 'redline2025') {
-        onLogin({ id: 'client-01', name: 'João Silva', email, role: 'Client', tier: 'Bronze', joinedAt: Date.now() });
+        onLogin({ id: 'client-01', name: 'João Silva', email, role: 'Client', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS'], tier: 'Bronze', joinedAt: Date.now() });
         return;
       }
       setError('PROTOCOL ERROR: Authentication failed in R2 Cluster.');
       setIsProcessing(false);
     } else {
+      const permissions: Permission[] = role === 'B2B_Admin' 
+        ? ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM']
+        : ['VIEW_ORDERS', 'PLACE_ORDERS'];
+        
       onLogin({
         id: `user-${Math.random().toString(36).substr(2, 9)}`,
         name,
         email,
         role,
-        company: role === 'B2B' ? company : undefined,
-        tier: role === 'B2B' ? 'Prata' : 'Bronze',
+        permissions,
+        company: role === 'B2B_Admin' ? company : undefined,
+        tier: role === 'B2B_Admin' ? 'Prata' : 'Bronze',
         joinedAt: Date.now()
       });
     }
@@ -148,7 +157,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="NOME DO OPERADOR" className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-xl text-black text-[11px] font-black uppercase tracking-widest focus:border-red-600 outline-none transition-all" required />
                 <div className="grid grid-cols-2 gap-4">
                   <button type="button" onClick={() => setRole('Client')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'Client' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Standard</button>
-                  <button type="button" onClick={() => setRole('B2B')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'B2B' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Corporate</button>
+                  <button type="button" onClick={() => setRole('B2B_Admin')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'B2B_Admin' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Corporate</button>
                 </div>
               </div>
             )}

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingCart, User, Printer, Award, Globe, LogIn } from 'lucide-react';
+import { ShoppingCart, User, Printer, Award, Globe, LogIn, LogOut } from 'lucide-react';
 import { User as UserType } from '../types';
 
 interface LayoutProps {
@@ -9,9 +9,10 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   user: UserType | null;
   onLoginClick: () => void;
+  onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, onLoginClick }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, onLoginClick, onLogout }) => {
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFDFD]">
       <div className="bg-black text-white text-[10px] font-bold tracking-[0.3em] uppercase py-2 text-center z-[60] relative">
@@ -44,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
           ))}
         </div>
 
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-4">
           {user && (
             <div className="hidden md:flex items-center bg-black/5 rounded-full px-4 py-2 space-x-2 border border-black/5">
               <Award className="w-4 h-4 text-red-600" />
@@ -52,15 +53,27 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             </div>
           )}
           
-          <button 
-            className="flex items-center space-x-3 bg-black text-white px-8 py-3.5 rounded-full hover:bg-[#E60000] transition-all shadow-xl group"
-            onClick={user ? () => setActiveTab('account') : onLoginClick}
-          >
-            {user ? <User className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              {user ? user.name.split(' ')[0] : 'Entrar'}
-            </span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              className="flex items-center space-x-3 bg-black text-white px-8 py-3.5 rounded-full hover:bg-[#E60000] transition-all shadow-xl group"
+              onClick={user ? () => setActiveTab('account') : onLoginClick}
+            >
+              {user ? <User className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                {user ? user.name.split(' ')[0] : 'Entrar'}
+              </span>
+            </button>
+
+            {user && (
+              <button 
+                onClick={onLogout}
+                className="bg-gray-100 p-3.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all shadow-md active:scale-95"
+                title="De-auth Node"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -103,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
           </div>
 
           <div className="bg-white/5 p-10 rounded-[3rem] border border-white/10 backdrop-blur-xl">
-            <h4 className="font-black uppercase text-[10px] tracking-[0.4em] mb-4">REDLINE INSIDER</h4>
+            <h4 className="font-black uppercase text-[10px] tracking-widest mb-4">REDLINE INSIDER</h4>
             <p className="text-[10px] text-gray-500 mb-8 font-black uppercase tracking-widest">Recebe atualizações de engenharia.</p>
             <div className="flex flex-col space-y-4">
               <input type="email" placeholder="EMAIL@EMPRESA.EU" className="bg-black border border-white/10 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-[#E60000]" />
