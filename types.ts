@@ -4,7 +4,8 @@ export enum Category {
   LargeFormat = 'Grande Formato',
   CommercialPrint = 'Impressão Comercial',
   Textile = 'Têxtil e Brindes',
-  Packaging = 'Embalagens'
+  Packaging = 'Embalagens',
+  SmartSolution = 'Soluções Inteligentes'
 }
 
 export type Permission = 
@@ -15,12 +16,12 @@ export type Permission =
   | 'ACCESS_BACKOFFICE';
 
 export type UserRole = 
-  | 'Client' 
+  | 'Cliente' 
   | 'B2B_Admin' 
-  | 'B2B_Approver' 
-  | 'B2B_Orderer' 
-  | 'B2B_Viewer' 
-  | 'Admin';
+  | 'B2B_Aprovador' 
+  | 'B2B_Operador' 
+  | 'B2B_Visualizador' 
+  | 'Administrador';
 
 export interface User {
   id: string;
@@ -41,7 +42,7 @@ export interface TeamMember {
   name: string;
   email: string;
   role: UserRole;
-  status: 'Active' | 'Pending' | 'Deactivated';
+  status: 'Ativo' | 'Pendente' | 'Desativado';
 }
 
 export interface SupportTicket {
@@ -69,7 +70,7 @@ export interface Product {
   category: Category;
   description: string;
   basePrice: number;
-  unit: 'm2' | 'un';
+  unit: 'm2' | 'un' | 'pack';
   image: string;
   featured?: boolean;
 }

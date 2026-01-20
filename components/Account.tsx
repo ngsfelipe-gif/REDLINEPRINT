@@ -23,19 +23,21 @@ interface AccountProps {
 }
 
 const MOCK_TEAM: TeamMember[] = [
-  { id: 'TM-01', name: 'Sarah Connor', email: 's.connor@spacex.com', role: 'B2B_Orderer', status: 'Active' },
-  { id: 'TM-02', name: 'James Holden', email: 'j.holden@spacex.com', role: 'B2B_Approver', status: 'Active' },
-  { id: 'TM-03', name: 'Naomi Nagata', email: 'n.nagata@spacex.com', role: 'B2B_Viewer', status: 'Active' },
-  { id: 'TM-04', name: 'Alex Kamal', email: 'a.kamal@spacex.com', role: 'B2B_Orderer', status: 'Pending' },
+  // Fix: Use correct UserRole and status values
+  { id: 'TM-01', name: 'Sarah Connor', email: 's.connor@spacex.com', role: 'B2B_Operador', status: 'Ativo' },
+  { id: 'TM-02', name: 'James Holden', email: 'j.holden@spacex.com', role: 'B2B_Aprovador', status: 'Ativo' },
+  { id: 'TM-03', name: 'Naomi Nagata', email: 'n.nagata@spacex.com', role: 'B2B_Visualizador', status: 'Ativo' },
+  { id: 'TM-04', name: 'Alex Kamal', email: 'a.kamal@spacex.com', role: 'B2B_Operador', status: 'Pendente' },
 ];
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  Admin: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'],
+  // Fix: Use correct UserRole keys
+  Administrador: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'],
   B2B_Admin: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM'],
-  B2B_Approver: ['VIEW_ORDERS', 'APPROVE_BUDGETS'],
-  B2B_Orderer: ['VIEW_ORDERS', 'PLACE_ORDERS'],
-  B2B_Viewer: ['VIEW_ORDERS'],
-  Client: ['VIEW_ORDERS', 'PLACE_ORDERS']
+  B2B_Aprovador: ['VIEW_ORDERS', 'APPROVE_BUDGETS'],
+  B2B_Operador: ['VIEW_ORDERS', 'PLACE_ORDERS'],
+  B2B_Visualizador: ['VIEW_ORDERS'],
+  Cliente: ['VIEW_ORDERS', 'PLACE_ORDERS']
 };
 
 const Account: React.FC<AccountProps> = ({ user, orders, tickets, notifications, onAddTicket, subTab, setSubTab, onLogout }) => {
@@ -46,7 +48,8 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, notifications,
   const [selectedEmail, setSelectedEmail] = useState<Notification | null>(null);
   const [isAddingMember, setIsAddingMember] = useState(false);
 
-  const filteredOrders = user.role === 'Admin' ? orders : orders.filter(o => o.client === user.name || (isB2B && o.client.includes('SpaceX')));
+  // Fix: Use 'Administrador' instead of 'Admin'
+  const filteredOrders = user.role === 'Administrador' ? orders : orders.filter(o => o.client === user.name || (isB2B && o.client.includes('SpaceX')));
 
   const getStatusProgress = (status: string) => {
     switch (status) {

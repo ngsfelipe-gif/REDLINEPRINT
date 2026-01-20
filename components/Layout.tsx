@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFDFD]">
       <div className="bg-black text-white text-[10px] font-bold tracking-[0.3em] uppercase py-2 text-center z-[60] relative">
-        Portal Industrial REDLINE // Hub Europeu v.4.0
+        Portal Industrial REDLINE // Hub Europeu v.6.0 // Frankfurt-Lisboa
       </div>
 
       <nav className="fixed top-8 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-50 glass rounded-full px-8 h-20 flex items-center justify-between shadow-2xl border border-gray-200/50">
@@ -33,14 +33,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
         </div>
 
         <div className="hidden lg:flex items-center space-x-12 font-black text-[11px] uppercase tracking-[0.2em] text-gray-400">
-          {['Products', 'Production', 'Support'].map((item) => (
+          {[
+            { id: 'products', label: 'Catálogo' },
+            { id: 'production', label: 'Produção' },
+            { id: 'support', label: 'Suporte' }
+          ].map((item) => (
             <button 
-              key={item} 
-              className={`hover:text-[#E60000] transition-all relative py-2 ${activeTab === item.toLowerCase() ? 'text-black' : ''}`}
-              onClick={() => setActiveTab(item.toLowerCase())}
+              key={item.id} 
+              className={`hover:text-[#E60000] transition-all relative py-2 ${activeTab === item.id ? 'text-black' : ''}`}
+              onClick={() => setActiveTab(item.id)}
             >
-              {item}
-              {activeTab === item.toLowerCase() && <div className="absolute bottom-0 left-0 w-full h-1 bg-[#E60000] rounded-full" />}
+              {item.label}
+              {activeTab === item.id && <div className="absolute bottom-0 left-0 w-full h-1 bg-[#E60000] rounded-full" />}
             </button>
           ))}
         </div>
@@ -49,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
           {user && (
             <div className="hidden md:flex items-center bg-black/5 rounded-full px-4 py-2 space-x-2 border border-black/5">
               <Award className="w-4 h-4 text-red-600" />
-              <span className="text-[10px] font-black uppercase">{user.tier} Member</span>
+              <span className="text-[10px] font-black uppercase">Membro {user.tier}</span>
             </div>
           )}
           
@@ -68,7 +72,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
               <button 
                 onClick={onLogout}
                 className="bg-gray-100 p-3.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all shadow-md active:scale-95"
-                title="De-auth Node"
+                title="Desautenticar Node"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -91,38 +95,41 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
               <span className="font-brand text-3xl font-black italic tracking-tighter">REDLINE</span>
             </div>
             <p className="text-gray-500 text-sm font-medium leading-relaxed">
-              Liderando a revolução industrial gráfica na Europa com inteligência artificial e logística de alta performance.
+              A liderar a revolução gráfica industrial na Europa com Inteligência Artificial e logística de alto rendimento. Sincronizamos o digital com o tátil.
             </p>
           </div>
           
           <div>
             <h4 className="font-black uppercase text-[10px] tracking-[0.5em] mb-10 text-[#E60000]">SOLUÇÕES</h4>
             <ul className="space-y-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">
-              <li><a href="#" className="hover:text-red-600 transition-colors">Business Cards Pro</a></li>
-              <li><a href="#" className="hover:text-red-600 transition-colors">Large Format Vinyl</a></li>
-              <li><a href="#" className="hover:text-red-600 transition-colors">B2B Dashboards</a></li>
-              <li><a href="#" className="hover:text-red-600 transition-colors">API Integration</a></li>
+              <li><a href="#" className="hover:text-red-600 transition-colors">Cartões de Visita Pro</a></li>
+              <li><a href="#" className="hover:text-red-600 transition-colors">Vinil de Grande Formato</a></li>
+              <li><a href="#" className="hover:text-red-600 transition-colors">Dashboards B2B</a></li>
+              <li><a href="#" className="hover:text-red-600 transition-colors">Integração via API</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-black uppercase text-[10px] tracking-[0.5em] mb-10 text-[#E60000]">HUB EUROPA</h4>
+            <h4 className="font-black uppercase text-[10px] tracking-[0.5em] mb-10 text-[#E60000]">HUBS EUROPA</h4>
             <ul className="space-y-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">
-              <li>Frankfurt, DE</li>
-              <li>Lisbon, PT</li>
+              <li>Frankfurt, DE (Principal)</li>
+              <li>Lisboa, PT (Sul)</li>
               <li>Madrid, ES</li>
-              <li>Milan, IT</li>
+              <li>Milão, IT</li>
             </ul>
           </div>
 
           <div className="bg-white/5 p-10 rounded-[3rem] border border-white/10 backdrop-blur-xl">
             <h4 className="font-black uppercase text-[10px] tracking-widest mb-4">REDLINE INSIDER</h4>
-            <p className="text-[10px] text-gray-500 mb-8 font-black uppercase tracking-widest">Recebe atualizações de engenharia.</p>
+            <p className="text-[10px] text-gray-500 mb-8 font-black uppercase tracking-widest">Receba relatórios de engenharia gráfica.</p>
             <div className="flex flex-col space-y-4">
               <input type="email" placeholder="EMAIL@EMPRESA.EU" className="bg-black border border-white/10 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-[#E60000]" />
               <button className="bg-[#E60000] py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Sincronizar</button>
             </div>
           </div>
+        </div>
+        <div className="mt-24 pt-10 border-t border-white/5 text-center">
+           <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.5em]">© 2025 REDLINE PRINTING SYSTEMS // TECNOLOGIA ATÓMICA GARANTIDA</p>
         </div>
       </footer>
     </div>

@@ -14,7 +14,8 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [role, setRole] = useState<'Client' | 'B2B_Admin'>('Client');
+  // Use correct UserRole values ('Cliente' instead of 'Client')
+  const [role, setRole] = useState<'Cliente' | 'B2B_Admin'>('Cliente');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
@@ -40,7 +41,8 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const completeAuth = () => {
     if (mode === 'login') {
       if (email === 'admin@redline.eu' && password === 'redline2025') {
-        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Admin', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'], tier: 'Platina', joinedAt: Date.now() });
+        // Fix: Use 'Administrador' instead of 'Admin'
+        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Administrador', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'], tier: 'Platina', joinedAt: Date.now() });
         return;
       }
       if (email === 'b2b@spacex.com' && password === 'redline2025') {
@@ -48,11 +50,13 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
         return;
       }
       if (email === 'viewer@spacex.com' && password === 'redline2025') {
-        onLogin({ id: 'b2b-02', name: 'Viewer Node', email, role: 'B2B_Viewer', permissions: ['VIEW_ORDERS'], tier: 'Bronze', company: 'SpaceX EU', joinedAt: Date.now() });
+        // Fix: Use 'B2B_Visualizador' instead of 'B2B_Viewer'
+        onLogin({ id: 'b2b-02', name: 'Viewer Node', email, role: 'B2B_Visualizador', permissions: ['VIEW_ORDERS'], tier: 'Bronze', company: 'SpaceX EU', joinedAt: Date.now() });
         return;
       }
       if (email === 'cliente@gmail.com' && password === 'redline2025') {
-        onLogin({ id: 'client-01', name: 'João Silva', email, role: 'Client', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS'], tier: 'Bronze', joinedAt: Date.now() });
+        // Fix: Use 'Cliente' instead of 'Client'
+        onLogin({ id: 'client-01', name: 'João Silva', email, role: 'Cliente', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS'], tier: 'Bronze', joinedAt: Date.now() });
         return;
       }
       setError('PROTOCOL ERROR: Authentication failed in R2 Cluster.');
@@ -156,7 +160,8 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="NOME DO OPERADOR" className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-xl text-black text-[11px] font-black uppercase tracking-widest focus:border-red-600 outline-none transition-all" required />
                 <div className="grid grid-cols-2 gap-4">
-                  <button type="button" onClick={() => setRole('Client')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'Client' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Standard</button>
+                  {/* Fix: Use 'Cliente' instead of 'Client' */}
+                  <button type="button" onClick={() => setRole('Cliente')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'Cliente' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Standard</button>
                   <button type="button" onClick={() => setRole('B2B_Admin')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'B2B_Admin' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Corporate</button>
                 </div>
               </div>
