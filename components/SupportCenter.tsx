@@ -8,7 +8,7 @@ interface SupportCenterProps {
 
 const SupportCenter: React.FC<SupportCenterProps> = ({ onOpenTicket }) => {
   return (
-    <div className="max-w-7xl mx-auto px-6 py-24 animate-in fade-in duration-700">
+    <div className="max-w-7xl mx-auto px-6 py-40 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
         <div className="max-w-3xl">
           <h2 className="text-[10px] font-black text-red-600 uppercase tracking-[1em] mb-8">Suporte Especializado</h2>

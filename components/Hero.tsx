@@ -11,10 +11,10 @@ const Hero: React.FC<{ onStart: () => void, onB2B: () => void }> = ({ onStart, o
       </div>
 
       <div className="relative z-10 max-w-[1300px] mx-auto px-6 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-        <div className="lg:col-span-7 space-y-8 fade-in-up">
+        <div className="lg:col-span-7 space-y-8 animate-in fade-in slide-in-from-left-10 duration-1000">
           <div className="inline-flex items-center space-x-3 bg-black/5 backdrop-blur-md px-4 py-2 rounded-full border border-black/5">
             <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-ping" />
-            <span className="text-[9px] font-black tracking-[0.4em] uppercase text-black">Hub Frankfurt // v6.0 Ativo</span>
+            <span className="text-[9px] font-black tracking-[0.4em] uppercase text-black">Hub Frankfurt // v9.0 Ativo</span>
           </div>
           
           <h1 className="text-5xl md:text-8xl font-brand font-black italic tracking-tighter leading-[0.85] text-black uppercase">
@@ -35,7 +35,7 @@ const Hero: React.FC<{ onStart: () => void, onB2B: () => void }> = ({ onStart, o
                 Configurador de Projetos
                 <ArrowRight className="ml-3 w-4 h-4 group-hover:translate-x-2 transition-transform" />
               </button>
-              <button onClick={onB2B} className="bg-white border-2 border-black text-black px-10 py-5 font-black uppercase tracking-[0.4em] text-[10px] rounded-xl hover:bg-black hover:text-white transition-all flex items-center justify-center">
+              <button onClick={onB2B} className="bg-white border-2 border-black text-black px-10 py-5 font-black uppercase tracking-[0.4em] text-[10px] rounded-xl hover:bg-black hover:text-white transition-all flex items-center justify-center shadow-lg">
                 Portal Empresarial B2B
               </button>
             </div>
@@ -56,12 +56,12 @@ const Hero: React.FC<{ onStart: () => void, onB2B: () => void }> = ({ onStart, o
              </div>
              <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-red-600" /> 
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Logística Pan-Europeia</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Logística Global</span>
              </div>
           </div>
         </div>
 
-        <div className="lg:col-span-5 hidden lg:block relative">
+        <div className="lg:col-span-5 hidden lg:block relative animate-in fade-in slide-in-from-right-10 duration-1000">
            <div className="relative z-10 w-full aspect-[4/5] bg-white rounded-[2rem] overflow-hidden shadow-2xl border-[8px] border-white transform rotate-2 hover:rotate-0 transition-all duration-700 group">
               <img 
                 src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=1200" 
