@@ -145,9 +145,11 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user }) => 
     
     // Simular injeção no pipeline
     setTimeout(() => {
+      // Fix: Added missing clientId property
       const newOrder: ProductionJob = {
         id: `RL-${Math.floor(Math.random() * 9000) + 1000}`,
         client: user?.name || 'GUEST-NODE',
+        clientId: user?.id || 'guest-01',
         product: selectedProduct.name,
         status: 'Orçamento Gerado',
         priority: options.priority !== 'Standard (48-72h)',

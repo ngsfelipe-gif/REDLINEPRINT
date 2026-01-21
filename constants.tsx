@@ -81,7 +81,8 @@ export const MOCK_NODES: PartnerNode[] = [
     capacity: 85, 
     latency: '0.2ms', 
     image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800',
-    description: 'A maior unidade de impressão da Europa Central. Especializada em grandes volumes e embalagens industriais.'
+    description: 'A maior unidade de impressão da Europa Central. Especializada em grandes volumes e embalagens industriais.',
+    ownerId: 'SYSTEM'
   },
   { 
     id: 'NODE-LIS', 
@@ -92,25 +93,43 @@ export const MOCK_NODES: PartnerNode[] = [
     capacity: 40, 
     latency: '12ms', 
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800',
-    description: 'Centro de excelência para acabamentos especiais e impressão comercial de alta fidelidade.'
-  },
-  { 
-    id: 'NODE-BER', 
-    name: 'Berlin Tech Print', 
-    location: 'Berlim, DE', 
-    specialization: [Category.SmartSolution, Category.OfficeSupplies], 
-    status: 'Busy', 
-    capacity: 98, 
-    latency: '4ms', 
-    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800',
-    description: 'Hub de inovação especializado em soluções inteligentes NFC e cartões corporativos de metal.'
+    description: 'Centro de excelência para acabamentos especiais e impressão comercial de alta fidelidade.',
+    ownerId: 'SYSTEM'
   }
 ];
 
 export const MOCK_JOBS: ProductionJob[] = [
-  { id: 'RL-1024', client: 'Elon Musk', product: 'Lona Mesh Giga', status: 'Impressão', priority: true, deadline: 'Hoje', timestamp: Date.now() - 3600000, value: '1250.00', material: 'Lona Mesh Pro', finish: 'Ilhós Perimetral', dimensions: '10.0x5.0m', quantity: '1', progress: 60, nodeId: 'NODE-FRA' }
+  { 
+    id: 'RL-1024', 
+    client: 'Elon Musk', 
+    clientId: 'b2b-01', 
+    product: 'Lona Mesh Giga', 
+    status: 'Impressão', 
+    priority: true, 
+    deadline: 'Hoje', 
+    timestamp: Date.now() - 3600000, 
+    value: '1250.00', 
+    material: 'Lona Mesh Pro', 
+    finish: 'Ilhós Perimetral', 
+    dimensions: '10.0x5.0m', 
+    quantity: '1', 
+    progress: 60, 
+    nodeId: 'NODE-FRA' 
+  }
 ];
 
 export const MOCK_TICKETS: SupportTicket[] = [
-  { id: 'TK-4412', subject: 'Ajuste de Cor Pantone 485C', category: 'Técnico', status: 'Em Análise', priority: 'Alta', timestamp: Date.now() - 86400000 }
+  { 
+    id: 'TK-4412', 
+    subject: 'Ajuste de Cor Pantone 485C', 
+    category: 'Técnico', 
+    status: 'Em Análise', 
+    priority: 'Alta', 
+    timestamp: Date.now() - 86400000,
+    creatorId: 'client-01',
+    messages: [
+      { id: 'm1', authorId: 'client-01', authorName: 'João Silva', text: 'O vermelho na lona parece um pouco alaranjado.', timestamp: Date.now() - 86400000 },
+      { id: 'm2', authorId: 'admin-01', authorName: 'Admin Node', text: 'Vamos recalibrar o perfil FOGRA39 no node Frankfurt.', timestamp: Date.now() - 86000000 }
+    ]
+  }
 ];

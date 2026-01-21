@@ -16,14 +16,14 @@ export type Permission =
   | 'APPROVE_BUDGETS' 
   | 'MANAGE_TEAM' 
   | 'MANAGE_CATALOG'
+  | 'MANAGE_HUBS'
+  | 'MANAGE_USERS'
   | 'ACCESS_BACKOFFICE';
 
 export type UserRole = 
   | 'Cliente' 
   | 'B2B_Admin' 
-  | 'B2B_Aprovador' 
   | 'B2B_Operador' 
-  | 'B2B_Visualizador' 
   | 'Administrador';
 
 export interface User {
@@ -36,8 +36,6 @@ export interface User {
   company?: string;
   creditLimit?: number;
   creditUsed?: number;
-  address?: string;
-  nif?: string;
   joinedAt: number;
 }
 
@@ -51,6 +49,7 @@ export interface PartnerNode {
   latency: string;
   image: string;
   description: string;
+  ownerId?: string; // ID do B2B Admin ou 'SYSTEM'
 }
 
 export interface ExtendedProduct {
@@ -75,6 +74,7 @@ export interface ExtendedProduct {
 export interface ProductionJob {
   id: string;
   client: string;
+  clientId: string;
   product: string;
   status: 'Orçamento Gerado' | 'Pre-flight' | 'Impressão' | 'Acabamento' | 'Expedição' | 'Entregue';
   priority: boolean;
@@ -84,7 +84,6 @@ export interface ProductionJob {
   material?: string;
   finish?: string;
   dimensions?: string;
-  fileName?: string;
   quantity?: string;
   progress: number;
   nodeId?: string;
@@ -100,6 +99,14 @@ export interface Notification {
   orderId: string;
 }
 
+export interface TicketMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface SupportTicket {
   id: string;
   subject: string;
@@ -107,4 +114,7 @@ export interface SupportTicket {
   status: 'Aberto' | 'Em Análise' | 'Resolvido';
   priority: 'Baixa' | 'Normal' | 'Alta' | 'Crítica';
   timestamp: number;
+  messages: TicketMessage[];
+  creatorId: string;
+  orderId?: string;
 }
