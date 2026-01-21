@@ -16,7 +16,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
   
-  // Estados Globais Sincronizados
+  // Estado Global Sincronizado
   const [orders, setOrders] = useState<ProductionJob[]>(MOCK_JOBS);
   const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES);
   const [tickets, setTickets] = useState<SupportTicket[]>(MOCK_TICKETS);
@@ -26,12 +26,11 @@ const App: React.FC = () => {
   const [accountSubTab, setAccountSubTab] = useState('overview');
   const [activeToast, setActiveToast] = useState<Notification | null>(null);
 
-  // Notificações e Toasts
   const createNotification = (type: Notification['type'], orderId: string, productName: string, customMsg?: string) => {
     const newNotif: Notification = {
       id: `NT-${Date.now()}`,
-      title: `[RL-SYNC] Update: ${orderId}`,
-      message: customMsg || `O estado da encomenda ${productName} foi atualizado no Cluster R2.`,
+      title: `[RL-SYNC] ${orderId}`,
+      message: customMsg || `Atualização de sistema na encomenda ${productName}.`,
       timestamp: Date.now(),
       read: false,
       type,
@@ -43,45 +42,38 @@ const App: React.FC = () => {
   };
 
   // Handlers de Encomendas
-  const addOrder = (order: ProductionJob) => {
+  const handleAddOrder = (order: ProductionJob) => {
     setOrders(prev => [order, ...prev]);
     setActiveTab('account');
     setAccountSubTab('orders');
-    createNotification('Confirmed', order.id, order.product, "Injeção de material bem-sucedida.");
+    createNotification('Confirmed', order.id, order.product, "Ordem injetada no cluster de produção.");
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: ProductionJob['status']) => {
+  const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status']) => {
     setOrders(prev => prev.map(o => {
       if (o.id === orderId) {
-        if (o.status !== newStatus) {
-          createNotification('Production', o.id, o.product, `Status alterado para ${newStatus}`);
-        }
         const progressMap: Record<string, number> = {
           'Orçamento Gerado': 10, 'Pre-flight': 25, 'Impressão': 55, 'Acabamento': 80, 'Expedição': 95, 'Entregue': 100
         };
+        createNotification('Production', o.id, o.product, `Novo estado: ${newStatus}`);
         return { ...o, status: newStatus, progress: progressMap[newStatus] || o.progress };
       }
       return o;
     }));
   };
 
-  const approveOrder = (orderId: string) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Pre-flight', progress: 25 } : o));
-    createNotification('Production', orderId, 'Job', "Orçamento aprovado pelo cliente.");
-  };
-
   // Handlers de Hubs
-  const addHub = (hub: PartnerNode) => {
+  const handleAddHub = (hub: PartnerNode) => {
     setHubs(prev => [...prev, hub]);
-    createNotification('Confirmed', 'HUB-SYNC', hub.name, "Novo nodo de produção registado na rede.");
+    createNotification('Confirmed', hub.id, hub.name, "Novo Nodo de Produção ativado na rede.");
   };
 
-  const updateHubStatus = (hubId: string, status: PartnerNode['status']) => {
+  const handleUpdateHubStatus = (hubId: string, status: PartnerNode['status']) => {
     setHubs(prev => prev.map(h => h.id === hubId ? { ...h, status } : h));
   };
 
   // Handlers de Tickets
-  const addTicketMessage = (ticketId: string, text: string) => {
+  const handleAddTicketMessage = (ticketId: string, text: string) => {
     if (!user) return;
     const newMessage: TicketMessage = {
       id: `MSG-${Date.now()}`,
@@ -93,7 +85,7 @@ const App: React.FC = () => {
     setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, messages: [...t.messages, newMessage] } : t));
   };
 
-  const createTicket = (ticket: SupportTicket) => {
+  const handleCreateTicket = (ticket: SupportTicket) => {
     setTickets(prev => [ticket, ...prev]);
     setActiveTab('account');
     setAccountSubTab('inbox');
@@ -107,57 +99,62 @@ const App: React.FC = () => {
       onLoginClick={() => setShowLogin(true)} 
       onLogout={() => { setUser(null); setActiveTab('home'); }}
     >
-      {activeTab === 'home' && (
-        <Hero 
-          onStart={() => setActiveTab('products')} 
-          onB2B={() => setActiveTab('partners')} 
-        />
-      )}
-      
-      {activeTab === 'products' && <ProductBuilder onAddOrder={addOrder} user={user} hubs={hubs} />}
-      
-      {activeTab === 'partners' && <B2BPartners hubs={hubs} />}
-      
-      {activeTab === 'production' && (
-        <Backoffice 
-          orders={orders} 
-          hubs={hubs}
-          users={[]} // Mock users state could be added
-          user={user} 
-          onUpdateStatus={updateOrderStatus} 
-          onAddHub={addHub}
-          onUpdateHub={updateHubStatus}
-        />
-      )}
-      
-      {activeTab === 'account' && (user ? (
-        <Account 
-          user={user} 
-          orders={orders} 
-          tickets={tickets} 
-          notifications={notifications}
-          onAddMessage={addTicketMessage}
-          onCreateTicket={createTicket}
-          subTab={accountSubTab}
-          setSubTab={setAccountSubTab}
-          onLogout={() => { setUser(null); setActiveTab('home'); }}
-          onApproveOrder={approveOrder}
-        />
-      ) : (
-        <LoginPanel onLogin={(u) => { setUser(u); setActiveTab('account'); }} onBack={() => setActiveTab('home')} />
-      ))}
-      
+      <div className="pt-24 lg:pt-32"> {/* Global top spacing fix */}
+        {activeTab === 'home' && (
+          <Hero 
+            onStart={() => setActiveTab('products')} 
+            onB2B={() => setActiveTab('partners')} 
+          />
+        )}
+        
+        {activeTab === 'products' && (
+          <ProductBuilder onAddOrder={handleAddOrder} user={user} />
+        )}
+        
+        {activeTab === 'partners' && (
+          <B2BPartners hubs={hubs} />
+        )}
+        
+        {activeTab === 'production' && (
+          <Backoffice 
+            orders={orders} 
+            hubs={hubs}
+            user={user} 
+            onUpdateStatus={handleUpdateOrderStatus} 
+            onAddHub={handleAddHub}
+            onUpdateHub={handleUpdateHubStatus}
+          />
+        )}
+        
+        {activeTab === 'account' && (user ? (
+          <Account 
+            user={user} 
+            orders={orders} 
+            tickets={tickets} 
+            notifications={notifications}
+            onAddMessage={handleAddTicketMessage}
+            onCreateTicket={handleCreateTicket}
+            subTab={accountSubTab}
+            setSubTab={setAccountSubTab}
+            onLogout={() => { setUser(null); setActiveTab('home'); }}
+            onApproveOrder={(id) => handleUpdateOrderStatus(id, 'Pre-flight')}
+          />
+        ) : (
+          <LoginPanel onLogin={(u) => { setUser(u); setActiveTab('account'); }} onBack={() => setActiveTab('home')} />
+        ))}
+      </div>
+
       {activeToast && (
-        <div className="fixed top-24 right-6 z-[2000] w-[350px] bg-white border-l-[6px] border-red-600 p-6 shadow-2xl animate-in slide-in-from-right-10 rounded-r-3xl border border-gray-100">
-           <div className="flex items-start space-x-4">
-              <div className="bg-red-600 p-3 rounded-2xl shadow-lg shadow-red-200">
-                 <Zap className="w-4 h-4 text-white animate-pulse" />
+        <div className="fixed bottom-10 left-10 z-[3000] w-[380px] bg-black text-white p-6 rounded-[2rem] shadow-2xl border-l-[10px] border-red-600 animate-in slide-in-from-left-10">
+           <div className="flex items-center space-x-4">
+              <div className="bg-red-600 p-3 rounded-2xl">
+                 <Zap className="w-5 h-5 text-white animate-pulse" />
               </div>
               <div className="flex-grow">
-                 <h4 className="text-[10px] font-black uppercase text-black mb-1 tracking-widest">{activeToast.title}</h4>
-                 <p className="text-[10px] font-medium text-gray-400 line-clamp-2 italic leading-relaxed">{activeToast.message}</p>
+                 <h4 className="text-[10px] font-black uppercase tracking-widest text-red-600">{activeToast.title}</h4>
+                 <p className="text-[11px] font-bold text-gray-400 mt-1 italic">{activeToast.message}</p>
               </div>
-              <button onClick={() => setActiveToast(null)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4 text-gray-300" /></button>
+              <button onClick={() => setActiveToast(null)} className="text-gray-600 hover:text-white transition-all"><X className="w-5 h-5"/></button>
            </div>
         </div>
       )}
