@@ -11,22 +11,24 @@ const getAIClient = () => {
 export const generateTechnicalNote = async (product: any, options: any): Promise<string> => {
   const ai = getAIClient();
   try {
-    const prompt = `Cria uma nota técnica profissional e concisa (máximo 400 caracteres) em Português para uma folha de produção gráfica industrial. 
+    const prompt = `Cria uma nota técnica profissional de engenharia gráfica (máximo 400 caracteres) em Português para uma ordem de produção industrial. 
     Produto: ${product.name}. 
     Material: ${options.material}. 
     Acabamento: ${options.finish}. 
+    Dimensões: ${options.dimensions}.
     Quantidade: ${options.quantity}.
-    Prioridade: ${options.priority}.
-    Use terminologia industrial avançada como 'calibração de perfil ICC', 'secagem UV', 'tensão superficial' ou 'pre-flight molecular'. 
-    Fale sobre a garantia de qualidade REDLINE.`;
+    Custo Estimado: EUR ${options.price}.
+    Use terminologia técnica avançada: 'calibração de perfil ICC FOGRA39', 'densidade ótica', 'deposição UV', 'pre-flight atómico', 'sangrias de segurança'. 
+    Fale sobre a precisão REDLINE R2.`;
 
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
     });
 
-    return response.text || "Produção standard verificada de acordo com as normas ISO 12647-2. Calibração de cor via motor Quantum R2 garantida.";
+    return response.text || "Protocolo industrial verificado. Calibração de cor via motor Quantum R2 garantida em conformidade com ISO 12647-2.";
   } catch (error) {
+    console.error("Gemini Technical Note Error:", error);
     return "Verificação técnica concluída. Perfil de cor FOGRA39 aplicado e validação de asset concluída com sucesso no node R2.";
   }
 };

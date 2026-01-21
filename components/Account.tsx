@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { User as UserType, ProductionJob, SupportTicket, Notification, TeamMember, UserRole } from '../types';
+// Fix: Removed TeamMember from import as it is not exported from ../types and not used
+import { User as UserType, ProductionJob, SupportTicket, Notification, UserRole } from '../types';
 import { 
   Activity, Zap, ShieldCheck, Eye, X, ChevronRight, Cpu, ArrowRight, Mail, Inbox, CornerDownRight, Printer, LogOut, Check, Clock, AlertTriangle, CheckCircle2
 } from 'lucide-react';
@@ -172,7 +173,6 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, notifications,
                 </div>
                 {pendingApprovals.length === 0 ? (
                   <div className="p-20 bg-gray-50 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
-                    {/* Add missing CheckCircle2 import to lucide-react list above */}
                     <CheckCircle2 className="w-12 h-12 text-gray-200 mx-auto mb-4" />
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Nenhuma transação aguarda aprovação.</p>
                   </div>

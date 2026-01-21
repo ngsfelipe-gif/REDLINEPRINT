@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Mail, ArrowRight, ShieldCheck, Printer, X, AlertCircle, Building2, UserPlus, Loader2, Cpu, Zap } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, ShieldCheck, Printer, X, AlertCircle, Building2, UserPlus, Loader2, Cpu, Zap, Info } from 'lucide-react';
 import { User as UserType, Permission } from '../types';
 
 interface LoginPanelProps {
@@ -14,7 +14,6 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  // Use correct UserRole values ('Cliente' instead of 'Client')
   const [role, setRole] = useState<'Cliente' | 'B2B_Admin'>('Cliente');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -41,21 +40,14 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
   const completeAuth = () => {
     if (mode === 'login') {
       if (email === 'admin@redline.eu' && password === 'redline2025') {
-        // Fix: Use 'Administrador' instead of 'Admin'
-        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Administrador', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE'], tier: 'Platina', joinedAt: Date.now() });
+        onLogin({ id: 'admin-01', name: 'Admin Node', email, role: 'Administrador', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM', 'ACCESS_BACKOFFICE', 'MANAGE_CATALOG'], tier: 'Platina', joinedAt: Date.now() });
         return;
       }
       if (email === 'b2b@spacex.com' && password === 'redline2025') {
         onLogin({ id: 'b2b-01', name: 'Elon Musk', email, role: 'B2B_Admin', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS', 'APPROVE_BUDGETS', 'MANAGE_TEAM'], tier: 'Platina', company: 'SpaceX EU', creditLimit: 50000, joinedAt: Date.now() });
         return;
       }
-      if (email === 'viewer@spacex.com' && password === 'redline2025') {
-        // Fix: Use 'B2B_Visualizador' instead of 'B2B_Viewer'
-        onLogin({ id: 'b2b-02', name: 'Viewer Node', email, role: 'B2B_Visualizador', permissions: ['VIEW_ORDERS'], tier: 'Bronze', company: 'SpaceX EU', joinedAt: Date.now() });
-        return;
-      }
       if (email === 'cliente@gmail.com' && password === 'redline2025') {
-        // Fix: Use 'Cliente' instead of 'Client'
         onLogin({ id: 'client-01', name: 'João Silva', email, role: 'Cliente', permissions: ['VIEW_ORDERS', 'PLACE_ORDERS'], tier: 'Bronze', joinedAt: Date.now() });
         return;
       }
@@ -114,13 +106,25 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
             <h2 className="text-6xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter mb-8">
               Node <br /> <span className="text-black">Access.</span>
             </h2>
-            <div className="space-y-6 border-l-4 border-black pl-8 py-2">
-               <p className="text-lg font-medium leading-tight max-w-xs">
-                  Sincronização industrial para ativos gráficos globais.
-               </p>
-               <div className="flex items-center space-x-3">
-                  <ShieldCheck className="w-6 h-6 text-black" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">ENCRYPTED R2 NODE</span>
+            
+            <div className="bg-black/20 p-6 rounded-3xl border border-white/10 mt-8">
+               <div className="flex items-center space-x-3 mb-4 text-white">
+                  <Info className="w-4 h-4" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Acesso de Teste v9.0</span>
+               </div>
+               <div className="space-y-4">
+                  <div>
+                    <span className="text-[7px] font-black uppercase text-gray-300 block">Admin Global</span>
+                    <code className="text-[8px] font-mono text-white">admin@redline.eu / redline2025</code>
+                  </div>
+                  <div>
+                    <span className="text-[7px] font-black uppercase text-gray-300 block">B2B SpaceX Manager</span>
+                    <code className="text-[8px] font-mono text-white">b2b@spacex.com / redline2025</code>
+                  </div>
+                  <div>
+                    <span className="text-[7px] font-black uppercase text-gray-300 block">Standard Client</span>
+                    <code className="text-[8px] font-mono text-white">cliente@gmail.com / redline2025</code>
+                  </div>
                </div>
             </div>
           </div>
@@ -160,7 +164,6 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack }) => {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="NOME DO OPERADOR" className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-xl text-black text-[11px] font-black uppercase tracking-widest focus:border-red-600 outline-none transition-all" required />
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Fix: Use 'Cliente' instead of 'Client' */}
                   <button type="button" onClick={() => setRole('Cliente')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'Cliente' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Standard</button>
                   <button type="button" onClick={() => setRole('B2B_Admin')} className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${role === 'B2B_Admin' ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-100 text-gray-300'}`}>Corporate</button>
                 </div>

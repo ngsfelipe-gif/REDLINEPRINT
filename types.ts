@@ -5,7 +5,9 @@ export enum Category {
   CommercialPrint = 'Impressão Comercial',
   Textile = 'Têxtil e Brindes',
   Packaging = 'Embalagens',
-  SmartSolution = 'Soluções Inteligentes'
+  SmartSolution = 'Soluções Inteligentes',
+  OfficeSupplies = 'Escritório e Papelaria',
+  Events = 'Eventos e Exposição'
 }
 
 export type Permission = 
@@ -13,6 +15,7 @@ export type Permission =
   | 'PLACE_ORDERS' 
   | 'APPROVE_BUDGETS' 
   | 'MANAGE_TEAM' 
+  | 'MANAGE_CATALOG'
   | 'ACCESS_BACKOFFICE';
 
 export type UserRole = 
@@ -32,39 +35,25 @@ export interface User {
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Platina';
   company?: string;
   creditLimit?: number;
+  creditUsed?: number;
   address?: string;
   nif?: string;
   joinedAt: number;
 }
 
-export interface TeamMember {
+export interface PartnerNode {
   id: string;
   name: string;
-  email: string;
-  role: UserRole;
-  status: 'Ativo' | 'Pendente' | 'Desativado';
+  location: string;
+  specialization: Category[];
+  status: 'Online' | 'Busy' | 'Maintenance';
+  capacity: number;
+  latency: string;
+  image: string;
+  description: string;
 }
 
-export interface SupportTicket {
-  id: string;
-  subject: string;
-  category: 'Técnico' | 'Faturação' | 'Logística' | 'Produção';
-  status: 'Aberto' | 'Em Análise' | 'Resolvido';
-  priority: 'Baixa' | 'Normal' | 'Alta' | 'Crítica';
-  timestamp: number;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: number;
-  read: boolean;
-  type: 'Confirmed' | 'Production' | 'Shipped' | 'Delivered';
-  orderId: string;
-}
-
-export interface Product {
+export interface ExtendedProduct {
   id: string;
   name: string;
   category: Category;
@@ -72,7 +61,15 @@ export interface Product {
   basePrice: number;
   unit: 'm2' | 'un' | 'pack';
   image: string;
-  featured?: boolean;
+  badge?: 'NOVO' | 'ECO' | 'BEST' | 'PRO' | 'QUENTE';
+  specs: {
+    weight: string;
+    durability: string;
+    usage: string;
+    weatherResistance?: number;
+    ecoLevel?: number;
+    precisionLevel?: string;
+  };
 }
 
 export interface ProductionJob {
@@ -90,4 +87,24 @@ export interface ProductionJob {
   fileName?: string;
   quantity?: string;
   progress: number;
+  nodeId?: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  type: 'Confirmed' | 'Production' | 'Shipped' | 'Delivered';
+  orderId: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  category: 'Técnico' | 'Faturação' | 'Logística' | 'Produção';
+  status: 'Aberto' | 'Em Análise' | 'Resolvido';
+  priority: 'Baixa' | 'Normal' | 'Alta' | 'Crítica';
+  timestamp: number;
 }

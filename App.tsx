@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Hero from './components/Hero';
 import ProductBuilder from './components/ProductBuilder';
@@ -8,6 +8,7 @@ import SupportCenter from './components/SupportCenter';
 import Backoffice from './components/Backoffice';
 import Account from './components/Account';
 import LoginPanel from './components/LoginPanel';
+import B2BPartners from './components/B2BPartners';
 import { MOCK_JOBS, MOCK_TICKETS } from './constants';
 import { ProductionJob, User, SupportTicket, Notification } from './types';
 import { X, Bell, Zap } from 'lucide-react';
@@ -42,7 +43,6 @@ const App: React.FC = () => {
 
     setNotifications(prev => [newNotif, ...prev]);
     setActiveToast(newNotif);
-    // Remover o toast após 6 segundos automaticamente
     const timeout = setTimeout(() => setActiveToast(prev => prev?.id === newNotif.id ? null : prev), 6000);
     return () => clearTimeout(timeout);
   };
@@ -95,14 +95,20 @@ const App: React.FC = () => {
       setShowLogin(true);
     } else {
       setActiveTab('account');
-      setAccountSubTab('inbox'); // Redireciona para mensagens/suporte
+      setAccountSubTab('inbox');
     }
   };
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLoginClick={() => setShowLogin(true)} onLogout={() => { setUser(null); setActiveTab('home'); }}>
-      {activeTab === 'home' && <Hero onStart={() => setActiveTab('products')} onB2B={() => setShowLogin(true)} />}
+      {activeTab === 'home' && (
+        <Hero 
+          onStart={() => setActiveTab('products')} 
+          onB2B={() => setActiveTab('partners')} 
+        />
+      )}
       {activeTab === 'products' && <ProductBuilder onAddOrder={addOrder} user={user} />}
+      {activeTab === 'partners' && <B2BPartners />}
       {activeTab === 'production' && <Backoffice orders={orders} user={user} onUpdateStatus={updateOrderStatus} />}
       {activeTab === 'support' && <SupportCenter onOpenTicket={handleSupportLink} />}
       {activeTab === 'account' && (user ? (
@@ -121,7 +127,6 @@ const App: React.FC = () => {
         <LoginPanel onLogin={(u) => { setUser(u); setActiveTab('account'); }} onBack={() => setActiveTab('home')} />
       ))}
       
-      {/* Toast de Notificação Global */}
       {activeToast && (
         <div className="fixed top-24 right-6 z-[2000] w-[350px] bg-white border-l-[6px] border-red-600 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.15)] animate-in slide-in-from-right-10 flex items-start space-x-4 rounded-r-3xl border border-gray-100">
            <div className="bg-red-600 p-3 rounded-2xl shadow-lg shadow-red-200">
