@@ -157,7 +157,7 @@ const App: React.FC = () => {
       {adminBuffer && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-8 py-3 rounded-full flex items-center space-x-4 shadow-[0_0_40px_rgba(204,0,0,0.5)] border border-white/20 animate-bounce">
            <ShieldCheck className="w-5 h-5" />
-           <span className="text-[10px] font-black uppercase tracking-widest">Acesso Shadow: {user?.name}</span>
+           <span className="text-[10px] font-black uppercase tracking-widest">Sombra Ativa: {user?.name}</span>
            <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-4 py-1 rounded-full text-[9px] font-black uppercase hover:bg-black hover:text-white transition-all">Sair</button>
         </div>
       )}
@@ -224,7 +224,7 @@ const App: React.FC = () => {
       )}
       
       <SupportChat language={language} />
-      {showLogin && <LoginPanel onLogin={(u) => { setUser(u); setShowLogin(false); }} onBack={() => setShowLogin(false)} registeredUsers={users} language={language} onRegisterUser={(u) => setUsers(prev => [...prev, u])} />}
+      {showLogin && <LoginPanel onLogin={(u) => { setUser(u); setShowLogin(false); }} onBack={() => setShowLogin(false)} registeredUsers={users} language={language} onRegisterUser={(u) => setUsers(prev => [...prev, { ...u, status: 'Pendente' }])} />}
     </Layout>
   );
 };

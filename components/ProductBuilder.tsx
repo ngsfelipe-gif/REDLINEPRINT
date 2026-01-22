@@ -33,7 +33,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
 
   const [guestInfo, setGuestInfo] = useState({ name: '', email: '', phone: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const itemsPerPage = 8;
+  const itemsPerPage = 6; // Reduzido para melhor visualização dos cards aumentados
 
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -159,8 +159,8 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
              <div className="animate-in fade-in slide-in-from-right-10">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-10">
                    <div>
-                      <h3 className="text-6xl font-brand font-black italic uppercase text-black leading-none tracking-tighter">Cluster <br/><span className="text-red-600">Inventory.</span></h3>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4 italic">Protocolo R2 v4.2 // Manufatura Digital</p>
+                      <h3 className="text-6xl font-brand font-black italic uppercase text-black leading-none tracking-tighter">Células <br/><span className="text-red-600">R2 Production.</span></h3>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4 italic">Página {currentPage} de {totalPages} // {products.length} Ativos</p>
                    </div>
                    <div className="flex space-x-3">
                       <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-6 bg-gray-50 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 shadow-lg border border-gray-100"><ChevronLeft className="w-8 h-8"/></button>
@@ -168,40 +168,36 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                    {paginatedProducts.map(p => (
                      <div 
                         key={p.id} 
                         onClick={() => setSelectedProduct(p)} 
-                        className={`group bg-white border-2 rounded-[4rem] p-10 transition-all duration-700 cursor-pointer flex flex-col md:flex-row gap-10 h-full ${
+                        className={`group bg-white border-2 rounded-[4.5rem] p-10 transition-all duration-700 cursor-pointer flex flex-col gap-8 ${
                           selectedProduct?.id === p.id 
                           ? 'border-red-600 shadow-[0_40px_80px_-20px_rgba(204,0,0,0.3)] scale-[1.01] z-10' 
                           : 'border-gray-50 hover:border-black hover:shadow-xl'
                         }`}
                       >
-                        <div className="w-full md:w-1/2 relative aspect-square overflow-hidden rounded-[3rem] bg-gray-50 border border-gray-100">
-                           <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000" />
-                           <div className="absolute top-6 right-6 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest italic border border-white/20 z-10">{p.badge || 'R2 ATOM'}</div>
+                        <div className="w-full relative aspect-[16/10] overflow-hidden rounded-[3.5rem] bg-gray-50 border border-gray-100 shadow-inner">
+                           <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-110" />
+                           <div className="absolute top-8 right-8 bg-black/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest italic border border-white/20 z-10">{p.badge || 'R2 ATOM'}</div>
                         </div>
 
-                        <div className="w-full md:w-1/2 flex flex-col justify-between">
+                        <div className="flex flex-col justify-between flex-grow px-4">
                           <div className="space-y-4">
-                            <span className="text-[8px] font-black uppercase text-gray-400 tracking-[0.4em]">{p.category}</span>
-                            <h5 className="text-3xl font-brand font-black italic uppercase leading-[0.9] text-black group-hover:text-red-600 transition-colors tracking-tighter line-clamp-3">{p.name}</h5>
-                            <div className="grid grid-cols-1 gap-3 mt-4">
-                               <div className="bg-gray-50 p-4 rounded-2xl flex items-center space-x-3 border border-gray-100">
-                                  <Activity className="w-4 h-4 text-red-600" />
-                                  <span className="text-[9px] font-black uppercase text-black">{p.specs.precisionLevel}</span>
-                               </div>
-                            </div>
+                            <span className="text-[8px] font-black uppercase text-red-600 tracking-[0.5em]">{p.category}</span>
+                            <h5 className="text-4xl font-brand font-black italic uppercase leading-[0.85] text-black group-hover:text-red-600 transition-colors tracking-tighter">{p.name}</h5>
+                            <p className="text-[11px] font-bold text-gray-400 italic leading-relaxed uppercase tracking-widest line-clamp-2">{p.description}</p>
                           </div>
+                          
                           <div className="flex justify-between items-center pt-8 border-t border-gray-50 mt-8">
                              <div className="flex flex-col">
-                                <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Industrial Rate</span>
-                                <span className="text-3xl font-brand font-black text-black italic leading-none">€{p.basePrice}</span>
+                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Industrial Rate</span>
+                                <span className="text-4xl font-brand font-black text-black italic leading-none">€{p.basePrice}<span className="text-sm font-normal ml-1">/{p.unit}</span></span>
                              </div>
-                             <div className={`p-5 rounded-[2rem] transition-all duration-500 ${selectedProduct?.id === p.id ? 'bg-red-600 text-white shadow-xl scale-110' : 'bg-black text-white'}`}>
-                               <Zap className="w-5 h-5"/>
+                             <div className={`p-6 rounded-[2.5rem] transition-all duration-500 shadow-xl ${selectedProduct?.id === p.id ? 'bg-red-600 text-white scale-110' : 'bg-black text-white hover:bg-red-600'}`}>
+                               <Zap className="w-6 h-6"/>
                              </div>
                           </div>
                         </div>
@@ -209,6 +205,17 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                    ))}
                 </div>
                 
+                {/* Indicadores de Paginação Inferiores */}
+                <div className="mt-16 flex justify-center space-x-2">
+                   {Array.from({ length: totalPages }).map((_, i) => (
+                     <button 
+                        key={i} 
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-12 h-2 rounded-full transition-all duration-500 ${currentPage === i + 1 ? 'bg-red-600 w-24' : 'bg-gray-100 hover:bg-gray-200'}`}
+                     />
+                   ))}
+                </div>
+
                 {selectedProduct && (
                   <button onClick={() => setStep(2)} className="mt-16 w-full bg-black text-white p-12 rounded-[3.5rem] font-brand font-black italic uppercase tracking-[0.4em] text-[16px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center group border-b-[10px] border-red-900/30">
                     <span>Configurar Protocolo R2</span> <ArrowRight className="ml-6 w-8 h-8 group-hover:translate-x-6 transition-transform"/>
@@ -217,6 +224,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
              </div>
            )}
 
+           {/* Passos 2 e 3 mantidos conforme lógica anterior para não quebrar fluxos */}
            {step === 2 && selectedProduct && (
               <div className="animate-in fade-in slide-in-from-right-10 space-y-12">
                  <h3 className="text-5xl font-brand font-black italic uppercase leading-none">Fase 02: <span className="text-red-600">Engenharia do Job.</span></h3>
