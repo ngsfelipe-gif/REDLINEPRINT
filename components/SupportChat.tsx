@@ -2,8 +2,10 @@
 import React, { useState } from 'react';
 import { MessageSquare, X, Send, Sparkles, Loader2, Cpu, ShieldCheck } from 'lucide-react';
 import { getChatResponse } from '../services/geminiService';
+import { Language } from '../types';
 
-const SupportChat: React.FC = () => {
+// Fixed missing language prop in SupportChat component
+const SupportChat: React.FC<{ language: Language }> = ({ language }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
   const [input, setInput] = useState('');

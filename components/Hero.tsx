@@ -1,8 +1,10 @@
 
 import React from 'react';
 import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers } from 'lucide-react';
+import { Language } from '../types';
 
-const Hero: React.FC<{ onStart: () => void, onB2B: () => void, onRegister: () => void }> = ({ onStart, onB2B, onRegister }) => {
+// Fixed missing language prop in Hero component
+const Hero: React.FC<{ onStart: () => void, onB2B: () => void, onRegister: () => void, language: Language }> = ({ onStart, onB2B, onRegister, language }) => {
   return (
     <div className="space-y-32">
       {/* Hero Section Master */}

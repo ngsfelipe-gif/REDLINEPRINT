@@ -15,6 +15,9 @@ export const FINISHES = [
   'Corte Bruto (Sem Acabamento)', 'Corte Reto Laser de Precisão', 'Corte Especial (Die-Cut Digital)', 'Ilhós Perimetral Reforçado 15mm', 'Verniz Localizado 3D High-Build', 'Plastificação Mate Soft-Touch', 'Laminagem Anti-Graffiti', 'Dobra em Cruz (Flyers)'
 ];
 
+/**
+ * Gera a lista inicial de produtos industriais.
+ */
 const generateProducts = (): ExtendedProduct[] => {
   const items: ExtendedProduct[] = [];
   const categories = Object.values(Category);
@@ -54,6 +57,8 @@ const generateProducts = (): ExtendedProduct[] => {
         unit: cat === Category.LargeFormat ? 'm2' : 'un',
         image: `${imgs[i % imgs.length]}?q=80&w=800`,
         badge: i % 5 === 0 ? 'NOVO' : (i % 7 === 0 ? 'ECO' : undefined),
+        status: 'Ativo',
+        ownerHubId: 'SYSTEM',
         specs: {
           weight: `${Math.floor(Math.random() * 400) + 100}g`,
           durability: `${Math.floor(Math.random() * 5) + 2} Anos`,
@@ -104,7 +109,8 @@ export const MOCK_JOBS: ProductionJob[] = [
     client: 'Elon Musk', 
     clientId: 'b2b-01', 
     product: 'Lona Mesh Giga', 
-    status: 'Impressão', 
+    // Fix: Using correct status 'Em Produção' to match type definition
+    status: 'Em Produção', 
     priority: true, 
     deadline: 'Hoje', 
     timestamp: Date.now() - 3600000, 
@@ -114,7 +120,11 @@ export const MOCK_JOBS: ProductionJob[] = [
     dimensions: '10.0x5.0m', 
     quantity: '1', 
     progress: 60, 
-    nodeId: 'NODE-FRA' 
+    nodeId: 'NODE-FRA',
+    // Fix: Added missing history property to satisfy the ProductionJob interface.
+    history: [
+      { timestamp: Date.now() - 3600000, status: 'Em Produção', author: 'System', note: 'Job injetado via Grid Industrial.' }
+    ]
   }
 ];
 

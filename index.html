@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REDLINE PRINT | Ecossistema de Impressão Industrial</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Exo+2:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Exo+2:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script>
         window.process = window.process || { env: {} };
     </script>
@@ -21,32 +21,21 @@
             background-color: #ffffff;
             color: var(--black-brand);
             overflow-x: hidden;
-            font-size: clamp(10px, 1vw, 13px);
-            line-height: 1.5;
+            font-size: 14px; /* Aumentado para melhor legibilidade */
+            line-height: 1.6;
         }
         .font-brand { font-family: 'Exo 2', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        h1, h2, h3, h4, h5, h6 {
-            line-height: 0.95;
-            letter-spacing: -0.05em;
-        }
+        h1 { font-size: clamp(3rem, 8vw, 7rem); }
+        h2 { font-size: clamp(2.5rem, 6vw, 5rem); }
+        h3 { font-size: clamp(2rem, 5vw, 4rem); }
 
         .industrial-grid {
             background-image: 
                 linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
             background-size: 40px 40px;
-        }
-
-        .shimmer {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            background-size: 200% 100%;
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
         }
 
         .status-pulse {
@@ -58,17 +47,38 @@
             100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
         }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #333; }
-        
-        /* Previne cortes de texto em elementos de UI */
-        .text-clamp {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+        /* Novas Animações para o Footer Futurista */
+        @keyframes laser-scan {
+            0% { transform: translateX(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0; }
         }
+        .laser-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--red-brand), transparent);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .laser-line::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            animation: laser-scan 3s infinite linear;
+        }
+
+        .glow-hover:hover {
+            text-shadow: 0 0 15px rgba(204, 0, 0, 0.8);
+            color: #fff !important;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
     <script type="importmap">
     {

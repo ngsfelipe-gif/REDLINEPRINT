@@ -10,34 +10,45 @@ export enum Category {
   Events = 'Eventos e Exposição'
 }
 
-export type Permission = 
-  | 'VIEW_ORDERS' 
-  | 'PLACE_ORDERS' 
-  | 'APPROVE_HUB_ORDERS' 
-  | 'MANAGE_HUBS' 
-  | 'MANAGE_USERS'
-  | 'ACCESS_ADMIN_PANEL'
-  | 'MANAGE_CATALOG'
-  | 'HUB_ANALYTICS'
-  | 'CREATE_PRODUCTS';
+export type Language = 'PT' | 'EN' | 'ES' | 'FR';
 
-export type UserRole = 
-  | 'Cliente' 
-  | 'B2B_Admin' 
-  | 'Administrador';
+export interface ProductionLog {
+  timestamp: number;
+  status: string;
+  author: string;
+  note: string;
+}
 
 export interface User {
   id: string;
   name: string;
   email: string;
   password?: string;
-  role: UserRole;
-  permissions: Permission[];
+  role: 'Cliente' | 'B2B_Admin' | 'Administrador';
+  permissions: string[];
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Platina';
   status: 'Ativo' | 'Pendente' | 'Bloqueado';
   joinedAt: number;
-  managedHubId?: string; // Para B2B_Admin
-  createdByHubId?: string; // Para clientes criados por Hubs
+  managedHubId?: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  priority: 'Alta' | 'Média' | 'Baixa';
+  timestamp: number;
+  creatorId: string;
+  messages: SupportMessage[];
 }
 
 export interface HubRegistrationRequest {
@@ -47,21 +58,7 @@ export interface HubRegistrationRequest {
   location: string;
   machinePark: string;
   timestamp: number;
-  status: 'Pendente' | 'Aprovado' | 'Rejeitado';
-}
-
-export interface PartnerNode {
-  id: string;
-  name: string;
-  location: string;
-  specialization: Category[];
-  status: 'Online' | 'Busy' | 'Maintenance' | 'Aguardando Validação';
-  capacity: number;
-  latency: string;
-  image: string;
-  description: string;
-  ownerId: string;
-  tempPassword?: string; 
+  status: 'Pendente' | 'Aprovado' | 'Recusado';
 }
 
 export interface ProductionJob {
@@ -69,39 +66,37 @@ export interface ProductionJob {
   client: string;
   clientId: string;
   product: string;
-  status: 'Pendente Aprovação Hub' | 'Orçamento Gerado' | 'Pre-flight' | 'Impressão' | 'Acabamento' | 'Expedição' | 'Entregue';
-  priority: boolean;
-  deadline: string;
-  timestamp: number;
+  status: 'Aguardando Aprovação' | 'Aprovado' | 'Em Produção' | 'Expedição' | 'Concluído';
   value: string;
-  material?: string;
-  finish?: string;
-  dimensions?: string;
-  quantity?: string;
+  nodeId: string;
   progress: number;
-  nodeId: string; 
+  timestamp: number;
+  material: string;
+  finish: string;
+  quantity: string;
+  width?: string;
+  height?: string;
+  unit?: 'mm' | 'cm' | 'm';
+  observations?: string;
+  attachmentUrl?: string;
+  fileName?: string;
+  priority?: boolean;
+  deadline?: string;
+  dimensions?: string;
+  history: ProductionLog[]; // Rastreabilidade industrial
 }
 
-export interface SupportTicket {
+export interface PartnerNode {
   id: string;
-  subject: string;
-  category: 'Técnico' | 'Faturação' | 'Logística' | 'Produção';
-  status: 'Aberto' | 'Em Análise' | 'Resolvido';
-  priority: 'Baixa' | 'Normal' | 'Alta' | 'Crítica';
-  timestamp: number;
-  messages: any[];
-  creatorId: string;
-  targetHubId?: string; 
-}
-
-// Added Notification interface for the global notification system
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: number;
-  read: boolean;
-  type: 'System' | 'Order' | 'Alert' | 'Message';
+  name: string;
+  location: string;
+  status: 'Online' | 'Busy' | 'Maintenance';
+  capacity: number;
+  latency: string;
+  image: string;
+  description: string;
+  ownerId: string;
+  specialization?: Category[];
 }
 
 export interface ExtendedProduct {
@@ -113,8 +108,8 @@ export interface ExtendedProduct {
   unit: string;
   image: string;
   status: 'Ativo' | 'Aguardando Aprovação';
-  ownerHubId: string; // 'SYSTEM' ou ID do Hub
-  // Updated specs to include all properties used in constants.tsx
+  ownerHubId: string;
+  badge?: string;
   specs: {
     weight: string;
     durability: string;
