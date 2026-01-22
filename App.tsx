@@ -23,6 +23,7 @@ const App: React.FC = () => {
   
   const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
 
+  // Centralized Real-Time State
   const [users, setUsers] = useState<User[]>([
     { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now(), balance: 15400.00 },
     { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now(), balance: 450.25 },
@@ -49,10 +50,8 @@ const App: React.FC = () => {
         osc.type = type;
         osc.frequency.setValueAtTime(freq, now);
         if (slide) osc.frequency.exponentialRampToValueAtTime(slide, now + dur);
-        
         gain.gain.setValueAtTime(0.05, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-        
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
@@ -60,23 +59,11 @@ const App: React.FC = () => {
       };
 
       switch(type) {
-        case 'click':
-          createBleep(1400, 0.05, 'sine');
-          break;
-        case 'success':
-          createBleep(660, 0.1, 'triangle', 880);
-          setTimeout(() => createBleep(880, 0.2, 'triangle', 1320), 50);
-          break;
-        case 'sync':
-          createBleep(1200, 0.1, 'sine', 1600);
-          createBleep(1400, 0.1, 'sine', 1800);
-          break;
-        case 'error':
-          createBleep(220, 0.4, 'sawtooth', 60);
-          break;
-        case 'loading':
-          createBleep(440, 0.3, 'sine', 220);
-          break;
+        case 'click': createBleep(1400, 0.05, 'sine'); break;
+        case 'success': createBleep(660, 0.1, 'triangle', 880); setTimeout(() => createBleep(880, 0.2, 'triangle', 1320), 50); break;
+        case 'sync': createBleep(1200, 0.1, 'sine', 1600); createBleep(1400, 0.1, 'sine', 1800); break;
+        case 'error': createBleep(220, 0.4, 'sawtooth', 60); break;
+        case 'loading': createBleep(440, 0.3, 'sine', 220); break;
       }
     } catch(e) {}
   }, []);
@@ -84,65 +71,52 @@ const App: React.FC = () => {
   const notify = (title: string, msg: string, type: 'success' | 'error' | 'sync' | 'loading' = 'sync') => {
     playSound(type === 'loading' ? 'loading' : (type === 'sync' ? 'sync' : type));
     setActiveToast({ title, msg, type });
-    if (type !== 'loading') {
-      setTimeout(() => setActiveToast(null), 5000);
-    }
+    if (type !== 'loading') setTimeout(() => setActiveToast(null), 5000);
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
-    setOrders(prev => {
-      const updated = prev.map(o => {
-        if (o.id !== orderId) return o;
+    setOrders(prev => prev.map(o => {
+      if (o.id !== orderId) return o;
+      
+      const isCompletion = newStatus === 'Concluído' && o.status !== 'Concluído';
+      
+      if (isCompletion) {
+        const val = parseFloat(o.value);
+        const currentHub = hubs.find(h => h.id === (nodeId || o.nodeId));
+        const hubRate = currentHub?.primaryCommission || 15;
+        const platRate = currentHub?.platformCommission || globalPlatformFee;
         
-        if (newStatus === 'Concluído' && o.status !== 'Concluído') {
-          const val = parseFloat(o.value);
-          const currentHub = hubs.find(h => h.id === (nodeId || o.nodeId));
-          const hubRate = currentHub?.primaryCommission || 15;
-          const platRate = currentHub?.platformCommission || globalPlatformFee;
-          
-          const platformAmount = (val * platRate) / 100;
-          const hubGross = (val * hubRate) / 100;
-          const hubNet = hubGross - platformAmount;
-          const clientCashback = val * 0.02;
+        const platformAmount = (val * platRate) / 100;
+        const hubGross = (val * hubRate) / 100;
+        const hubNet = hubGross - platformAmount;
+        const clientCashback = val * 0.02;
 
-          handleUpdateUserInternal('ADMIN-01', { balance: (users.find(u=>u.id==='ADMIN-01')?.balance || 0) + platformAmount });
-          
-          const hubOwner = users.find(u => u.managedHubId === (nodeId || o.nodeId));
-          if (hubOwner) {
-             handleUpdateUserInternal(hubOwner.id, { balance: (hubOwner.balance || 0) + hubNet });
-          }
+        handleUpdateUserInternal('ADMIN-01', { balance: (users.find(u=>u.id==='ADMIN-01')?.balance || 0) + platformAmount });
+        const hubOwner = users.find(u => u.managedHubId === (nodeId || o.nodeId));
+        if (hubOwner) handleUpdateUserInternal(hubOwner.id, { balance: (hubOwner.balance || 0) + hubNet });
+        handleUpdateUserInternal(o.clientId, { balance: (users.find(u=>u.id===o.clientId)?.balance || 0) + clientCashback });
+        
+        notify("Grid Sync: Liquidado", `Job ${orderId} liquidado. Comissões e Cashback processados.`, "success");
+      }
 
-          handleUpdateUserInternal(o.clientId, { balance: (users.find(u=>u.id===o.clientId)?.balance || 0) + clientCashback });
-          
-          notify("Grid Sync: Liquidado", `Volume de €${val} processado. Comissões e Cashback sincronizados.`, "success");
-        }
-
-        return { 
-          ...o, 
+      return { 
+        ...o, 
+        status: newStatus, 
+        nodeId: nodeId || o.nodeId, 
+        progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : (newStatus === 'Expedição' ? 85 : o.progress)),
+        history: [...o.history, { 
+          timestamp: Date.now(), 
           status: newStatus, 
-          nodeId: nodeId || o.nodeId, 
-          progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : (newStatus === 'Expedição' ? 85 : o.progress)),
-          history: [...o.history, { 
-            timestamp: Date.now(), 
-            status: newStatus, 
-            author: user?.name || 'Sistema R3', 
-            note: note || `Operação validada no cluster industrial.` 
-          }]
-        };
-      });
-      return updated;
-    });
-    notify("Master Grid Sync", `Encomenda ${orderId} atualizada para ${newStatus}.`, "sync");
+          author: user?.name || 'Sistema R3', 
+          note: note || `Transição de estado validada na Torre de Controlo.` 
+        }]
+      };
+    }));
   };
 
   const handleUpdateUserInternal = (userId: string, updates: Partial<User>) => {
-    setUsers(prev => {
-      const newList = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
-      if (user?.id === userId) {
-        setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
-      }
-      return newList;
-    });
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+    if (user?.id === userId) setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
   };
 
   const handleUpdateUserPublic = (userId: string, updates: Partial<User>) => {
@@ -185,25 +159,22 @@ const App: React.FC = () => {
     };
     
     setOrders(prev => [syncOrder, ...prev]);
-    notify("Injeção de Asset", `Protocolo ${order.id} injetado para aprovação Master.`, "sync");
+    notify("Injeção de Asset", `Protocolo ${order.id} injetado com sucesso.`, "sync");
     setActiveTab('account');
   };
 
   const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
-    notify("Auditoria Sync", `Dados do Job ${orderId} atualizados.`, "sync");
+    notify("Master Grid Sync", `Job ${orderId} atualizado em tempo real.`, "sync");
   };
 
   const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
     setProducts(prev => {
       const exists = prev.find(p => p.id === productId);
-      if (exists) {
-        return prev.map(p => p.id === productId ? { ...p, ...updates } : p);
-      } else {
-        return [...prev, updates as ExtendedProduct];
-      }
+      if (exists) return prev.map(p => p.id === productId ? { ...p, ...updates } : p);
+      return [...prev, updates as ExtendedProduct];
     });
-    notify("Inventory Sync", `Módulo ${productId} sincronizado no catálogo.`, "sync");
+    notify("Inventory Sync", `Módulo ${productId} sincronizado.`, "sync");
   };
 
   const handleCreateClientByAdmin = (clientData: Partial<User>) => {

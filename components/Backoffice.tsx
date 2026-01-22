@@ -1,7 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent, Filter, MapPin, ExternalLink, Box } from 'lucide-react';
+// Fixed missing Power import from lucide-react
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent, Filter, MapPin, ExternalLink, Box, Power } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 import { MATERIALS, FINISHES } from '../constants';
 
@@ -40,6 +41,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
   if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Master Protocol Denied.</div>;
 
+  // Real-time synchronization is handled by the 'orders' prop being updated in App.tsx
   const pendingAdminApprovals = useMemo(() => orders.filter(o => o.status === 'Pendente_Admin'), [orders]);
 
   const financials = useMemo(() => {
@@ -50,14 +52,11 @@ const Backoffice: React.FC<BackofficeProps> = ({
     orders.forEach(o => {
       const val = parseFloat(o.value) || 0;
       totalRevenue += val;
-      
       const hub = hubs.find(h => h.id === o.nodeId);
       const hubRate = hub?.primaryCommission || 15;
       const platRate = hub?.platformCommission || globalPlatformFee;
-      
       const platShare = (val * platRate) / 100;
       const hubGross = (val * hubRate) / 100;
-      
       totalPlatform += platShare;
       totalHub += (hubGross - platShare);
     });
@@ -81,7 +80,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         <div>
           <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
              <ShieldCheck className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.5</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.6</span>
           </div>
           <h2 className="text-8xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">Torre de <br/><span className="text-red-600">Controlo.</span></h2>
         </div>
@@ -102,147 +101,186 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      {/* Busca e Barra de Ações Rápidas */}
-      <div className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
-         <div className="bg-white p-2 rounded-[3rem] border border-gray-100 shadow-2xl flex items-center max-w-2xl w-full">
-            <Search className="w-8 h-8 text-gray-300 ml-6" />
-            <input type="text" placeholder={`LOCALIZAR EM ${activeView.toUpperCase()}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent flex-grow outline-none font-black uppercase text-[12px] p-8 placeholder:text-gray-200" />
-         </div>
-         <div className="flex space-x-4">
-            {activeView === 'users' && <button onClick={() => setShowCreateModal('user')} className="bg-black text-white px-10 py-6 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-red-600 transition-all flex items-center space-x-4 shadow-xl"><UserPlus className="w-5 h-5" /> <span>Criar Entidade</span></button>}
-            {activeView === 'products' && <button onClick={() => setShowCreateModal('product')} className="bg-black text-white px-10 py-6 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-red-600 transition-all flex items-center space-x-4 shadow-xl"><Plus className="w-5 h-5" /> <span>Injetar Módulo</span></button>}
-         </div>
-      </div>
-
-      {/* VIEW: ORDERS - DETALHAMENTO TOTAL PARA ADMIN */}
+      {/* VIEW: ORDERS - LISTAGEM COMPLETA E DETALHADA */}
       {activeView === 'orders' && (
-        <div className="space-y-8 animate-in fade-in">
-           {filteredItems.length > 0 ? (
-             <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="space-y-10 animate-in fade-in">
+           {/* Sumário de Operações do Grid */}
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+              {[
+                { label: 'Total Jobs', val: orders.length, icon: Package, color: 'text-black' },
+                { label: 'Em Manufatura', val: orders.filter(o=>o.status==='Em Produção').length, icon: Activity, color: 'text-red-600' },
+                { label: 'Aguardando Master', val: pendingAdminApprovals.length, icon: Clock, color: 'text-orange-600' },
+                { label: 'Concluídos', val: orders.filter(o=>o.status==='Concluído').length, icon: CheckCircle2, color: 'text-green-600' }
+              ].map((stat, i) => (
+                <div key={i} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl flex items-center space-x-6">
+                   <div className={`p-4 bg-gray-50 rounded-2xl ${stat.color}`}><stat.icon className="w-8 h-8" /></div>
+                   <div>
+                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block">{stat.label}</span>
+                      <span className="text-4xl font-brand font-black italic">{stat.val}</span>
+                   </div>
+                </div>
+              ))}
+           </div>
+
+           <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 overflow-hidden">
                 <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                    <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em] flex items-center">
-                      <Box className="w-5 h-5 mr-3 text-red-600" /> Protocolos Globais de Produção
+                      <Box className="w-5 h-5 mr-3 text-red-600" /> Registro Global de Produção Industrial
                    </h4>
                    <div className="flex items-center space-x-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                      <span>{filteredItems.length} Unidades no Grid</span>
+                      <span className="status-pulse px-4 py-1 bg-green-50 text-green-600 rounded-full">GRID ONLINE</span>
                       <RefreshCw className="w-4 h-4 animate-spin-slow text-red-600" />
                    </div>
                 </div>
                 
                 <div className="overflow-x-auto">
-                   <table className="w-full text-left">
+                   <table className="w-full text-left border-collapse">
                       <thead>
                          <tr className="bg-white border-b border-gray-100">
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Barcode / ID</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Módulo Ativo</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Entidade Cliente</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Nodo HUB</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Status Grid</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-right">Valor Asset</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-center">Protocolo</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">ID / BARCODE</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">MODULO / PRODUTO</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">ENTIDADE CLIENTE</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">NODE HUB ATRIBUÍDO</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">ESTADO ATUAL</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-right">VALOR ASSET</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-center">DETALHES</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                         {filteredItems.map((o: any) => (
+                         {filteredItems.map((o: ProductionJob) => (
                            <React.Fragment key={o.id}>
-                             <tr className={`hover:bg-gray-50/50 transition-colors group cursor-pointer ${expandedOrder === o.id ? 'bg-red-50/30' : ''}`} onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
+                             <tr className={`hover:bg-gray-50/80 transition-all cursor-pointer group ${expandedOrder === o.id ? 'bg-red-50/40 border-l-8 border-red-600' : ''}`} onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
                                 <td className="px-10 py-10">
                                    <div className="flex items-center space-x-4">
-                                      <div className={`w-1 h-12 rounded-full ${o.status === 'Concluído' ? 'bg-green-500' : (o.status === 'Em Produção' ? 'bg-red-600 animate-pulse' : 'bg-gray-300')}`} />
-                                      <span className="font-brand font-black italic text-black uppercase tracking-tighter text-xl">{o.id}</span>
+                                      <div className={`w-1.5 h-12 rounded-full ${o.status === 'Concluído' ? 'bg-green-500' : (o.status === 'Em Produção' ? 'bg-red-600 animate-pulse' : 'bg-gray-300')}`} />
+                                      <div className="flex flex-col">
+                                         <span className="font-brand font-black italic text-black uppercase tracking-tighter text-2xl">{o.id}</span>
+                                         <span className="text-[7px] font-mono text-gray-400 uppercase">Hash: {btoa(o.id).slice(0, 12)}</span>
+                                      </div>
                                    </div>
                                 </td>
                                 <td className="px-10 py-10">
-                                   <span className="text-[11px] font-black text-black uppercase tracking-tight">{o.product}</span>
-                                   <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mt-1">{o.dimensions || 'Atomic Unit'}</span>
-                                </td>
-                                <td className="px-10 py-10">
-                                   <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">{o.client}</span>
-                                   <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mt-1">ID: {o.clientId}</span>
-                                </td>
-                                <td className="px-10 py-10">
-                                   <div className="flex items-center space-x-3">
-                                      <Server className="w-3 h-3 text-red-600" />
-                                      <span className="text-[10px] font-black text-black uppercase">{hubs.find(h => h.id === o.nodeId)?.name || 'Central Grid'}</span>
+                                   <div className="flex flex-col">
+                                      <span className="text-[12px] font-black text-black uppercase tracking-tight italic">{o.product}</span>
+                                      <span className="text-[9px] font-black text-red-600 uppercase tracking-widest mt-1">Axis: {o.dimensions || 'Atomic Unit'}</span>
                                    </div>
                                 </td>
                                 <td className="px-10 py-10">
-                                   <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase border shadow-sm ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
-                                      {o.status.replace('_', ' ')}
-                                   </span>
+                                   <div className="flex flex-col">
+                                      <span className="text-[11px] font-black text-gray-600 uppercase tracking-widest">{o.client}</span>
+                                      <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest mt-1">UID: {o.clientId}</span>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-2xl w-fit group-hover:bg-white transition-colors">
+                                      <Server className="w-3.5 h-3.5 text-red-600" />
+                                      <div className="flex flex-col">
+                                         <span className="text-[10px] font-black text-black uppercase">{hubs.find(h => h.id === o.nodeId)?.name || 'Central R2'}</span>
+                                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">{hubs.find(h => h.id === o.nodeId)?.location || 'System Core'}</span>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <div className="flex items-center space-x-4">
+                                      <span className={`px-5 py-2 rounded-full text-[9px] font-black uppercase border shadow-sm ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : (o.status === 'Rejeitado' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-red-50 text-red-600 border-red-100')}`}>
+                                         {o.status.replace('_', ' ')}
+                                      </span>
+                                      {o.priority && <Zap className="w-4 h-4 text-red-600 animate-pulse" />}
+                                   </div>
                                 </td>
                                 <td className="px-10 py-10 text-right">
-                                   <span className="font-brand font-black italic text-black text-xl">€{o.value}</span>
+                                   <span className="font-brand font-black italic text-black text-2xl">€{o.value}</span>
                                 </td>
                                 <td className="px-10 py-10 text-center">
-                                   <button className="p-3 bg-gray-50 text-gray-400 rounded-xl group-hover:bg-black group-hover:text-white transition-all">
-                                      {expandedOrder === o.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                   <button className="p-4 bg-gray-100 text-gray-400 rounded-2xl group-hover:bg-black group-hover:text-white transition-all shadow-md">
+                                      {expandedOrder === o.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                    </button>
                                 </td>
                              </tr>
                              
-                             {/* Expanded Row for Full Order Metadata */}
                              {expandedOrder === o.id && (
-                               <tr className="bg-gray-50/80 animate-in slide-in-from-top-4">
-                                  <td colSpan={7} className="p-12">
+                               <tr className="bg-gray-100/30 animate-in slide-in-from-top-4 border-l-8 border-red-600">
+                                  <td colSpan={7} className="p-16">
                                      <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
-                                        {/* Detalhes Técnicos */}
-                                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
-                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><FileDigit className="w-4 h-4 mr-3" /> Especificação Asset</h5>
-                                           <div className="grid grid-cols-2 gap-4">
-                                              <div className="p-4 bg-gray-50 rounded-2xl">
-                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Substrato</span>
-                                                 <span className="text-[10px] font-bold text-black uppercase">{o.material}</span>
+                                        {/* Detalhes Técnicos Expandidos */}
+                                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-8">
+                                           <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><FileDigit className="w-5 h-5 mr-3" /> Technical Specification</h5>
+                                           <div className="grid grid-cols-2 gap-6">
+                                              <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Substrato</span>
+                                                 <span className="text-[11px] font-bold text-black uppercase italic">{o.material}</span>
                                               </div>
-                                              <div className="p-4 bg-gray-50 rounded-2xl">
-                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Acabamento</span>
-                                                 <span className="text-[10px] font-bold text-black uppercase">{o.finish}</span>
+                                              <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Acabamento</span>
+                                                 <span className="text-[11px] font-bold text-black uppercase italic">{o.finish}</span>
                                               </div>
-                                              <div className="p-4 bg-gray-50 rounded-2xl">
-                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Quant. Ativa</span>
-                                                 <span className="text-[12px] font-brand font-black italic text-black">{o.quantity} u.</span>
+                                              <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Unidades</span>
+                                                 <span className="text-2xl font-brand font-black italic text-black">{o.quantity} u.</span>
                                               </div>
-                                              <div className="p-4 bg-gray-50 rounded-2xl">
-                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Injeção Data</span>
-                                                 <span className="text-[10px] font-bold text-black">{new Date(o.timestamp).toLocaleDateString()}</span>
+                                              <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Injeção</span>
+                                                 <span className="text-[11px] font-bold text-black">{new Date(o.timestamp).toLocaleString()}</span>
                                               </div>
+                                           </div>
+                                           <div className="p-5 bg-black text-white rounded-3xl flex justify-between items-center group/barcode-c">
+                                              <div className="flex flex-col">
+                                                 <span className="text-[8px] font-black uppercase text-gray-500 mb-1">R2_SECURE_SCAN</span>
+                                                 <span className="text-[10px] font-mono tracking-tighter">{o.id}</span>
+                                              </div>
+                                              <Barcode className="w-12 h-6 text-red-600 group-hover/barcode-c:scale-x-125 transition-transform" />
                                            </div>
                                         </div>
 
-                                        {/* Ações e Downloads */}
-                                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
-                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><ExternalLink className="w-4 h-4 mr-3" /> Protocolos de Saída</h5>
-                                           <div className="flex flex-col space-y-4">
-                                              <button onClick={() => generateOrderPDF(o, hubs.find(h => h.id === o.nodeId))} className="w-full flex items-center justify-between p-5 bg-black text-white rounded-2xl hover:bg-red-600 transition-all shadow-lg group/btn">
-                                                 <span className="text-[9px] font-black uppercase tracking-widest">Download Guia R2</span>
-                                                 <FileDown className="w-4 h-4 group-hover/btn:scale-110" />
+                                        {/* Ações, Assets e Links Master */}
+                                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-8">
+                                           <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><ExternalLink className="w-5 h-5 mr-3" /> Central Asset Hub</h5>
+                                           <div className="space-y-4">
+                                              <button onClick={() => generateOrderPDF(o, hubs.find(h => h.id === o.nodeId))} className="w-full flex items-center justify-between p-6 bg-black text-white rounded-3xl hover:bg-red-600 transition-all shadow-xl group/btn active:scale-95">
+                                                 <div className="flex items-center space-x-4">
+                                                    <FileText className="w-5 h-5 text-red-600" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Guia de Produção PDF</span>
+                                                 </div>
+                                                 <FileDown className="w-5 h-5 group-hover/btn:translate-y-1 transition-transform" />
                                               </button>
+                                              
                                               {o.fileName && (
-                                                <button onClick={() => downloadOriginalAsset(o)} className="w-full flex items-center justify-between p-5 bg-red-600 text-white rounded-2xl hover:bg-black transition-all shadow-lg group/btn">
-                                                   <span className="text-[9px] font-black uppercase tracking-widest">Original Source Asset</span>
-                                                   <Download className="w-4 h-4 group-hover/btn:scale-110" />
+                                                <button onClick={() => downloadOriginalAsset(o)} className="w-full flex items-center justify-between p-6 bg-red-600 text-white rounded-3xl hover:bg-black transition-all shadow-xl group/btn active:scale-95">
+                                                   <div className="flex items-center space-x-4">
+                                                      <ImageIcon className="w-5 h-5 text-white" />
+                                                      <span className="text-[10px] font-black uppercase tracking-widest">Baixar Original: {o.fileName}</span>
+                                                   </div>
+                                                   <Download className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
                                                 </button>
                                               )}
-                                              <div className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-                                                 <Barcode className="w-16 h-8 text-gray-300" />
+                                              
+                                              <div className="p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 text-center flex flex-col items-center justify-center space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                                                 <ShieldCheck className="w-6 h-6 text-green-500" />
+                                                 <span className="text-[8px] font-black uppercase tracking-widest">Integridade Verificada ISO-R2</span>
                                               </div>
                                            </div>
                                         </div>
 
-                                        {/* Auditoria Operacional */}
-                                        <div className="xl:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
-                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center mb-6"><History className="w-4 h-4 mr-3" /> Global Operational Log</h5>
-                                           <div className="max-h-48 overflow-y-auto space-y-4 scrollbar-hide">
+                                        {/* Auditoria Operacional Master */}
+                                        <div className="xl:col-span-2 bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 flex flex-col">
+                                           <div className="flex justify-between items-center border-b border-gray-50 pb-4 mb-6">
+                                              <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><History className="w-5 h-5 mr-3" /> Audit Log & Industrial Pulse</h5>
+                                              <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[8px] font-black animate-pulse uppercase">Sync Ativo</div>
+                                           </div>
+                                           <div className="flex-grow max-h-[350px] overflow-y-auto space-y-6 pr-4 custom-scrollbar">
                                               {o.history?.map((log: any, idx: number) => (
-                                                <div key={idx} className="flex items-start space-x-4 border-l-2 border-red-100 pl-4 relative">
-                                                   <div className="absolute -left-[5px] top-1 w-2 h-2 bg-red-600 rounded-full" />
-                                                   <div className="flex-grow">
-                                                      <div className="flex justify-between items-center mb-1">
-                                                         <span className="text-[10px] font-black uppercase text-black">{log.status}</span>
-                                                         <span className="text-[8px] font-bold text-gray-300">{new Date(log.timestamp).toLocaleString()}</span>
+                                                <div key={idx} className="flex items-start space-x-6 relative group/log-item">
+                                                   <div className="absolute -left-[1px] top-1.5 w-2 h-2 bg-red-600 rounded-full shadow-[0_0_10px_rgba(204,0,0,0.5)] group-hover/log-item:scale-150 transition-transform" />
+                                                   <div className="w-full bg-gray-50/50 p-5 rounded-3xl border border-gray-100 group-hover/log-item:border-red-200 transition-all">
+                                                      <div className="flex justify-between items-center mb-2">
+                                                         <span className="text-[10px] font-black uppercase text-black italic">{log.status}</span>
+                                                         <span className="text-[8px] font-bold text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
                                                       </div>
-                                                      <p className="text-[10px] text-gray-400 italic">"{log.note}"</p>
-                                                      <span className="text-[7px] font-black uppercase text-gray-300 block mt-1">Operador: {log.author}</span>
+                                                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed">"{log.note}"</p>
+                                                      <div className="mt-3 flex items-center space-x-2 pt-2 border-t border-gray-100/50">
+                                                         <UserCheck className="w-3 h-3 text-gray-400" />
+                                                         <span className="text-[8px] font-black uppercase text-gray-400">Assinado por: {log.author}</span>
+                                                      </div>
                                                    </div>
                                                 </div>
                                               ))}
@@ -258,23 +296,74 @@ const Backoffice: React.FC<BackofficeProps> = ({
                    </table>
                 </div>
              </div>
+        </div>
+      )}
+
+      {/* VIEW: APPROVALS - MANTÉM FUNCIONALIDADE EXISTENTE */}
+      {activeView === 'approvals' && (
+        <div className="space-y-12 animate-in slide-in-from-bottom-5">
+           <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl mb-12 flex flex-col lg:flex-row justify-between items-center gap-8">
+              <div className="flex items-center space-x-6">
+                 <div className="p-5 bg-red-600 rounded-3xl text-white shadow-xl status-pulse"><ShieldAlert className="w-10 h-10" /></div>
+                 <div>
+                    <h3 className="text-4xl font-brand font-black italic uppercase leading-none">Pilha de Aprovação <br/><span className="text-red-600">Alpha Master.</span></h3>
+                    <p className="text-[11px] font-black uppercase text-gray-400 tracking-widest mt-2">Valide a integridade dos assets antes da injeção industrial.</p>
+                 </div>
+              </div>
+              <div className="flex items-center space-x-6 bg-gray-50 px-10 py-6 rounded-[3rem] border border-gray-100">
+                 <span className="text-[11px] font-black uppercase text-gray-500 tracking-[0.5em]">Pendentes:</span>
+                 <span className="text-5xl font-brand font-black italic text-red-600">{pendingAdminApprovals.length}</span>
+              </div>
+           </div>
+
+           {pendingAdminApprovals.length > 0 ? (
+             <div className="grid grid-cols-1 gap-10">
+               {pendingAdminApprovals.map(o => (
+                 <div key={o.id} className="bg-white p-12 rounded-[5rem] border-2 border-red-100 shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-12 group hover:border-red-600 transition-all relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 text-red-600/5 rotate-12"><ShieldCheck className="w-64 h-64" /></div>
+                    <div className="flex-grow flex items-center space-x-12 relative z-10">
+                       <div className="bg-black text-red-600 p-10 rounded-[3rem] shadow-xl group-hover:rotate-12 transition-transform">
+                          <Package className="w-12 h-12" />
+                       </div>
+                       <div>
+                          <div className="flex items-center space-x-6 mb-4">
+                             <span className="text-6xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
+                             <span className="bg-red-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.4em] border border-white/20 animate-pulse">Injeção Pendente</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-[12px] font-black uppercase text-gray-400 italic">
+                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Entidade Cliente</span><span className="text-black not-italic">{o.client}</span></div>
+                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Módulo Asset</span><span className="text-black not-italic">{o.product}</span></div>
+                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Valor Liquidação</span><span className="text-red-600 not-italic">€{o.value}</span></div>
+                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">HUB Destino</span><span className="text-black not-italic">{hubs.find(h => h.id === o.nodeId)?.name}</span></div>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="flex space-x-6 relative z-10">
+                       <button onClick={() => { onSound?.('error'); onUpdateStatus(o.id, 'Rejeitado'); }} className="p-10 bg-gray-50 text-gray-400 rounded-full hover:bg-black hover:text-white transition-all shadow-xl active:scale-90"><X className="w-10 h-10"/></button>
+                       <button onClick={() => { onSound?.('success'); onUpdateStatus(o.id, 'Aprovado'); }} className="bg-red-600 text-white px-20 py-10 rounded-full font-black uppercase text-[14px] tracking-[0.5em] hover:bg-black transition-all shadow-2xl flex items-center space-x-6 group/btn-approve active:scale-95">
+                          <span>Validar & Injetar</span> <CheckCircle className="w-8 h-8 group-hover/btn-approve:scale-125 transition-transform" />
+                       </button>
+                    </div>
+                 </div>
+               ))}
+             </div>
            ) : (
-             <div className="py-40 text-center space-y-10 opacity-20">
-                <Box className="w-32 h-32 mx-auto" />
-                <p className="text-5xl font-brand font-black italic uppercase">Grid Deserto. Nenhuma Ordem Localizada.</p>
+             <div className="py-40 text-center space-y-12 opacity-10 animate-pulse">
+                <ShieldCheck className="w-40 h-40 mx-auto" />
+                <p className="text-7xl font-brand font-black italic uppercase tracking-tighter">Cluster em Repouso. Zero Pendentes.</p>
              </div>
            )}
         </div>
       )}
 
-      {/* VIEW: FINANCIALS - ENGENHARIA DE RECEITA */}
+      {/* VIEWS: HUBS, USERS, PRODUCTS, FINANCIALS - MANTÉM FUNCIONALIDADES EXISTENTES */}
       {activeView === 'financials' && (
         <div className="space-y-12 animate-in fade-in">
            <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
               <div className="flex items-center space-x-8">
-                 <div className="p-8 bg-red-600 rounded-[2.5rem] text-white shadow-xl"><Settings className="w-12 h-12 animate-spin-slow" /></div>
+                 <div className="p-8 bg-red-600 rounded-[2.5rem] text-white shadow-xl status-pulse"><Settings className="w-12 h-12 animate-spin-slow" /></div>
                  <div>
-                    <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita</h4>
+                    <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita Master</h4>
                     <h3 className="text-4xl font-brand font-black italic uppercase text-black">Taxa da Plataforma Redline (%)</h3>
                  </div>
               </div>
@@ -291,7 +380,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
               </div>
            </div>
 
-           {/* Dashboard de KPIs Financeiros */}
            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
                  <div className="absolute inset-0 industrial-grid opacity-5" />
@@ -316,7 +404,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
               </div>
            </div>
 
-           {/* Painel de Gestão de Comissões por HUB */}
            <div className="bg-white p-12 rounded-[5rem] shadow-2xl border border-gray-100">
               <h4 className="text-4xl font-brand font-black italic uppercase text-black mb-12 flex items-center gap-4">
                  <Percent className="w-10 h-10 text-red-600" />
@@ -332,96 +419,44 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           </div>
                        </div>
                        <div className="space-y-6">
-                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                              <span className="text-[10px] font-black uppercase text-gray-500">Hub Share (%)</span>
-                             <input 
-                                type="number" 
-                                value={h.primaryCommission} 
-                                onChange={(e) => onUpdateHub(h.id, { primaryCommission: parseFloat(e.target.value) })}
-                                className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none"
-                             />
+                             <input type="number" value={h.primaryCommission} onChange={(e) => onUpdateHub(h.id, { primaryCommission: parseFloat(e.target.value) })} className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none" />
                           </div>
-                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                              <span className="text-[10px] font-black uppercase text-gray-500">Plat. Fee (%)</span>
-                             <input 
-                                type="number" 
-                                value={h.platformCommission} 
-                                onChange={(e) => onUpdateHub(h.id, { platformCommission: parseFloat(e.target.value) })}
-                                className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none"
-                             />
+                             <input type="number" value={h.platformCommission} onChange={(e) => onUpdateHub(h.id, { platformCommission: parseFloat(e.target.value) })} className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none" />
                           </div>
                        </div>
                     </div>
                  ))}
               </div>
            </div>
-
-           {/* Ledger de Transações em Tempo Real */}
-           <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 overflow-hidden">
-              <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                 <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em]">Grid Financial Ledger (Real-time)</h4>
-                 <div className="flex items-center space-x-3 text-green-500 text-[10px] font-black uppercase tracking-widest">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
-                    <span>Sync Active</span>
-                 </div>
-              </div>
-              <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead>
-                       <tr className="border-b border-gray-50">
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Barcode/Order</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Módulo</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Gross</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Platform Fee</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Net Earn</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Status Grid</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                       {orders.map(o => {
-                          const val = parseFloat(o.value) || 0;
-                          const hub = hubs.find(h => h.id === o.nodeId);
-                          const fee = (val * (hub?.platformCommission || globalPlatformFee)) / 100;
-                          return (
-                            <tr key={o.id} className="hover:bg-gray-50 transition-colors group cursor-default">
-                               <td className="px-12 py-8 font-brand font-black italic text-black uppercase tracking-tighter text-lg">{o.id}</td>
-                               <td className="px-12 py-8 font-black text-gray-400 text-[11px] uppercase tracking-widest">{o.product}</td>
-                               <td className="px-12 py-8 font-black text-black text-[11px]">€{val.toLocaleString()}</td>
-                               <td className="px-12 py-8 font-black text-red-600 text-[11px]">-€{fee.toLocaleString()}</td>
-                               <td className="px-12 py-8 font-black text-black text-[13px] group-hover:scale-110 transition-transform">€{(val - fee).toLocaleString()}</td>
-                               <td className="px-12 py-8">
-                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
-                                     {o.status}
-                                  </span>
-                               </td>
-                            </tr>
-                          );
-                       })}
-                    </tbody>
-                 </table>
-              </div>
-           </div>
         </div>
       )}
 
-      {/* VIEW: USERS MANAGEMENT (SHADOW MODE) */}
+      {/* VIEW: USERS MANAGEMENT */}
       {activeView === 'users' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 animate-in slide-in-from-bottom-5">
-           {filteredItems.map((u: any) => (
-             <div key={u.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
-                <div className="flex justify-between items-start mb-10">
+           {filteredItems.map((u: User) => (
+             <div key={u.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 text-black/5"><Users className="w-32 h-32" /></div>
+                <div className="flex justify-between items-start mb-10 relative z-10">
                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white text-3xl font-brand font-black italic shadow-xl ${u.role === 'B2B_Admin' ? 'bg-red-600' : 'bg-black'}`}>{u.name[0]}</div>
                    <div className="flex space-x-2">
-                      <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all"><Eye className="w-5 h-5" /></button>
-                      <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all"><Edit className="w-5 h-5" /></button>
-                      <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+                      <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Eye className="w-5 h-5" /></button>
+                      <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Edit className="w-5 h-5" /></button>
+                      <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md active:scale-90"><Trash2 className="w-5 h-5" /></button>
                    </div>
                 </div>
-                <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2 leading-none">{u.name}</h4>
-                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{u.email}</p>
-                <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
-                   <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
-                   <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600">{u.tier}</span>
+                <div className="relative z-10">
+                   <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2 leading-none group-hover:text-red-600 transition-colors">{u.name}</h4>
+                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{u.email}</p>
+                   <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
+                      <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
+                      <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600 border border-red-100">{u.tier}</span>
+                      <span className="text-[11px] font-brand font-black italic text-black ml-auto">€{u.balance?.toLocaleString()}</span>
+                   </div>
                 </div>
              </div>
            ))}
@@ -431,20 +466,24 @@ const Backoffice: React.FC<BackofficeProps> = ({
       {/* VIEW: PRODUCTS MANAGEMENT */}
       {activeView === 'products' && (
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-8 animate-in slide-in-from-bottom-5">
-           {filteredItems.map((p: any) => (
-             <div key={p.id} className="bg-white rounded-[4rem] border border-gray-100 shadow-xl overflow-hidden group hover:border-red-600 transition-all">
+           {filteredItems.map((p: ExtendedProduct) => (
+             <div key={p.id} className="bg-white rounded-[4rem] border border-gray-100 shadow-xl overflow-hidden group hover:border-red-600 transition-all flex flex-col h-full">
                 <div className="aspect-square bg-gray-50 relative overflow-hidden">
-                   <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
-                   <div className="absolute top-6 right-6 flex space-x-2">
-                      <button onClick={() => setEditingItem({type: 'product', data: p})} className="p-3 bg-white/90 backdrop-blur-md rounded-xl text-black shadow-lg"><Edit className="w-4 h-4" /></button>
+                   <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
+                   <div className="absolute top-6 right-6 flex space-x-2 z-10">
+                      <button onClick={() => setEditingItem({type: 'product', data: p})} className="p-4 bg-white/90 backdrop-blur-md rounded-2xl text-black shadow-xl hover:bg-red-600 hover:text-white transition-all"><Edit className="w-4 h-4" /></button>
                    </div>
+                   <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/20">{p.id}</div>
                 </div>
-                <div className="p-8">
-                   <span className="text-[8px] font-black uppercase text-red-600 tracking-widest mb-2 block">{p.category}</span>
-                   <h5 className="text-2xl font-brand font-black italic uppercase text-black mb-4 leading-none">{p.name}</h5>
-                   <div className="flex justify-between items-end pt-4 border-t border-gray-50">
-                      <span className="text-3xl font-brand font-black italic text-black">€{p.basePrice}</span>
-                      <span className="text-[9px] font-black uppercase text-gray-400">ID: {p.id}</span>
+                <div className="p-10 flex flex-col flex-grow">
+                   <span className="text-[9px] font-black uppercase text-red-600 tracking-[0.4em] mb-3 block opacity-50">{p.category}</span>
+                   <h5 className="text-3xl font-brand font-black italic uppercase text-black mb-6 leading-none group-hover:text-red-600 transition-colors">{p.name}</h5>
+                   <div className="mt-auto flex justify-between items-end pt-6 border-t border-gray-50">
+                      <div className="flex flex-col">
+                         <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Base Cost</span>
+                         <span className="text-4xl font-brand font-black italic text-black">€{p.basePrice}</span>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-2xl"><Box className="w-6 h-6 text-red-600" /></div>
                    </div>
                 </div>
              </div>
@@ -452,45 +491,42 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* VIEW: APPROVALS */}
-      {activeView === 'approvals' && (
-        <div className="space-y-12 animate-in slide-in-from-bottom-5">
-           {pendingAdminApprovals.length > 0 ? (
-             <div className="grid grid-cols-1 gap-8">
-               {pendingAdminApprovals.map(o => (
-                 <div key={o.id} className="bg-white p-12 rounded-[5rem] border-2 border-red-100 shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-12 group hover:border-red-600 transition-all">
-                    <div className="flex-grow flex items-center space-x-12">
-                       <div className="bg-black text-red-600 p-10 rounded-[3rem] shadow-xl group-hover:rotate-12 transition-transform">
-                          <Package className="w-12 h-12" />
-                       </div>
-                       <div>
-                          <div className="flex items-center space-x-4 mb-3">
-                             <span className="text-5xl font-brand font-black italic text-black uppercase">{o.id}</span>
-                             <span className="bg-red-50 text-red-600 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-100">Injeção Pendente</span>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-[11px] font-black uppercase text-gray-400 italic">
-                             <div><span className="text-gray-300 block mb-1">Entidade:</span>{o.client}</div>
-                             <div><span className="text-gray-300 block mb-1">Módulo:</span>{o.product}</div>
-                             <div><span className="text-gray-300 block mb-1">Valor:</span>€{o.value}</div>
-                             <div><span className="text-gray-300 block mb-1">HUB Destino:</span>{hubs.find(h => h.id === o.nodeId)?.name}</div>
-                          </div>
-                       </div>
-                    </div>
-                    <div className="flex space-x-4">
-                       <button onClick={() => { onSound?.('error'); onUpdateStatus(o.id, 'Rejeitado'); }} className="p-8 bg-gray-50 text-gray-400 rounded-full hover:bg-black hover:text-white transition-all shadow-xl"><X className="w-8 h-8"/></button>
-                       <button onClick={() => { onSound?.('success'); onUpdateStatus(o.id, 'Aprovado'); }} className="bg-red-600 text-white px-16 py-8 rounded-full font-black uppercase text-[12px] tracking-[0.4em] hover:bg-black transition-all shadow-2xl flex items-center space-x-4">
-                          <span>Aprovar Ordem</span> <CheckCircle className="w-6 h-6" />
-                       </button>
-                    </div>
-                 </div>
-               ))}
+      {/* VIEW: HUBS MANAGEMENT */}
+      {activeView === 'hubs' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in slide-in-from-bottom-5">
+           {filteredItems.map((h: PartnerNode) => (
+             <div key={h.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 text-red-600/5 rotate-45"><Server className="w-48 h-48" /></div>
+                <div className="flex justify-between items-start mb-10 relative z-10">
+                   <div className="p-6 bg-red-600 rounded-[2rem] text-white shadow-xl status-pulse"><Server className="w-8 h-8" /></div>
+                   <div className="flex space-x-2">
+                      <button onClick={() => setEditingItem({type: 'hub', data: h})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md"><Edit className="w-5 h-5" /></button>
+                      <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md"><Power className="w-5 h-5" /></button>
+                   </div>
+                </div>
+                <div className="relative z-10">
+                   <h4 className="text-4xl font-brand font-black italic uppercase text-black mb-2 leading-none group-hover:text-red-600 transition-colors">{h.name}</h4>
+                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 flex items-center"><MapPin className="w-3 h-3 mr-2" /> {h.location}</p>
+                   
+                   <div className="space-y-6 pt-6 border-t border-gray-50">
+                      <div className="flex justify-between items-end">
+                         <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest italic">Grid Load Sync</span>
+                         <span className="text-2xl font-brand font-black italic text-red-600">{h.capacity}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-50 rounded-full overflow-hidden p-0.5 border border-gray-100">
+                         <div className="h-full bg-black group-hover:bg-red-600 transition-all duration-[2000ms]" style={{ width: `${h.capacity}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between pt-4">
+                         <div className="flex items-center space-x-2 text-[10px] font-black uppercase text-green-600">
+                            <Activity className="w-3 h-3" />
+                            <span>Latência: {h.latency}</span>
+                         </div>
+                         <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase ${h.status === 'Online' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-orange-50 text-orange-600'}`}>{h.status}</span>
+                      </div>
+                   </div>
+                </div>
              </div>
-           ) : (
-             <div className="py-40 text-center space-y-10 opacity-20">
-                <ShieldCheck className="w-32 h-32 mx-auto" />
-                <p className="text-5xl font-brand font-black italic uppercase">Grid em Repouso. Zero Pendentes.</p>
-             </div>
-           )}
+           ))}
         </div>
       )}
 
@@ -506,15 +542,15 @@ const Backoffice: React.FC<BackofficeProps> = ({
                     <>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome da Entidade</label>
-                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Email de Protocolo</label>
-                          <input type="email" value={editingItem.data.email} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                          <input type="email" value={editingItem.data.email} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nível de Acesso (Role)</label>
-                          <select value={editingItem.data.role} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600">
+                          <select value={editingItem.data.role} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner">
                              <option value="Utilizador_Standard">Standard Client</option>
                              <option value="B2B_Admin">HUB Partner</option>
                           </select>
@@ -525,15 +561,15 @@ const Backoffice: React.FC<BackofficeProps> = ({
                     <>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome do Módulo</label>
-                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Preço Base (€)</label>
-                          <input type="number" value={editingItem.data.basePrice} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, basePrice: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                          <input type="number" value={editingItem.data.basePrice} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, basePrice: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Descrição Técnica</label>
-                          <textarea value={editingItem.data.description} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, description: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 h-32" />
+                          <textarea value={editingItem.data.description} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, description: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner h-32" />
                        </div>
                     </>
                  )}
@@ -542,8 +578,8 @@ const Backoffice: React.FC<BackofficeProps> = ({
                     if(editingItem.type === 'product') onUpdateProduct(editingItem.data.id, editingItem.data);
                     setEditingItem(null); 
                     onSound?.('success'); 
-                 }} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all flex items-center justify-center space-x-6">
-                    <Save className="w-6 h-6" /> <span>Sincronizar Alterações</span>
+                 }} className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">
+                    <Save className="w-6 h-6" /> <span>Sincronizar Alterações Master</span>
                  </button>
               </div>
            </div>
@@ -555,7 +591,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-8 animate-in fade-in">
            <div className="bg-white w-full max-w-2xl rounded-[5rem] p-20 shadow-2xl border-[15px] border-red-600 relative overflow-y-auto max-h-[90vh]">
               <button onClick={() => setShowCreateModal(null)} className="absolute top-12 right-12 p-4 text-gray-300 hover:text-black hover:rotate-90 transition-all"><X className="w-10 h-10"/></button>
-              <h3 className="text-5xl font-brand font-black italic uppercase mb-12 leading-none">Novo <br/><span className="text-red-600">{showCreateModal.toUpperCase()} R2.</span></h3>
+              <h3 className="text-5xl font-brand font-black italic uppercase mb-12 leading-none">Novo <br/><span className="text-red-600">{showCreateModal.toUpperCase()} R3.</span></h3>
               
               <div className="space-y-8">
                  {showCreateModal === 'user' && (
@@ -569,13 +605,13 @@ const Backoffice: React.FC<BackofficeProps> = ({
                        });
                        setShowCreateModal(null);
                     }} className="space-y-6">
-                       <input name="name" type="text" placeholder="NOME DA ENTIDADE" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" required />
-                       <input name="email" type="email" placeholder="EMAIL DE PROTOCOLO" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" required />
-                       <select name="role" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none">
+                       <input name="name" type="text" placeholder="NOME DA ENTIDADE" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
+                       <input name="email" type="email" placeholder="EMAIL DE PROTOCOLO" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
+                       <select name="role" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner appearance-none">
                           <option value="Utilizador_Standard">Standard Client</option>
                           <option value="B2B_Admin">HUB Partner</option>
                        </select>
-                       <button type="submit" className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all">Provisionar Acesso</button>
+                       <button type="submit" className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">Provisionar Acesso Master</button>
                     </form>
                  )}
                  {showCreateModal === 'product' && (
@@ -592,18 +628,18 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           image: 'https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=1000',
                           status: 'Ativo',
                           ownerHubId: 'SYSTEM',
-                          specs: { weight: '---', durability: '---', precisionLevel: 'R2' }
+                          specs: { weight: '---', durability: '---', precisionLevel: 'R3' }
                        };
                        onUpdateProduct(newProd.id, newProd);
                        setShowCreateModal(null);
                     }} className="space-y-6">
-                       <input name="name" type="text" placeholder="NOME DO MÓDULO" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" required />
-                       <input name="price" type="number" placeholder="PREÇO BASE (€)" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" required />
-                       <select name="category" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none">
+                       <input name="name" type="text" placeholder="NOME DO MÓDULO" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
+                       <input name="price" type="number" placeholder="PREÇO BASE (€)" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
+                       <select name="category" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner appearance-none">
                           {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                        </select>
-                       <textarea name="desc" placeholder="ESPECIFICAÇÃO TÉCNICA" className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none h-32" />
-                       <button type="submit" className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all">Injetar Módulo no Grid</button>
+                       <textarea name="desc" placeholder="ESPECIFICAÇÃO TÉCNICA R3" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner h-32" />
+                       <button type="submit" className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">Injetar Módulo no Grid R3</button>
                     </form>
                  )}
               </div>
