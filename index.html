@@ -21,15 +21,16 @@
             background-color: #ffffff;
             color: var(--black-brand);
             overflow-x: hidden;
-            font-size: 14px; /* Aumentado para melhor legibilidade */
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.5;
         }
         .font-brand { font-family: 'Exo 2', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        h1 { font-size: clamp(3rem, 8vw, 7rem); }
-        h2 { font-size: clamp(2.5rem, 6vw, 5rem); }
-        h3 { font-size: clamp(2rem, 5vw, 4rem); }
+        /* Escalas reduzidas para evitar quebras de margem */
+        h1 { font-size: clamp(2.5rem, 6vw, 5rem); }
+        h2 { font-size: clamp(2rem, 5vw, 4rem); }
+        h3 { font-size: clamp(1.8rem, 4vw, 3.2rem); }
 
         .industrial-grid {
             background-image: 
@@ -47,7 +48,6 @@
             100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
         }
 
-        /* Novas Animações para o Footer Futurista */
         @keyframes laser-scan {
             0% { transform: translateX(-100%); opacity: 0; }
             50% { opacity: 1; }
@@ -76,7 +76,7 @@
             color: #fff !important;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>

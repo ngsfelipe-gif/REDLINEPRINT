@@ -43,18 +43,30 @@ const App: React.FC = () => {
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       const now = audioCtx.currentTime;
+
       if (type === 'click') {
-        osc.frequency.setValueAtTime(440, now);
-        gain.gain.setValueAtTime(0.05, now);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1500, now);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
       } else if (type === 'success') {
-        osc.frequency.setValueAtTime(523, now);
-        gain.gain.setValueAtTime(0.05, now);
-      } else {
+        osc.type = 'triangle';
         osc.frequency.setValueAtTime(880, now);
-        gain.gain.setValueAtTime(0.02, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } else if (type === 'sync') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(100, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
       }
-      osc.start(now);
-      osc.stop(now + 0.1);
     } catch(e) {}
   }, []);
 
@@ -121,7 +133,6 @@ const App: React.FC = () => {
     if (!req) return;
     setAuthRequests(prev => prev.map(r => r.id === authId ? { ...r, status: 'Aprovado' } : r));
     
-    // Executar ação baseada no tipo (Exemplo: Deletar produto)
     if (req.type === 'DELETE_PRODUCT') {
       setProducts(prev => prev.filter(p => p.id !== req.targetId));
       notify("Autorização Concedida", "Ação crítica executada: Remoção de Produto.");
