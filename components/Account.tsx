@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
-import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown, Barcode, Search } from 'lucide-react';
+import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown, Barcode, Search, Truck, PlayCircle } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 
 interface AccountProps {
@@ -30,19 +30,13 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
   const isAdmin = user.role === 'Administrador';
   const myHub = hubs.find(h => h.id === user.managedHubId);
 
-  // Engine Financeira Redline R2 - Sync em Tempo Real
   const financials = useMemo(() => {
     const relevantOrders = orders.filter(o => isB2B ? o.nodeId === user.managedHubId : o.clientId === user.id);
     const totalVolume = relevantOrders.reduce((acc, o) => acc + parseFloat(o.value), 0);
-    
-    // Comissão HUB (Nível 2)
     const hubRate = isB2B && myHub ? (myHub.primaryCommission || 0) : 0;
     const grossHubEarnings = (totalVolume * hubRate) / 100;
-    
-    // Taxa Plataforma (Nível 1)
     const platRate = isB2B && myHub ? (myHub.platformCommission || 5) : 0;
     const platformDeduction = (totalVolume * platRate) / 100;
-    
     const netEarnings = grossHubEarnings - platformDeduction;
     const cashbackTotal = isStandard ? (user.balance || 0) : 0;
     
@@ -72,7 +66,6 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 pb-32 industrial-grid animate-in fade-in">
-      {/* Header com Integração de Scan */}
       <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-16 mb-20 flex flex-col xl:flex-row justify-between items-center gap-12">
         <div className="flex items-center space-x-12">
            <div className={`w-32 h-32 text-white rounded-[3rem] flex items-center justify-center font-brand font-black italic text-6xl shadow-2xl border-b-[12px] ${isAdmin ? 'bg-red-600 border-black' : 'bg-black border-red-600'}`}>{user.name[0]}</div>
@@ -92,16 +85,9 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
              ))}
           </div>
           
-          {/* Terminal de Scan de Barcode R2 */}
           <form onSubmit={handleBarcodeSearch} className="flex bg-black p-1 rounded-full border border-white/10 w-full max-w-sm group focus-within:ring-2 focus-within:ring-red-600 transition-all">
              <div className="flex items-center px-6"><Barcode className="w-5 h-5 text-red-600 group-focus-within:animate-pulse" /></div>
-             <input 
-              type="text" 
-              placeholder="SCAN BARCODE / ORDER ID..." 
-              value={scanTerm}
-              onChange={e => setScanTerm(e.target.value)}
-              className="bg-transparent text-white font-mono text-[10px] uppercase p-4 outline-none flex-grow placeholder:text-gray-700"
-             />
+             <input type="text" placeholder="SCAN BARCODE / ORDER ID..." value={scanTerm} onChange={e => setScanTerm(e.target.value)} className="bg-transparent text-white font-mono text-[10px] uppercase p-4 outline-none flex-grow placeholder:text-gray-700" />
              <button type="submit" className="bg-red-600 text-white p-4 rounded-full hover:bg-white hover:text-black transition-all"><Search className="w-4 h-4" /></button>
           </form>
         </div>
@@ -157,7 +143,6 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
               </div>
            </div>
 
-           {/* Ledger de Transações R2 */}
            <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 overflow-hidden">
               <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                  <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em]">Grid Financial Ledger (Real-time)</h4>
@@ -212,7 +197,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                    <div className="flex-grow">
                       <div className="flex items-center space-x-8 mb-6">
                          <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
-                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>{o.status.replace('_', ' ')}</span>
+                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : (o.status === 'Rejeitado' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600 border-red-100')}`}>{o.status.replace('_', ' ')}</span>
                          {o.priority && <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full text-[8px] font-black uppercase animate-pulse"><Zap className="w-3 h-3 text-red-600"/> <span>Priority</span></div>}
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
@@ -222,11 +207,32 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                          <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
                       </div>
                    </div>
+
+                   {/* CONTROLO B2B EXCLUSIVO */}
+                   {isB2B && o.status !== 'Concluído' && o.status !== 'Rejeitado' && (
+                     <div className="bg-gray-50 p-4 rounded-[2.5rem] flex items-center space-x-4 border border-gray-100 animate-in slide-in-from-right-4">
+                        {o.status === 'Aprovado' && (
+                          <button onClick={() => onUpdateStatus(o.id, 'Em Produção')} className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3">
+                             <PlayCircle className="w-4 h-4" /> <span>Iniciar Produção</span>
+                          </button>
+                        )}
+                        {o.status === 'Em Produção' && (
+                          <button onClick={() => onUpdateStatus(o.id, 'Expedição')} className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3">
+                             <Truck className="w-4 h-4" /> <span>Marcar Expedição</span>
+                          </button>
+                        )}
+                        {o.status === 'Expedição' && (
+                          <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="bg-red-600 text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center space-x-3">
+                             <CheckCircle2 className="w-4 h-4" /> <span>Concluir Job</span>
+                          </button>
+                        )}
+                     </div>
+                   )}
+
                    <div className="flex space-x-4">
                       <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full shadow-xl transition-all ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400'}`}>
                          {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
                       </button>
-                      
                       <div className="flex space-x-2">
                         <button onClick={() => { onSound?.('success'); generateOrderPDF(o, hubs.find(h => h.id === o.nodeId)); }} title="Download Production Spec" className="p-8 bg-black text-white rounded-full hover:bg-red-600 transition-all shadow-xl">
                            <FileDown className="w-8 h-8"/>

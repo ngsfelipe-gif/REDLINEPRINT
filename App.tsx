@@ -18,9 +18,10 @@ import { Zap, ShieldCheck, RefreshCw } from 'lucide-react';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
-  const [adminBuffer, setAdminBuffer] = useState<User | null>(null);
+  const [adminBuffer, setAdminBuffer] = useState<User | null>(null); // Armazena o admin real durante o shadow mode
   const [language, setLanguage] = useState<Language>('PT');
   
+  // Gestão Financeira Global
   const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
 
   const [users, setUsers] = useState<User[]>([
@@ -49,48 +50,19 @@ const App: React.FC = () => {
 
       switch(type) {
         case 'click':
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1200, now);
-          gain.gain.setValueAtTime(0.02, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-          osc.start(now);
-          osc.stop(now + 0.05);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); gain.gain.setValueAtTime(0.02, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.start(now); osc.stop(now + 0.05);
           break;
         case 'success':
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(880, now);
-          osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1);
-          gain.gain.setValueAtTime(0.03, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-          osc.start(now);
-          osc.stop(now + 0.2);
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1); gain.gain.setValueAtTime(0.03, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); osc.start(now); osc.stop(now + 0.2);
           break;
         case 'sync':
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1500, now);
-          osc.frequency.setValueAtTime(1800, now + 0.05);
-          gain.gain.setValueAtTime(0.02, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-          osc.start(now);
-          osc.stop(now + 0.15);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(1500, now); osc.frequency.setValueAtTime(1800, now + 0.05); gain.gain.setValueAtTime(0.02, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15);
           break;
         case 'error':
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(120, now);
-          osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.4); gain.gain.setValueAtTime(0.04, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4);
           break;
         case 'loading':
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.linearRampToValueAtTime(660, now + 0.5);
-          gain.gain.setValueAtTime(0.01, now);
-          gain.gain.linearRampToValueAtTime(0, now + 0.5);
-          osc.start(now);
-          osc.stop(now + 0.5);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(660, now + 0.5); gain.gain.setValueAtTime(0.01, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5);
           break;
       }
     } catch(e) {}
@@ -106,11 +78,11 @@ const App: React.FC = () => {
     setOrders(prev => prev.map(o => {
       if (o.id !== orderId) return o;
       
-      // Lógica de Cashback de 2% (Redcoin Credits)
+      // Se concluído, creditar cashback ao cliente se aplicável
       if (newStatus === 'Concluído' && o.status !== 'Concluído') {
         const client = users.find(u => u.id === o.clientId);
         if (client && client.role === 'Utilizador_Standard') {
-          const cashback = parseFloat(o.value) * 0.02;
+          const cashback = parseFloat(o.value) * 0.02; // 2% REDCOIN default
           handleUpdateUser(client.id, { balance: (client.balance || 0) + cashback });
           notify("Cashback R2 Ativo", `€${cashback.toFixed(2)} creditados em balance.`, "success");
         }
@@ -125,16 +97,17 @@ const App: React.FC = () => {
           timestamp: Date.now(), 
           status: newStatus, 
           author: user?.name || 'Sistema R3', 
-          note: note || `Transação de status via Cluster R2.` 
+          note: note || `Operação de status validada pelo nodo industrial.` 
         }]
       };
     }));
-    notify("Grid Sync", `Protocolo ${orderId} atualizado para ${newStatus}.`, "sync");
+    notify("Grid Sync", `Encomenda ${orderId} atualizada para ${newStatus}.`, "sync");
   };
 
   const handleUpdateUser = (userId: string, updates: Partial<User>) => {
     setUsers(prev => {
       const newList = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
+      // Se o utilizador atualizado for o logado, atualiza a sessão também
       if (user?.id === userId) {
         setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
       }
@@ -148,14 +121,15 @@ const App: React.FC = () => {
     notify("Nodo Industrial", `Parâmetros do Hub ${hubId} modificados.`, "sync");
   };
 
-  const handleCreateOrder = (order: ProductionJob, guestData?: { name: string, email: string }) => {
+  const handleCreateOrder = (order: ProductionJob, guestData?: { name: string, email: string, password?: string }) => {
+    // Lógica para converter convidados em Standard Users se necessário
     let finalUser = user;
     if (!user && guestData) {
       const newUser: User = {
         id: `AUTO-${Date.now()}`,
         name: guestData.name,
         email: guestData.email,
-        password: Math.random().toString(36).slice(-8), 
+        password: guestData.password || Math.random().toString(36).slice(-8), 
         role: 'Utilizador_Standard',
         permissions: ['BUY'],
         tier: 'Bronze',
@@ -167,7 +141,7 @@ const App: React.FC = () => {
       setUsers(prev => [...prev, newUser]);
       setUser(newUser);
       finalUser = newUser;
-      notify("Conta Provisionada", `Credenciais enviadas para ${guestData.email}`, "success");
+      notify("Identidade Criada", `Conta Standard provisionada para ${guestData.email}`, "success");
     }
 
     const hierarchicalOrder: ProductionJob = {
@@ -176,9 +150,9 @@ const App: React.FC = () => {
       clientId: finalUser?.id || order.clientId,
       status: 'Pendente_Admin' 
     };
+    
     setOrders(prev => [hierarchicalOrder, ...prev]);
-    notify("Job em Quarentena", `Protocolo ${order.id} isolado para aprovação Admin.`, "sync");
-    if (!user) setActiveTab('account');
+    notify("Protocolo Injetado", `Encomenda ${order.id} aguarda validação Admin.`, "sync");
   };
 
   const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
@@ -210,6 +184,7 @@ const App: React.FC = () => {
     notify("Entidade Provisionada", `Acesso gerado para ${newUser.name}.`, "success");
   };
 
+  // Shadow Mode (Impersonation)
   const handleImpersonate = (targetUser: User) => {
     if (user?.role !== 'Administrador') return;
     setAdminBuffer(user);
@@ -285,7 +260,11 @@ const App: React.FC = () => {
         {activeTab === 'account' && user && (
           <Account 
             user={user} 
-            orders={orders.filter(o => user.role === 'Administrador' ? true : (o.status !== 'Pendente_Admin' && (user.role === 'B2B_Admin' ? o.nodeId === user.managedHubId : o.clientId === user.id)))} 
+            orders={orders.filter(o => {
+               if (user.role === 'Administrador') return true;
+               if (user.role === 'B2B_Admin') return o.nodeId === user.managedHubId;
+               return o.clientId === user.id;
+            })} 
             tickets={tickets.filter(t => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? t.targetHubId === user.managedHubId : t.creatorId === user.id))}
             hubs={hubs} products={products}
             onUpdateStatus={handleUpdateOrderStatus}

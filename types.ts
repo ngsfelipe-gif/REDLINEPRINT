@@ -30,8 +30,8 @@ export interface User {
   status: 'Ativo' | 'Pendente' | 'Bloqueado';
   joinedAt: number;
   managedHubId?: string;
-  partnerCommissionRate?: number; // Comissão para o parceiro B2B (referral/sales)
-  balance?: number; // Saldo acumulado de comissões
+  partnerCommissionRate?: number; 
+  balance?: number; 
 }
 
 export interface SupportMessage {
@@ -50,7 +50,7 @@ export interface SupportTicket {
   priority: 'Alta' | 'Média' | 'Baixa';
   timestamp: number;
   creatorId: string;
-  targetHubId?: string; // Direcionado a um Hub específico
+  targetHubId?: string;
   messages: SupportMessage[];
 }
 
@@ -97,7 +97,7 @@ export interface ProductionJob {
   priority?: boolean;
   deadline?: string;
   dimensions?: string;
-  history: ProductionLog[]; // Rastreabilidade industrial
+  history: ProductionLog[];
 }
 
 export interface PartnerNode {
@@ -111,9 +111,9 @@ export interface PartnerNode {
   description: string;
   ownerId: string;
   specialization?: Category[];
-  primaryCommission?: number;   // Percentagem de comissão HUB (0-100)
-  secondaryCommission?: number; // Camada secundária de comissão (0-100)
-  platformCommission?: number;  // Taxa da plataforma Redline (Super Admin)
+  primaryCommission?: number;   
+  secondaryCommission?: number; 
+  platformCommission?: number;  
 }
 
 export interface ExtendedProduct {
