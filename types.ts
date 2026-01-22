@@ -30,6 +30,8 @@ export interface User {
   status: 'Ativo' | 'Pendente' | 'Bloqueado';
   joinedAt: number;
   managedHubId?: string;
+  partnerCommissionRate?: number; // Comissão para o parceiro B2B (referral/sales)
+  balance?: number; // Saldo acumulado de comissões
 }
 
 export interface SupportMessage {
@@ -111,6 +113,7 @@ export interface PartnerNode {
   specialization?: Category[];
   primaryCommission?: number;   // Percentagem de comissão HUB (0-100)
   secondaryCommission?: number; // Camada secundária de comissão (0-100)
+  platformCommission?: number;  // Taxa da plataforma Redline (Super Admin)
 }
 
 export interface ExtendedProduct {

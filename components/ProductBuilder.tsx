@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { MATERIALS, FINISHES } from '../constants';
-import { ArrowRight, ArrowLeft, CheckCircle2, Cpu, ShieldCheck, Zap, Info, ChevronLeft, ChevronRight, X, Upload, Activity, Package, MessageCircle, Server, FileCheck, FileWarning, Layers } from 'lucide-react';
-import { ProductionJob, User, ExtendedProduct, PartnerNode, Language } from '../types';
+import { ArrowRight, ArrowLeft, CheckCircle2, Cpu, ShieldCheck, Zap, Info, ChevronLeft, ChevronRight, X, Upload, Activity, Package, MessageCircle, Server, FileCheck, FileWarning, Layers, Search, BarChart3, Globe, FileDigit } from 'lucide-react';
+import { ProductionJob, User, ExtendedProduct, PartnerNode, Language, Category } from '../types';
 
 interface ProductBuilderProps {
-  onAddOrder: (order: ProductionJob) => void;
+  onAddOrder: (order: ProductionJob, guestData?: { name: string, email: string }) => void;
   user: User | null;
   hubs: PartnerNode[];
   products: ExtendedProduct[];
@@ -17,7 +17,9 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<ExtendedProduct | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string>('Tudo');
   
   const [config, setConfig] = useState({
     material: MATERIALS[0],
@@ -33,65 +35,31 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
 
   const [guestInfo, setGuestInfo] = useState({ name: '', email: '', phone: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const itemsPerPage = 6; // Reduzido para melhor visualização dos cards aumentados
-
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return products.slice(start, start + itemsPerPage);
-  }, [products, currentPage]);
-
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-
-  const isConfigValid = useMemo(() => {
-    const hasDimensions = config.width !== '' && config.height !== '';
-    const hasFile = config.fileName !== '';
-    const hasQuantity = parseInt(config.quantity) > 0;
-    const hasHub = config.selectedHubId !== '' || (selectedProduct?.ownerHubId !== 'SYSTEM' && selectedProduct?.ownerHubId);
-    return hasDimensions && hasFile && hasQuantity && hasHub;
-  }, [config, selectedProduct]);
-
-  const isGuestValid = useMemo(() => {
-    return guestInfo.name.trim() !== '' && guestInfo.email.includes('@') && guestInfo.phone.length >= 9;
-  }, [guestInfo]);
+  const itemsPerPage = 8;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff'];
-      
-      if (!validTypes.includes(file.type)) {
-        setErrors(prev => ({ ...prev, file: 'Formato inválido. Use PDF, JPG ou PNG.' }));
-        return;
-      }
-      
-      setErrors(prev => ({ ...prev, file: '' }));
-      setConfig({ ...config, fileName: file.name });
+      setIsUploading(true);
+      setTimeout(() => {
+        setConfig({ ...config, fileName: e.target.files![0].name });
+        setIsUploading(false);
+      }, 2000);
     }
   };
 
   const handleOrderSubmit = () => {
     if (!selectedProduct) return;
-
-    if (!isConfigValid) {
-       setErrors(prev => ({ ...prev, general: 'A Fase 2 requer todos os dados técnicos e arquivo.' }));
-       return;
-    }
-
-    if (!user && !isGuestValid) {
-       setStep(3);
-       return;
-    }
+    if (!user && (guestInfo.name === '' || !guestInfo.email.includes('@'))) { setStep(3); return; }
 
     setIsSyncing(true);
-    
     const hubId = config.selectedHubId || (selectedProduct.ownerHubId === 'SYSTEM' ? 'NODE-LIS' : selectedProduct.ownerHubId);
 
     const newOrder: ProductionJob = {
       id: `RL-${Math.floor(Math.random() * 9000) + 1000}`,
       client: user ? user.name : guestInfo.name,
-      clientId: user ? user.id : `GUEST-${Date.now()}`,
+      clientId: user ? user.id : 'GUEST',
       product: selectedProduct.name,
-      status: 'Aguardando Aprovação',
+      status: 'Pendente_Admin',
       value: (selectedProduct.basePrice * (parseInt(config.quantity) || 1)).toFixed(2),
       nodeId: hubId,
       progress: 0,
@@ -105,281 +73,169 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
       observations: config.observations,
       fileName: config.fileName,
       dimensions: `${config.width}x${config.height}${config.unit}`,
-      history: [
-        { 
-           timestamp: Date.now(), 
-           status: 'Injetado no Grid', 
-           author: user ? user.name : guestInfo.name, 
-           note: 'Job industrial configurado com sucesso.' 
-        }
-      ]
+      history: [{ timestamp: Date.now(), status: 'Protocolo Injetado', author: user ? user.name : guestInfo.name, note: 'Job submetido via Grid R2.' }]
     };
 
     setTimeout(() => {
-      onAddOrder(newOrder);
+      onAddOrder(newOrder, !user ? { name: guestInfo.name, email: guestInfo.email } : undefined);
       setIsSyncing(false);
       setStep(4);
-    }, 2000);
+    }, 2500);
   };
+
+  const categories = useMemo(() => ['Tudo', ...Object.values(Category)], []);
+  const filteredProducts = products.filter(p => (activeCategory === 'Tudo' || p.category === activeCategory) && p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-12 industrial-grid min-h-screen">
-      <div className="flex flex-col lg:flex-row gap-12">
-        <div className="lg:w-1/4 space-y-6">
-           <div className="bg-black text-white p-10 rounded-[3.5rem] border-b-[15px] border-red-600 shadow-2xl relative overflow-hidden">
-              <div className="absolute inset-0 industrial-grid opacity-10" />
-              <div className="relative z-10">
-                 <h2 className="text-5xl font-brand font-black italic tracking-tighter uppercase leading-none">R2 <br/>Grid.</h2>
-                 <div className="mt-6 flex items-center space-x-3">
-                    <Layers className="w-4 h-4 text-red-600" />
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Inventory Sector 0{currentPage}</p>
-                 </div>
-              </div>
-           </div>
-           
-           <div className="bg-white p-8 rounded-[3.5rem] border border-gray-100 shadow-xl space-y-4">
-              {[1, 2, 3].map(s => (
-                <div key={s} className={`p-5 rounded-2xl flex justify-between items-center font-black uppercase text-[11px] transition-all duration-500 ${step === s ? 'bg-black text-white scale-105 shadow-xl' : 'text-gray-300'}`}>
-                   <span>Pass 0{s}</span>
-                   {step > s && <CheckCircle2 className="w-4 h-4 text-red-600" />}
-                </div>
-              ))}
-           </div>
-        </div>
-
-        <div className="lg:w-3/4 bg-white rounded-[4.5rem] shadow-2xl border border-gray-100 p-10 lg:p-16 relative overflow-hidden">
-           {isSyncing && (
-             <div className="absolute inset-0 z-[100] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in">
-                <Cpu className="w-20 h-20 text-red-600 animate-spin mb-8" />
-                <h3 className="text-4xl font-brand font-black italic uppercase">Syncing Active...</h3>
-             </div>
-           )}
-
-           {step === 1 && (
-             <div className="animate-in fade-in slide-in-from-right-10">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-10">
-                   <div>
-                      <h3 className="text-6xl font-brand font-black italic uppercase text-black leading-none tracking-tighter">Células <br/><span className="text-red-600">R2 Production.</span></h3>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4 italic">Página {currentPage} de {totalPages} // {products.length} Ativos</p>
-                   </div>
-                   <div className="flex space-x-3">
-                      <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-6 bg-gray-50 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 shadow-lg border border-gray-100"><ChevronLeft className="w-8 h-8"/></button>
-                      <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-6 bg-gray-50 rounded-full hover:bg-black hover:text-white transition-all disabled:opacity-20 shadow-lg border border-gray-100"><ChevronRight className="w-8 h-8"/></button>
-                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                   {paginatedProducts.map(p => (
-                     <div 
-                        key={p.id} 
-                        onClick={() => setSelectedProduct(p)} 
-                        className={`group bg-white border-2 rounded-[4.5rem] p-10 transition-all duration-700 cursor-pointer flex flex-col gap-8 ${
-                          selectedProduct?.id === p.id 
-                          ? 'border-red-600 shadow-[0_40px_80px_-20px_rgba(204,0,0,0.3)] scale-[1.01] z-10' 
-                          : 'border-gray-50 hover:border-black hover:shadow-xl'
-                        }`}
+      {step === 1 && (
+         <div className="space-y-12 animate-in fade-in">
+            <div className="flex flex-col xl:flex-row justify-between items-end gap-12 mb-16">
+               <div className="space-y-6">
+                 <h3 className="text-8xl font-brand font-black italic uppercase text-black tracking-tighter leading-none">Módulos de <br/><span className="text-red-600">Produção.</span></h3>
+                 <div className="flex overflow-x-auto gap-3 pb-4 scrollbar-hide">
+                    {categories.map(cat => (
+                      <button 
+                        key={cat} 
+                        onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}
+                        className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${activeCategory === cat ? 'bg-black text-white border-black scale-105 shadow-xl' : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'}`}
                       >
-                        <div className="w-full relative aspect-[16/10] overflow-hidden rounded-[3.5rem] bg-gray-50 border border-gray-100 shadow-inner">
-                           <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-110" />
-                           <div className="absolute top-8 right-8 bg-black/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest italic border border-white/20 z-10">{p.badge || 'R2 ATOM'}</div>
-                        </div>
-
-                        <div className="flex flex-col justify-between flex-grow px-4">
-                          <div className="space-y-4">
-                            <span className="text-[8px] font-black uppercase text-red-600 tracking-[0.5em]">{p.category}</span>
-                            <h5 className="text-4xl font-brand font-black italic uppercase leading-[0.85] text-black group-hover:text-red-600 transition-colors tracking-tighter">{p.name}</h5>
-                            <p className="text-[11px] font-bold text-gray-400 italic leading-relaxed uppercase tracking-widest line-clamp-2">{p.description}</p>
-                          </div>
-                          
-                          <div className="flex justify-between items-center pt-8 border-t border-gray-50 mt-8">
-                             <div className="flex flex-col">
-                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Industrial Rate</span>
-                                <span className="text-4xl font-brand font-black text-black italic leading-none">€{p.basePrice}<span className="text-sm font-normal ml-1">/{p.unit}</span></span>
-                             </div>
-                             <div className={`p-6 rounded-[2.5rem] transition-all duration-500 shadow-xl ${selectedProduct?.id === p.id ? 'bg-red-600 text-white scale-110' : 'bg-black text-white hover:bg-red-600'}`}>
-                               <Zap className="w-6 h-6"/>
-                             </div>
-                          </div>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-                
-                {/* Indicadores de Paginação Inferiores */}
-                <div className="mt-16 flex justify-center space-x-2">
-                   {Array.from({ length: totalPages }).map((_, i) => (
-                     <button 
-                        key={i} 
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`w-12 h-2 rounded-full transition-all duration-500 ${currentPage === i + 1 ? 'bg-red-600 w-24' : 'bg-gray-100 hover:bg-gray-200'}`}
-                     />
-                   ))}
-                </div>
-
-                {selectedProduct && (
-                  <button onClick={() => setStep(2)} className="mt-16 w-full bg-black text-white p-12 rounded-[3.5rem] font-brand font-black italic uppercase tracking-[0.4em] text-[16px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center group border-b-[10px] border-red-900/30">
-                    <span>Configurar Protocolo R2</span> <ArrowRight className="ml-6 w-8 h-8 group-hover:translate-x-6 transition-transform"/>
-                  </button>
-                )}
-             </div>
-           )}
-
-           {/* Passos 2 e 3 mantidos conforme lógica anterior para não quebrar fluxos */}
-           {step === 2 && selectedProduct && (
-              <div className="animate-in fade-in slide-in-from-right-10 space-y-12">
-                 <h3 className="text-5xl font-brand font-black italic uppercase leading-none">Fase 02: <span className="text-red-600">Engenharia do Job.</span></h3>
-                 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-8">
-                       <div className="p-8 bg-gray-50 rounded-[3rem] border border-gray-100 shadow-sm">
-                          <div className="flex justify-between items-center mb-4">
-                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Dimensões Exatas (L x A)</label>
-                             <div className="flex bg-white p-1 rounded-xl border border-gray-200">
-                                {['mm', 'cm', 'm'].map(u => (
-                                  <button key={u} onClick={() => setConfig({...config, unit: u as any})} className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all ${config.unit === u ? 'bg-black text-white shadow-md' : 'text-gray-400'}`}>{u}</button>
-                                ))}
-                             </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                             <input type="number" placeholder="LARGURA" value={config.width} onChange={e => setConfig({...config, width: e.target.value})} className="w-full bg-white p-4 rounded-xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all shadow-inner" />
-                             <input type="number" placeholder="ALTURA" value={config.height} onChange={e => setConfig({...config, height: e.target.value})} className="w-full bg-white p-4 rounded-xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all shadow-inner" />
-                          </div>
-                       </div>
-
-                       <div className="space-y-4">
-                          <div className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100">
-                             <label className="text-[9px] font-black uppercase text-gray-400 block mb-3">Substrato</label>
-                             <select value={config.material} onChange={e => setConfig({...config, material: e.target.value})} className="w-full bg-white p-3 rounded-xl font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600">
-                                {MATERIALS.map(m => <option key={m}>{m}</option>)}
-                             </select>
-                          </div>
-                          <div className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100">
-                             <label className="text-[9px] font-black uppercase text-gray-400 block mb-3">Acabamento</label>
-                             <select value={config.finish} onChange={e => setConfig({...config, finish: e.target.value})} className="w-full bg-white p-3 rounded-xl font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600">
-                                {FINISHES.map(f => <option key={f}>{f}</option>)}
-                             </select>
-                          </div>
-                          <div className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100">
-                             <label className="text-[9px] font-black uppercase text-gray-400 block mb-3">Quantidade</label>
-                             <input type="number" value={config.quantity} onChange={e => setConfig({...config, quantity: e.target.value})} className="w-full bg-white p-3 rounded-xl font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600" />
-                          </div>
-                       </div>
+                        {cat}
+                      </button>
+                    ))}
+                 </div>
+               </div>
+               <div className="flex-grow bg-white p-2 rounded-[2.5rem] border border-gray-100 shadow-2xl flex items-center max-w-lg w-full">
+                  <Search className="w-6 h-6 text-gray-300 ml-6" />
+                  <input type="text" placeholder="LOCALIZAR MÓDULO R2..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="bg-transparent flex-grow outline-none font-black uppercase text-[11px] p-6" />
+               </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-10">
+               {paginatedProducts.map(p => (
+                 <div key={p.id} onClick={() => setSelectedProduct(p)} className={`bg-white border-2 rounded-[4.5rem] p-8 transition-all cursor-pointer relative group ${selectedProduct?.id === p.id ? 'border-red-600 shadow-2xl scale-[1.02]' : 'border-gray-50 hover:border-black shadow-lg'}`}>
+                    {p.badge && (
+                      <div className="absolute top-10 right-10 bg-red-600 text-white px-4 py-1.5 rounded-full text-[9px] font-black z-10 shadow-lg">{p.badge}</div>
+                    )}
+                    <div className="w-full aspect-[4/3] rounded-[3.5rem] overflow-hidden mb-8 shadow-inner bg-gray-50">
+                       <img src={p.image} className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
                     </div>
-
-                    <div className="space-y-8">
-                       <div className={`bg-black text-white p-10 rounded-[4rem] shadow-xl relative overflow-hidden group border-2 transition-all ${config.fileName ? 'border-green-500/50' : (errors.file ? 'border-red-600' : 'border-white/5')}`}>
-                          <div className="relative z-10 flex flex-col items-center text-center">
-                             {config.fileName ? <FileCheck className="w-12 h-12 mb-4 text-green-500" /> : <Upload className="w-12 h-12 mb-4 text-red-600 animate-bounce" />}
-                             <h4 className="text-2xl font-brand font-black italic uppercase mb-2">Arte-Final</h4>
-                             <p className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-6">PDF, JPG ou PNG (Máx 50MB)</p>
-                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.jpg,.png,.tiff" />
-                             <button onClick={() => fileInputRef.current?.click()} className={`w-full p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all ${config.fileName ? 'bg-green-600' : 'bg-white text-black hover:bg-red-600 hover:text-white'}`}>
-                                {config.fileName ? config.fileName : 'Selecionar Arquivo'}
-                             </button>
-                             {errors.file && <span className="mt-3 text-[8px] font-black uppercase text-red-600 flex items-center"><FileWarning className="w-3 h-3 mr-2" /> {errors.file}</span>}
-                          </div>
-                       </div>
-
-                       <div className="p-6 bg-gray-50 rounded-[3.5rem] border border-gray-100 space-y-4">
-                          <div>
-                             <label className="text-[9px] font-black uppercase text-gray-400 block mb-3 flex items-center"><Server className="w-3 h-3 mr-3" /> Nodo de Destino R2</label>
-                             {selectedProduct.ownerHubId === 'SYSTEM' ? (
-                               <select value={config.selectedHubId} onChange={e => setConfig({...config, selectedHubId: e.target.value})} className="w-full bg-white p-4 rounded-xl font-black uppercase text-[10px] border-2 border-transparent focus:border-red-600">
-                                  <option value="">Nodo Sugerido...</option>
-                                  {hubs.map(h => <option key={h.id} value={h.id}>{h.name} ({h.location})</option>)}
-                               </select>
-                             ) : (
-                               <div className="bg-white p-4 rounded-xl border-2 border-red-50 flex items-center space-x-3">
-                                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                  <span className="text-[10px] font-black uppercase text-black">{hubs.find(h => h.id === selectedProduct.ownerHubId)?.name || 'Central R2'}</span>
-                                </div>
-                             )}
-                          </div>
-                          
-                          <div className="relative">
-                             <label className="text-[9px] font-black uppercase text-gray-400 block mb-3 flex items-center"><MessageCircle className="w-3 h-3 mr-3" /> Notas</label>
-                             <textarea 
-                               placeholder="Observações críticas..." 
-                               value={config.observations} 
-                               onChange={e => setConfig({...config, observations: e.target.value})}
-                               className="w-full h-24 bg-white p-4 rounded-xl font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner"
-                             />
-                          </div>
+                    <div className="space-y-2">
+                       <span className="text-[9px] font-black uppercase text-gray-400 tracking-[0.3em]">{p.category}</span>
+                       <h5 className="text-3xl font-brand font-black italic uppercase text-black leading-none">{p.name}</h5>
+                    </div>
+                    <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-50">
+                       <span className="text-4xl font-brand font-black italic">€{p.basePrice}<span className="text-xs font-normal opacity-40">/{p.unit}</span></span>
+                       <div className={`p-4 rounded-2xl transition-all ${selectedProduct?.id === p.id ? 'bg-red-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-black group-hover:text-white'}`}>
+                          <Zap className={`w-6 h-6 ${selectedProduct?.id === p.id ? 'animate-pulse' : ''}`} />
                        </div>
                     </div>
                  </div>
+               ))}
+            </div>
 
-                 <div className="flex space-x-4">
-                    <button onClick={() => setStep(1)} className="p-8 bg-gray-50 rounded-full text-black hover:bg-black hover:text-white transition-all shadow-lg"><ArrowLeft className="w-6 h-6"/></button>
-                    <button 
-                      onClick={handleOrderSubmit} 
-                      disabled={!isConfigValid}
-                      className={`flex-grow p-8 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[14px] transition-all shadow-2xl flex items-center justify-center group ${isConfigValid ? 'bg-black text-white hover:bg-red-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-                    >
-                       <span>{user ? 'Finalizar Encomenda' : 'Prosseguir Identificação'}</span> <ArrowRight className="ml-4 w-6 h-6 group-hover:translate-x-4 transition-transform" />
-                    </button>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-4 mt-12">
+                 <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-4 bg-white border border-gray-100 rounded-full disabled:opacity-30 hover:bg-black hover:text-white transition-all"><ChevronLeft /></button>
+                 <span className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-400">Pág {currentPage} de {totalPages}</span>
+                 <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-4 bg-white border border-gray-100 rounded-full disabled:opacity-30 hover:bg-black hover:text-white transition-all"><ChevronRight /></button>
+              </div>
+            )}
+
+            {selectedProduct && <button onClick={() => setStep(2)} className="w-full bg-black text-white p-10 rounded-[4rem] font-brand font-black italic uppercase tracking-[0.5em] mt-12 hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center animate-in slide-in-from-bottom-5">Configurar Projeto R2 <ArrowRight className="ml-4 w-6 h-6" /></button>}
+         </div>
+      )}
+
+      {step === 2 && (
+         <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-16 animate-in slide-in-from-right-10 relative overflow-hidden">
+            <button onClick={() => setStep(1)} className="absolute top-10 right-10 p-4 text-gray-300 hover:text-black hover:rotate-90 transition-all"><X className="w-10 h-10"/></button>
+            <h3 className="text-5xl font-brand font-black italic uppercase mb-12">Configuração <span className="text-red-600">Fase 02.</span></h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+               <div className="space-y-8">
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Largura (mm)</label>
+                        <input type="number" placeholder="LARGURA" value={config.width} onChange={e => setConfig({...config, width: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase outline-none focus:border-red-600 border-2 border-transparent shadow-inner" />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Altura (mm)</label>
+                        <input type="number" placeholder="ALTURA" value={config.height} onChange={e => setConfig({...config, height: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase outline-none focus:border-red-600 border-2 border-transparent shadow-inner" />
+                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Quantidade Total</label>
+                    <input type="number" placeholder="QUANTIDADE" value={config.quantity} onChange={e => setConfig({...config, quantity: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase outline-none focus:border-red-600 border-2 border-transparent shadow-inner" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Substrato Industrial</label>
+                    <select value={config.material} onChange={e => setConfig({...config, material: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase outline-none border-2 border-transparent focus:border-red-600 shadow-inner">
+                       {MATERIALS.map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+               </div>
+               <div className="space-y-8">
+                  <div className={`relative bg-black text-white p-12 rounded-[4rem] text-center overflow-hidden transition-all border-b-[10px] border-red-900/50 ${isUploading ? 'opacity-50' : 'opacity-100'}`}>
+                     {isUploading && <div className="absolute top-0 left-0 w-full z-20"><div className="laser-line"></div></div>}
+                     <Upload className="w-12 h-12 text-red-600 mx-auto mb-6" />
+                     <h4 className="text-xl font-brand font-black italic uppercase mb-4">{config.fileName || 'Asset Industrial R2'}</h4>
+                     <p className="text-[9px] font-black uppercase text-gray-600 tracking-widest mb-6 italic">Handshake seguro de ficheiro vetorial</p>
+                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                     <button onClick={() => fileInputRef.current?.click()} className="bg-white text-black px-10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl">Selecionar PDF/AI</button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Destino Industrial</label>
+                    <select value={config.selectedHubId} onChange={e => setConfig({...config, selectedHubId: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase outline-none border-2 border-transparent focus:border-red-600 shadow-inner">
+                       <option value="">Roteamento Inteligente R2</option>
+                       {hubs.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </select>
+                  </div>
+               </div>
+            </div>
+            {isSyncing ? (
+              <div className="w-full mt-16 p-10 bg-black rounded-[3rem] flex items-center justify-center space-x-6 animate-pulse">
+                <Cpu className="w-10 h-10 text-red-600 animate-spin" />
+                <span className="text-white font-brand font-black italic uppercase text-xl">Sincronizando com Cluster R2...</span>
+              </div>
+            ) : (
+              <button onClick={handleOrderSubmit} disabled={!config.fileName || !config.width || !config.height} className="w-full mt-16 bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.4em] hover:bg-red-600 transition-all shadow-2xl disabled:opacity-20 flex items-center justify-center space-x-6 group">
+                <span>Injetar Protocolo de Produção</span> <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
+              </button>
+            )}
+         </div>
+      )}
+
+      {step === 4 && (
+        <div className="h-full flex flex-col items-center justify-center text-center py-24 animate-in zoom-in-95">
+           <div className="w-40 h-40 bg-green-500 rounded-full flex items-center justify-center mb-10 shadow-2xl status-pulse"><CheckCircle2 className="w-20 h-20 text-white" /></div>
+           <h3 className="text-7xl font-brand font-black italic uppercase tracking-tighter text-black leading-none mb-12">Protocolo <br/><span className="text-red-600">Sincronizado.</span></h3>
+           <div className="max-w-2xl bg-black text-white p-12 rounded-[4rem] shadow-2xl border-b-[15px] border-red-600 space-y-8 text-left">
+              <div className="flex justify-between items-center pb-8 border-b border-white/10">
+                 <div>
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest block mb-2">Resumo do Ativo</span>
+                    <span className="text-2xl font-brand font-black italic text-red-600 uppercase">{selectedProduct?.name}</span>
+                 </div>
+                 <div className="text-right">
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest block mb-2">Valor Estimado</span>
+                    <span className="text-4xl font-brand font-black italic">€{(selectedProduct!.basePrice * parseInt(config.quantity)).toFixed(2)}</span>
                  </div>
               </div>
-           )}
-
-           {step === 3 && !user && (
-             <div className="animate-in fade-in slide-in-from-right-10 space-y-12 py-8">
-                <div className="text-center space-y-3">
-                  <h3 className="text-5xl font-brand font-black italic uppercase leading-none">Fase 03: <span className="text-red-600">Handshake.</span></h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Acesso Guest. Identifique-se para o handshake industrial.</p>
-                </div>
-
-                <div className="max-w-xl mx-auto space-y-6">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <input 
-                        type="text" 
-                        placeholder="NOME COMPLETO" 
-                        value={guestInfo.name}
-                        onChange={e => setGuestInfo({...guestInfo, name: e.target.value})}
-                        className="w-full bg-gray-50 p-6 rounded-[2rem] font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner"
-                      />
-                      <input 
-                        type="email" 
-                        placeholder="EMAIL CONTACTO" 
-                        value={guestInfo.email}
-                        onChange={e => setGuestInfo({...guestInfo, email: e.target.value})}
-                        className="w-full bg-gray-50 p-6 rounded-[2rem] font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner"
-                      />
-                   </div>
-                   <input 
-                      type="tel" 
-                      placeholder="TELEMÓVEL / WHATSAPP" 
-                      value={guestInfo.phone}
-                      onChange={e => setGuestInfo({...guestInfo, phone: e.target.value})}
-                      className="w-full bg-gray-50 p-6 rounded-[2rem] font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner"
-                   />
-                </div>
-
-                <div className="flex space-x-4">
-                    <button onClick={() => setStep(2)} className="p-8 bg-gray-50 rounded-full text-black hover:bg-black hover:text-white transition-all shadow-lg"><ArrowLeft className="w-6 h-6"/></button>
-                    <button 
-                      onClick={handleOrderSubmit} 
-                      disabled={!isGuestValid}
-                      className={`flex-grow p-8 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[14px] transition-all shadow-2xl flex items-center justify-center group ${isGuestValid ? 'bg-red-600 text-white hover:bg-black' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-                    >
-                       <span>Injetar no Grid R2</span> <Zap className="ml-4 w-6 h-6" />
-                    </button>
-                 </div>
-             </div>
-           )}
-
-           {step === 4 && (
-             <div className="h-full flex flex-col items-center justify-center text-center py-24 animate-in zoom-in-95">
-                <div className="w-48 h-48 bg-green-500 rounded-full flex items-center justify-center mb-12 shadow-[0_0_100px_rgba(34,197,94,0.3)] status-pulse">
-                   <CheckCircle2 className="w-24 h-24 text-white" />
-                </div>
-                <h3 className="text-7xl font-brand font-black italic uppercase tracking-tighter mb-6">Protocolo <br/><span className="text-red-600">Concluído.</span></h3>
-                <p className="text-[14px] font-black text-gray-400 uppercase tracking-[0.3em] mb-12 max-w-xl">O seu ativo visual foi sincronizado no Grid Industrial REDLINE R2.</p>
-                <button onClick={() => {setStep(1); setSelectedProduct(null);}} className="bg-black text-white px-16 py-6 rounded-[2.5rem] font-black uppercase text-[11px] tracking-[0.3em] hover:bg-red-600 transition-all shadow-2xl">Novo Pedido</button>
-             </div>
-           )}
+              <div className="grid grid-cols-2 gap-10 text-[10px] font-black uppercase tracking-widest">
+                 <div><span className="text-gray-500 block mb-1">Hub Industrial</span>{hubs.find(h => h.id === config.selectedHubId)?.name || 'Grid Central R2'}</div>
+                 <div><span className="text-gray-500 block mb-1">Dimensões Master</span>{config.width}x{config.height}{config.unit}</div>
+                 <div><span className="text-gray-500 block mb-1">Handshake Asset</span>{config.fileName}</div>
+                 <div><span className="text-gray-500 block mb-1">Cashback Estimado</span>€{(selectedProduct!.basePrice * parseInt(config.quantity) * 0.02).toFixed(2)}</div>
+              </div>
+           </div>
+           <div className="flex space-x-6 mt-20">
+             <button onClick={() => setStep(1)} className="bg-gray-100 text-black px-16 py-8 rounded-[3rem] font-black uppercase text-[12px] tracking-[0.3em] hover:bg-black hover:text-white transition-all shadow-xl">Novo Projeto R2</button>
+             <button className="bg-red-600 text-white px-16 py-8 rounded-[3rem] font-black uppercase text-[12px] tracking-[0.3em] hover:bg-black transition-all shadow-xl flex items-center space-x-4">
+                <FileDigit className="w-5 h-5"/> <span>Ver Meu Grid</span>
+             </button>
+           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

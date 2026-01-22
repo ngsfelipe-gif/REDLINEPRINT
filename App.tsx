@@ -21,12 +21,14 @@ const App: React.FC = () => {
   const [adminBuffer, setAdminBuffer] = useState<User | null>(null);
   const [language, setLanguage] = useState<Language>('PT');
   
+  const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
+
   const [users, setUsers] = useState<User[]>([
     { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now() },
     { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() },
-    { id: 'STD-01', name: 'Utilizador Standard', email: 'user@redline.eu', password: 'user', role: 'Utilizador_Standard', permissions: ['BUY'], tier: 'Bronze', status: 'Ativo', joinedAt: Date.now() }
+    { id: 'STD-01', name: 'Utilizador Standard', email: 'user@redline.eu', password: 'user', role: 'Utilizador_Standard', permissions: ['BUY'], tier: 'Bronze', status: 'Ativo', joinedAt: Date.now(), partnerCommissionRate: 2.5, balance: 45.50 }
   ]);
-  const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES);
+  const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES.map(h => ({ ...h, platformCommission: 5.0 })));
   const [hubRequests, setHubRequests] = useState<HubRegistrationRequest[]>([]);
   const [authRequests, setAuthRequests] = useState<AuthorizationRequest[]>([]);
   const [orders, setOrders] = useState<ProductionJob[]>(MOCK_JOBS);
@@ -100,77 +102,112 @@ const App: React.FC = () => {
     setTimeout(() => setActiveToast(null), 5000);
   };
 
-  const handleCreateOrder = (order: ProductionJob) => {
-    const hierarchicalOrder: ProductionJob = {
-      ...order,
-      status: 'Pendente_Admin' // Forçar aprovação admin antes de ir para o Hub
-    };
-    setOrders(prev => [hierarchicalOrder, ...prev]);
-    notify("Job Injetado", `Protocolo ${order.id} aguardando validação Master Admin.`, "sync");
-  };
-
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
-    // Validação de Hierarquia
     setOrders(prev => prev.map(o => {
       if (o.id !== orderId) return o;
       
-      // Regra: Hub só pode passar para 'Em Produção' se já estiver 'Aprovado' pelo Admin
-      if (user?.role === 'B2B_Admin' && newStatus === 'Em Produção' && o.status !== 'Aprovado') {
-        notify("Acesso Negado", "Aprovação Admin requerida para iniciar produção.", "error");
-        return o;
+      // Lógica de Cashback de 2% (Redcoin Credits)
+      if (newStatus === 'Concluído' && o.status !== 'Concluído') {
+        const client = users.find(u => u.id === o.clientId);
+        if (client && client.role === 'Utilizador_Standard') {
+          const cashback = parseFloat(o.value) * 0.02;
+          handleUpdateUser(client.id, { balance: (client.balance || 0) + cashback });
+          notify("Cashback R2 Ativo", `€${cashback.toFixed(2)} creditados em balance.`, "success");
+        }
       }
 
       return { 
         ...o, 
         status: newStatus, 
         nodeId: nodeId || o.nodeId, 
-        progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : o.progress),
+        progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : (newStatus === 'Expedição' ? 85 : o.progress)),
         history: [...o.history, { 
           timestamp: Date.now(), 
           status: newStatus, 
           author: user?.name || 'Sistema R3', 
-          note: note || `Status alterado para ${newStatus} via Terminal Central.` 
+          note: note || `Transação de status via Cluster R2.` 
         }]
       };
     }));
-    notify("Protocolo Atualizado", `Job ${orderId} -> ${newStatus}.`, "sync");
+    notify("Grid Sync", `Protocolo ${orderId} atualizado para ${newStatus}.`, "sync");
   };
 
-  const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
-    notify("Master Update", `Dados do Job ${orderId} sincronizados.`, "sync");
+  const handleUpdateUser = (userId: string, updates: Partial<User>) => {
+    setUsers(prev => {
+      const newList = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
+      if (user?.id === userId) {
+        setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
+      }
+      return newList;
+    });
+    notify("Master Sync", `Entidade ${userId} sincronizada.`, "sync");
   };
 
   const handleUpdateHub = (hubId: string, updates: Partial<PartnerNode>) => {
     setHubs(prev => prev.map(h => h.id === hubId ? { ...h, ...updates } : h));
-    notify("Nodo Sincronizado", `Hub ${hubId} atualizado.`, "sync");
+    notify("Nodo Industrial", `Parâmetros do Hub ${hubId} modificados.`, "sync");
+  };
+
+  const handleCreateOrder = (order: ProductionJob, guestData?: { name: string, email: string }) => {
+    let finalUser = user;
+    if (!user && guestData) {
+      const newUser: User = {
+        id: `AUTO-${Date.now()}`,
+        name: guestData.name,
+        email: guestData.email,
+        password: Math.random().toString(36).slice(-8), 
+        role: 'Utilizador_Standard',
+        permissions: ['BUY'],
+        tier: 'Bronze',
+        status: 'Ativo',
+        joinedAt: Date.now(),
+        partnerCommissionRate: 0,
+        balance: 0
+      };
+      setUsers(prev => [...prev, newUser]);
+      setUser(newUser);
+      finalUser = newUser;
+      notify("Conta Provisionada", `Credenciais enviadas para ${guestData.email}`, "success");
+    }
+
+    const hierarchicalOrder: ProductionJob = {
+      ...order,
+      client: finalUser?.name || order.client,
+      clientId: finalUser?.id || order.clientId,
+      status: 'Pendente_Admin' 
+    };
+    setOrders(prev => [hierarchicalOrder, ...prev]);
+    notify("Job em Quarentena", `Protocolo ${order.id} isolado para aprovação Admin.`, "sync");
+    if (!user) setActiveTab('account');
+  };
+
+  const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+    notify("Master Sync", `Dados do Job ${orderId} atualizados.`, "sync");
   };
 
   const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updates } : p));
-    notify("Ativo Atualizado", `Catálogo resincronizado.`, "sync");
-  };
-
-  const handleUpdateUser = (userId: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    notify("Perfil Modificado", `Utilizador ${userId} atualizado.`, "sync");
+    notify("Módulo Atualizado", `Ativo ${productId} sincronizado.`, "sync");
   };
 
   const handleCreateClientByAdmin = (clientData: Partial<User>) => {
     const newUser: User = {
       id: `CLI-${Date.now()}`,
-      name: clientData.name || 'Novo Cliente',
-      email: clientData.email || 'cliente@redline.eu',
-      password: Math.random().toString(36).slice(-8),
+      name: clientData.name || 'Nova Entidade',
+      email: clientData.email || 'entidade@redline.eu',
+      password: Math.random().toString(36).slice(-8), 
       role: clientData.role || 'Utilizador_Standard',
       permissions: ['BUY'],
       tier: 'Bronze',
       status: 'Ativo',
       joinedAt: Date.now(),
+      partnerCommissionRate: 2.0,
+      balance: 0,
       ...clientData
     };
     setUsers(prev => [...prev, newUser]);
-    notify("Entidade Injetada", `Entidade ${newUser.name} provisionada.`, "success");
+    notify("Entidade Provisionada", `Acesso gerado para ${newUser.name}.`, "success");
   };
 
   const handleImpersonate = (targetUser: User) => {
@@ -178,7 +215,7 @@ const App: React.FC = () => {
     setAdminBuffer(user);
     setUser(targetUser);
     setActiveTab('account');
-    notify("Sessão Shadow", `Controlo total como ${targetUser.name}.`, "sync");
+    notify("Shadow Mode", `Controlo total emulado: ${targetUser.name}.`, "sync");
   };
 
   const handleStopImpersonation = () => {
@@ -186,7 +223,7 @@ const App: React.FC = () => {
       setUser(adminBuffer);
       setAdminBuffer(null);
       setActiveTab('production');
-      notify("Sessão Restaurada", "Controlo Master Redline restabelecido.", "sync");
+      notify("Master Restore", "Controlo Super Admin restabelecido.", "sync");
     }
   };
 
@@ -219,10 +256,10 @@ const App: React.FC = () => {
             hubs={hubs}
           />
         )}
-        {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} onSound={playSound} />}
-        {activeTab === 'live' && <PublicGrid orders={orders} hubs={hubs} language={language} />}
-        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => setHubRequests(prev => [...prev, req])} onTicketSubmit={(t) => setTickets(prev => [t, ...prev])} />}
-        {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={(t) => setTickets(prev => [t, ...prev])} />}
+        {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} />}
+        {activeTab === 'live' && <PublicGrid orders={orders.filter(o => o.status !== 'Pendente_Admin')} hubs={hubs} language={language} />}
+        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => {}} onTicketSubmit={(t) => {}} />}
+        {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={(t) => {}} />}
         
         {activeTab === 'production' && (
           <Backoffice 
@@ -240,19 +277,22 @@ const App: React.FC = () => {
             onCreateClient={handleCreateClientByAdmin}
             language={language}
             onSound={playSound}
+            globalPlatformFee={globalPlatformFee}
+            setGlobalPlatformFee={setGlobalPlatformFee}
           />
         )}
 
         {activeTab === 'account' && user && (
           <Account 
             user={user} 
-            orders={orders.filter(o => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? o.nodeId === user.managedHubId : o.clientId === user.id))} 
+            orders={orders.filter(o => user.role === 'Administrador' ? true : (o.status !== 'Pendente_Admin' && (user.role === 'B2B_Admin' ? o.nodeId === user.managedHubId : o.clientId === user.id)))} 
             tickets={tickets.filter(t => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? t.targetHubId === user.managedHubId : t.creatorId === user.id))}
             hubs={hubs} products={products}
             onUpdateStatus={handleUpdateOrderStatus}
             onRequestAuth={(req) => setAuthRequests(prev => [...prev, { ...req, id: `AUTH-${Date.now()}`, timestamp: Date.now(), status: 'Pendente' }])}
             language={language} onLogout={() => { setUser(null); setActiveTab('home'); }}
             onSound={playSound}
+            onUpdateUser={handleUpdateUser}
           />
         )}
       </div>

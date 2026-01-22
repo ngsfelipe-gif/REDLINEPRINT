@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, Radio } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown } from 'lucide-react';
+import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 
 interface AccountProps {
   user: User;
@@ -16,59 +16,47 @@ interface AccountProps {
   onRequestAuth: (req: Omit<AuthorizationRequest, 'id' | 'timestamp' | 'status'>) => void;
   onLogout: () => void;
   onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
+  onUpdateUser: (userId: string, updates: Partial<User>) => void;
 }
 
-const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs, language, onUpdateStatus, onRequestAuth, onLogout, onSound }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'production' | 'tickets' | 'hub-config'>('overview');
+const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs, language, onUpdateStatus, onRequestAuth, onLogout, onSound, onUpdateUser }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'production' | 'finances' | 'profile'>('overview');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   
+  const [profileForm, setProfileForm] = useState({ name: user.name, email: user.email, password: user.password || '' });
+
   const isB2B = user.role === 'B2B_Admin';
   const isStandard = user.role === 'Utilizador_Standard';
   const isAdmin = user.role === 'Administrador';
   const myHub = hubs.find(h => h.id === user.managedHubId);
 
-  const kpis = useMemo(() => {
-    return {
-      totalVolume: orders.reduce((acc, o) => acc + parseFloat(o.value), 0),
-      completed: orders.filter(o => o.status === 'Concluído').length,
-      pending: orders.filter(o => o.status !== 'Concluído').length,
-      activeTickets: tickets.filter(t => t.status !== 'Resolvido').length,
-      averageProgress: orders.length > 0 ? Math.round(orders.reduce((acc, o) => acc + o.progress, 0) / orders.length) : 0
-    };
-  }, [orders, tickets]);
+  const financials = useMemo(() => {
+    const totalVolume = orders.reduce((acc, o) => acc + parseFloat(o.value), 0);
+    const hubShare = isB2B && myHub ? totalVolume * ((myHub.primaryCommission || 0) / 100) : 0;
+    const partnerShare = (user.partnerCommissionRate || 0) > 0 ? totalVolume * (user.partnerCommissionRate! / 100) : 0;
+    const cashbackTotal = isStandard ? (user.balance || 0) : 0;
+    
+    return { totalVolume, hubShare, partnerShare, cashbackTotal, averageTicket: orders.length > 0 ? totalVolume / orders.length : 0 };
+  }, [orders, isB2B, myHub, user, isStandard]);
 
-  const generatePDF = (order: ProductionJob) => {
-    onSound?.('sync');
-    const doc = new jsPDF();
-    doc.setFillColor(204, 0, 0); doc.rect(0, 0, 210, 50, 'F');
-    doc.setTextColor(255); doc.setFontSize(28); doc.setFont('helvetica', 'bold');
-    doc.text("REDLINE R2 PRO", 20, 30);
-    doc.setFontSize(10); doc.text("CERTIFICADO DE CONFORMIDADE INDUSTRIAL R2 v4.2", 20, 40);
-    doc.setTextColor(0); doc.setFontSize(14);
-    doc.text(`JOB ID: ${order.id}`, 20, 70);
-    doc.text(`CLIENTE: ${order.client}`, 20, 80);
-    doc.text(`PRODUTO: ${order.product}`, 20, 90);
-    doc.text(`STATUS: ${order.status}`, 20, 100);
-    doc.text(`VALOR: €${order.value}`, 20, 110);
-    doc.text(`DATA: ${new Date(order.timestamp).toLocaleDateString()}`, 20, 120);
-    doc.save(`REDLINE_CERT_${order.id}.pdf`);
-    onSound?.('success');
+  const handleProfileUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSound?.('loading');
+    setTimeout(() => {
+      onUpdateUser(user.id, { ...profileForm });
+      onSound?.('success');
+    }, 1000);
   };
 
-  const downloadAsset = (order: ProductionJob) => {
-    onSound?.('sync');
-    if (order.attachmentUrl) {
-       const link = document.createElement('a');
-       link.href = order.attachmentUrl;
-       link.download = order.fileName || 'asset_r2.pdf';
-       document.body.appendChild(link);
-       link.click();
-       document.body.removeChild(link);
-       onSound?.('success');
-    } else {
-       alert("Simulação: Ficheiro original solicitado ao cluster REDLINE.");
-       onSound?.('success');
-    }
+  const handleDownloadPDF = (o: ProductionJob) => {
+    onSound?.('success');
+    const hub = hubs.find(h => h.id === o.nodeId);
+    generateOrderPDF(o, hub);
+  };
+
+  const handleDownloadAsset = (o: ProductionJob) => {
+    onSound?.('success');
+    downloadOriginalAsset(o);
   };
 
   return (
@@ -80,191 +68,151 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
               <h2 className="text-6xl font-brand font-black italic uppercase tracking-tighter text-black leading-none">{user.name}</h2>
               <div className="flex items-center space-x-6 mt-4">
                  <span className={`px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest border ${isStandard ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-red-50 text-red-600 border-red-100'}`}>{user.role.replace('_', ' ')}</span>
-                 {isB2B && <span className="text-[11px] font-black uppercase text-gray-300 italic tracking-[0.2em]">HUB: {myHub?.name}</span>}
-                 {isStandard && <span className="text-[11px] font-black uppercase text-gray-300 italic tracking-[0.2em]">Tier: {user.tier} Client</span>}
+                 {isB2B && <span className="text-[11px] font-black uppercase text-gray-300 italic tracking-[0.2em]">Nodo: {myHub?.name}</span>}
               </div>
            </div>
         </div>
         <div className="flex flex-wrap space-x-4 bg-gray-50 p-3 rounded-[3rem] border border-gray-100 shadow-inner">
-           {['overview', 'production', 'tickets', 'hub-config'].filter(tab => {
-             if (isStandard && (tab === 'hub-config')) return false;
-             if (isB2B && tab === 'hub-config') return true;
-             return true;
-           }).map(tab => (
+           {['overview', 'production', 'finances', 'profile'].map(tab => (
              <button key={tab} onClick={() => { onSound?.('click'); setActiveTab(tab as any); }} className={`px-10 py-5 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-black'}`}>{tab}</button>
            ))}
         </div>
       </div>
 
       {activeTab === 'overview' && (
-        <div className="space-y-12 animate-in slide-in-from-bottom-10">
-           {isStandard ? (
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div className="bg-white border-2 border-gray-50 p-12 rounded-[4.5rem] shadow-xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-8 opacity-5"><Package className="w-24 h-24" /></div>
-                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-10">Encomendas Ativas</span>
-                   <span className="text-7xl font-brand font-black italic block mb-4">{orders.length}</span>
-                </div>
-                <div className="bg-white border-2 border-gray-50 p-12 rounded-[4.5rem] shadow-xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-8 opacity-5"><Zap className="w-24 h-24" /></div>
-                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-10">Handshake Progress</span>
-                   <span className="text-7xl font-brand font-black italic block mb-4 text-red-600">{kpis.averageProgress}%</span>
-                </div>
-                <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
-                   <div className="absolute inset-0 industrial-grid opacity-5" />
-                   <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest block mb-10">Protocolo Tier</span>
-                   <span className="text-5xl font-brand font-black italic block mb-4">{user.tier}</span>
-                </div>
-             </div>
-           ) : (
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-                <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
-                   <div className="absolute inset-0 industrial-grid opacity-5" />
-                   <TrendingUp className="w-12 h-12 text-red-600 mb-10" />
-                   <span className="text-6xl font-brand font-black italic block mb-4">€{kpis.totalVolume.toLocaleString()}</span>
-                   <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Master Volume</span>
-                </div>
-                <div className="bg-white border border-gray-100 p-12 rounded-[4.5rem] shadow-sm hover:shadow-2xl transition-all">
-                   <Box className="w-12 h-12 text-red-600 mb-10" />
-                   <span className="text-6xl font-brand font-black italic block mb-4">{kpis.completed}</span>
-                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Jobs Concluídos</span>
-                </div>
-                <div className="bg-white border border-gray-100 p-12 rounded-[4.5rem] shadow-sm hover:shadow-2xl transition-all">
-                   <Zap className="w-12 h-12 text-red-600 mb-10" />
-                   <span className="text-6xl font-brand font-black italic block mb-4">{kpis.averageProgress}%</span>
-                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Throughput Médio</span>
-                </div>
-                <div className="bg-white border border-gray-100 p-12 rounded-[4.5rem] shadow-sm hover:shadow-2xl transition-all">
-                   <MessageSquare className="w-12 h-12 text-red-600 mb-10" />
-                   <span className="text-6xl font-brand font-black italic block mb-4">{kpis.activeTickets}</span>
-                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Protocolos Abertos</span>
-                </div>
-             </div>
-           )}
-           
-           <div className="bg-gray-50 p-12 rounded-[5rem] border border-gray-100 shadow-inner flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                 <div className="w-3 h-3 bg-red-600 rounded-full animate-ping" />
-                 <span className="text-[12px] font-black uppercase text-gray-600 tracking-widest italic">Sincronização de Telemetria Industrial Ativa: {new Date().toLocaleTimeString()}</span>
-              </div>
-              <button onClick={() => { onSound?.('sync'); }} className="p-4 bg-white rounded-full text-black hover:bg-black hover:text-white transition-all shadow-md"><RefreshCw className="w-5 h-5"/></button>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 animate-in slide-in-from-bottom-10">
+           <div className="bg-white p-12 rounded-[4.5rem] shadow-xl border border-gray-50">
+              <span className="text-[10px] font-black uppercase text-gray-400 block mb-10">Jobs no Grid</span>
+              <span className="text-7xl font-brand font-black italic">{orders.length}</span>
+           </div>
+           <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 industrial-grid opacity-5" />
+              <span className="text-[10px] font-black uppercase text-gray-500 block mb-10">Volume Industrial</span>
+              <span className="text-5xl font-brand font-black italic">€{financials.totalVolume.toLocaleString()}</span>
+           </div>
+           <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl">
+              <span className="text-[10px] font-black uppercase text-white/50 block mb-10">Cashback Acumulado</span>
+              <span className="text-5xl font-brand font-black italic">€{financials.cashbackTotal.toLocaleString()}</span>
+           </div>
+           <div className="bg-white p-12 rounded-[4.5rem] shadow-xl border border-gray-50">
+              <span className="text-[10px] font-black uppercase text-gray-400 block mb-10">Ticket Médio</span>
+              <span className="text-5xl font-brand font-black italic text-black">€{financials.averageTicket.toLocaleString()}</span>
            </div>
         </div>
       )}
 
       {activeTab === 'production' && (
-        <div className="space-y-12 animate-in fade-in">
-           <div className="flex justify-between items-end mb-16">
-              <h3 className="text-6xl font-brand font-black italic uppercase leading-none">Job <br/><span className="text-red-600">{isStandard ? 'Orders.' : 'Inventory.'}</span></h3>
-              {isStandard && (
-                <div className="flex items-center space-x-4 bg-gray-50 px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  <Monitor className="w-4 h-4 mr-2" /> Live Tracking Active
-                </div>
-              )}
-           </div>
-           
-           <div className="space-y-8">
-              {orders.length > 0 ? orders.map(o => (
-                <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black ring-4 ring-black/5' : 'border-gray-100 hover:border-red-600/30'}`}>
-                   <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
-                      <div className="flex-grow">
-                         <div className="flex items-center space-x-8 mb-6">
-                            <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
-                            <div className="flex items-center space-x-3 bg-red-50 text-red-600 px-6 py-2 rounded-full border border-red-100">
-                               <Activity className="w-4 h-4 animate-pulse" />
-                               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{o.status.replace('_', ' ')}</span>
-                            </div>
-                            <div className="hidden lg:flex items-center space-x-3 text-gray-300">
-                               <Clock className="w-4 h-4" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">{new Date(o.timestamp).toLocaleDateString()}</span>
-                            </div>
-                         </div>
-                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
-                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Cliente</span><span className="text-black">{o.client}</span></div>
-                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Módulo Produto</span><span className="text-black">{o.product}</span></div>
-                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Nodo Industrial</span><span className="text-red-600">{o.nodeId || 'PENDING CLUSTER'}</span></div>
-                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
-                         </div>
+        <div className="space-y-8 animate-in fade-in">
+           {orders.length > 0 ? orders.map(o => (
+             <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black' : 'border-gray-100 hover:border-red-600/30'}`}>
+                <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
+                   <div className="flex-grow">
+                      <div className="flex items-center space-x-8 mb-6">
+                         <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
+                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>{o.status.replace('_', ' ')}</span>
                       </div>
-                      <div className="flex space-x-4">
-                         <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full transition-all duration-500 shadow-xl ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400 hover:bg-black hover:text-white'}`}>
-                            {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
-                         </button>
-                         <button onClick={() => generatePDF(o)} className="p-8 bg-gray-50 text-black rounded-full hover:bg-black hover:text-white transition-all shadow-xl">
-                            <FileText className="w-8 h-8" />
-                         </button>
-                         {isB2B && o.status === 'Aprovado' && (
-                            <button onClick={() => onUpdateStatus(o.id, 'Em Produção')} className="bg-black text-white px-12 py-6 rounded-full font-black uppercase text-[12px] tracking-widest hover:bg-red-600 transition-all shadow-xl">Iniciar Produção</button>
-                         )}
-                         {isB2B && o.status === 'Em Produção' && (
-                            <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="bg-green-600 text-white px-12 py-6 rounded-full font-black uppercase text-[12px] tracking-widest hover:bg-black transition-all shadow-xl">Finalizar Job</button>
-                         )}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
+                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Entidade</span><span className="text-black">{o.client}</span></div>
+                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Módulo</span><span className="text-black">{o.product}</span></div>
+                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Dimensões</span><span className="text-black font-brand">{o.dimensions || 'N/A'}</span></div>
+                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
                       </div>
                    </div>
-
-                   {expandedOrder === o.id && (
-                      <div className="p-16 bg-gray-50/50 border-t border-gray-100 animate-in slide-in-from-top-6 duration-700">
-                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-                            <div className="lg:col-span-4 space-y-10">
-                               <h6 className="text-[11px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center border-l-4 border-red-600 pl-4">
-                                  <Zap className="w-4 h-4 mr-3" /> Protocolo Técnico
-                               </h6>
-                               <div className="space-y-5 bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100">
-                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
-                                     <span className="text-[9px] font-black uppercase text-gray-400">Substrato</span>
-                                     <span className="text-[12px] font-black uppercase text-black">{o.material}</span>
-                                  </div>
-                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
-                                     <span className="text-[9px] font-black uppercase text-gray-400">Acabamento</span>
-                                     <span className="text-[12px] font-black uppercase text-black">{o.finish}</span>
-                                  </div>
-                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
-                                     <span className="text-[9px] font-black uppercase text-gray-400">Dimensões</span>
-                                     <span className="text-[12px] font-black uppercase text-black">{o.dimensions}</span>
-                                  </div>
-                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
-                                     <span className="text-[9px] font-black uppercase text-gray-400">Volumetria</span>
-                                     <span className="text-[12px] font-black uppercase text-black">{o.quantity} UN</span>
-                                  </div>
-                                  <button onClick={() => downloadAsset(o)} className="mt-4 w-full p-6 bg-red-600 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center space-x-4 hover:bg-black transition-all shadow-xl">
-                                     <Download className="w-5 h-5" /> <span>Download Asset R2</span>
-                                  </button>
-                               </div>
+                   <div className="flex space-x-4">
+                      <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full shadow-xl transition-all ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400'}`}>
+                         {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
+                      </button>
+                      
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleDownloadPDF(o)} title="Descarregar Guia de Produção" className="p-8 bg-black text-white rounded-full hover:bg-red-600 transition-all shadow-xl">
+                           <FileDown className="w-8 h-8"/>
+                        </button>
+                        {(isAdmin || isB2B || o.clientId === user.id) && o.fileName && (
+                          <button onClick={() => handleDownloadAsset(o)} title="Descarregar Ativo Original" className="p-8 bg-red-600 text-white rounded-full hover:bg-black transition-all shadow-xl">
+                             <Download className="w-8 h-8"/>
+                          </button>
+                        )}
+                      </div>
+                   </div>
+                </div>
+                {expandedOrder === o.id && (
+                   <div className="p-16 bg-gray-50/50 border-t border-gray-100 animate-in slide-in-from-top-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+                         <div className="space-y-8">
+                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center"><Server className="w-4 h-4 mr-3" /> Nodo Industrial de Origem</h5>
+                            <div className="p-8 bg-white rounded-[2.5rem] shadow-xl border border-gray-100">
+                               <span className="text-[12px] font-black uppercase block text-black">{hubs.find(h => h.id === o.nodeId)?.name || 'Redline Central R2'}</span>
+                               <span className="text-[10px] font-black uppercase text-gray-400 italic tracking-widest">{hubs.find(h => h.id === o.nodeId)?.location || 'Ativo Descentralizado'}</span>
                             </div>
-                            <div className="lg:col-span-8 space-y-10">
-                               <h6 className="text-[11px] font-black uppercase text-black tracking-[0.5em] flex items-center border-l-4 border-black pl-4">
-                                  <History className="w-4 h-4 mr-3" /> Transações Industriais
-                               </h6>
-                               <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100 min-h-[150px]">
-                                  <div className="space-y-6">
-                                     {o.history?.map((log, idx) => (
-                                        <div key={idx} className="flex gap-6">
-                                           <div className="flex flex-col items-center">
-                                              <div className="w-3 h-3 rounded-full bg-red-600 border-4 border-white ring-2 ring-red-600" />
-                                              {idx !== o.history.length - 1 && <div className="w-[2px] flex-grow bg-gray-100" />}
-                                           </div>
-                                           <div className="pb-6">
-                                              <div className="flex items-center space-x-4 mb-1">
-                                                 <span className="text-[10px] font-black uppercase text-black">{log.status.replace('_', ' ')}</span>
-                                                 <span className="text-[8px] font-mono text-gray-300 bg-gray-50 px-3 py-0.5 rounded-full">{new Date(log.timestamp).toLocaleString()}</span>
-                                              </div>
-                                              <p className="text-[11px] font-bold text-gray-400 italic leading-relaxed uppercase tracking-widest">{log.note}</p>
-                                           </div>
-                                        </div>
-                                     ))}
+                            <div className="p-8 bg-black text-white rounded-[2.5rem] shadow-xl flex items-center space-x-6">
+                               <QrCode className="w-10 h-10 text-red-600" />
+                               <span className="text-[9px] font-mono opacity-40 uppercase">AUTH_HASH: {o.id}-{Math.random().toString(16).slice(2, 6).toUpperCase()}</span>
+                            </div>
+                         </div>
+                         <div className="space-y-8">
+                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center"><FileDigit className="w-4 h-4 mr-3" /> Engenharia & Assets</h5>
+                            <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 space-y-6">
+                               <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-4">
+                                     <FileText className="w-6 h-6 text-red-600" />
+                                     <span className="text-[10px] font-black uppercase text-black">{o.fileName || 'asset_industrial_v1.pdf'}</span>
                                   </div>
+                                  <button onClick={() => handleDownloadAsset(o)} className="p-4 bg-gray-50 rounded-xl hover:bg-black hover:text-white transition-all"><Download className="w-5 h-5"/></button>
+                               </div>
+                               <div className="pt-4 border-t border-gray-50 space-y-2">
+                                  <div className="flex justify-between text-[9px] font-black uppercase italic"><span className="text-gray-400">Material:</span><span className="text-black">{o.material}</span></div>
+                                  <div className="flex justify-between text-[9px] font-black uppercase italic"><span className="text-gray-400">Acabamento:</span><span className="text-black">{o.finish}</span></div>
+                                  <div className="flex justify-between text-[9px] font-black uppercase italic"><span className="text-gray-400">Quantidade:</span><span className="text-black">{o.quantity} un</span></div>
                                </div>
                             </div>
                          </div>
+                         <div className="space-y-8">
+                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center"><History className="w-4 h-4 mr-3" /> Log R2-Trace</h5>
+                            <div className="space-y-6 border-l-2 border-red-100 pl-8 ml-2">
+                               {o.history.map((h, i) => (
+                                 <div key={i} className="relative">
+                                    <div className="absolute -left-[37px] top-0 w-4 h-4 bg-red-600 rounded-full border-4 border-white shadow-md" />
+                                    <span className="text-[8px] font-black text-gray-300 uppercase block tracking-widest">{new Date(h.timestamp).toLocaleString()}</span>
+                                    <span className="text-[10px] font-black text-black uppercase block mt-1">{h.status}</span>
+                                    <p className="text-[9px] text-gray-400 italic mt-2">"{h.note}"</p>
+                                 </div>
+                               ))}
+                            </div>
+                         </div>
                       </div>
-                   )}
-                </div>
-              )) : (
-                <div className="py-40 text-center space-y-8 opacity-20">
-                  <Radio className="w-20 h-20 mx-auto animate-pulse" />
-                  <p className="text-4xl font-brand font-black italic uppercase">Zero Ativos no Grid.</p>
-                </div>
-              )}
+                   </div>
+                )}
+             </div>
+           )) : (
+             <div className="py-40 text-center space-y-8 opacity-20">
+                <Radio className="w-24 h-24 mx-auto animate-pulse" />
+                <p className="text-4xl font-brand font-black italic uppercase">Sem Ativos no Grid.</p>
+             </div>
+           )}
+        </div>
+      )}
+
+      {activeTab === 'profile' && (
+        <div className="max-w-2xl mx-auto py-12 animate-in fade-in">
+           <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl">
+              <h3 className="text-5xl font-brand font-black italic uppercase mb-12">Gestão de <span className="text-red-600">Identidade.</span></h3>
+              <form onSubmit={handleProfileUpdate} className="space-y-8">
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Nome da Entidade</label>
+                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                 </div>
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Email de Protocolo</label>
+                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                 </div>
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Nova Password Master</label>
+                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="DEIXE EM BRANCO PARA MANTER" className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                 </div>
+                 <button type="submit" className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[13px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 group">
+                    <span>Sincronizar Credenciais</span> <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-700" />
+                 </button>
+              </form>
            </div>
         </div>
       )}
