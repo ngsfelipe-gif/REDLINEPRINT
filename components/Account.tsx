@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw } from 'lucide-react';
+import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 interface AccountProps {
@@ -20,12 +20,11 @@ interface AccountProps {
 
 const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs, language, onUpdateStatus, onRequestAuth, onLogout, onSound }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'production' | 'tickets' | 'hub-config'>('overview');
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   
   const isB2B = user.role === 'B2B_Admin';
   const myHub = hubs.find(h => h.id === user.managedHubId);
 
-  // Telemetria Master R3 - KPIs em Tempo Real
   const kpis = useMemo(() => {
     return {
       totalVolume: orders.reduce((acc, o) => acc + parseFloat(o.value), 0),
@@ -46,9 +45,28 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
     doc.setTextColor(0); doc.setFontSize(14);
     doc.text(`JOB ID: ${order.id}`, 20, 70);
     doc.text(`CLIENTE: ${order.client}`, 20, 80);
+    doc.text(`PRODUTO: ${order.product}`, 20, 90);
+    doc.text(`STATUS: ${order.status}`, 20, 100);
     doc.text(`VALOR: €${order.value}`, 20, 110);
+    doc.text(`DATA: ${new Date(order.timestamp).toLocaleDateString()}`, 20, 120);
     doc.save(`REDLINE_CERT_${order.id}.pdf`);
     onSound?.('success');
+  };
+
+  const downloadAsset = (order: ProductionJob) => {
+    onSound?.('sync');
+    if (order.attachmentUrl) {
+       const link = document.createElement('a');
+       link.href = order.attachmentUrl;
+       link.download = order.fileName || 'asset_r2.pdf';
+       document.body.appendChild(link);
+       link.click();
+       document.body.removeChild(link);
+       onSound?.('success');
+    } else {
+       alert("Simulação: Ficheiro original solicitado ao cluster REDLINE.");
+       onSound?.('success');
+    }
   };
 
   return (
@@ -60,7 +78,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
               <h2 className="text-6xl font-brand font-black italic uppercase tracking-tighter text-black leading-none">{user.name}</h2>
               <div className="flex items-center space-x-6 mt-4">
                  <span className="px-6 py-2 bg-red-50 text-red-600 rounded-full text-[11px] font-black uppercase tracking-widest border border-red-100">{user.role} Industrial</span>
-                 {isB2B && <span className="text-[11px] font-black uppercase text-gray-300">Hub: {myHub?.name}</span>}
+                 {isB2B && <span className="text-[11px] font-black uppercase text-gray-300 italic tracking-[0.2em]">HUB: {myHub?.name}</span>}
               </div>
            </div>
         </div>
@@ -102,48 +120,109 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                  <div className="w-3 h-3 bg-red-600 rounded-full animate-ping" />
                  <span className="text-[12px] font-black uppercase text-gray-600 tracking-widest italic">Sincronização de Telemetria Industrial Ativa: {new Date().toLocaleTimeString()}</span>
               </div>
-              <div className="flex space-x-4">
-                 /* Fixed: RefreshCw is now imported from lucide-react */
-                 <button onClick={() => { onSound?.('sync'); }} className="p-4 bg-white rounded-full text-black hover:bg-black hover:text-white transition-all shadow-md"><RefreshCw className="w-5 h-5"/></button>
-              </div>
+              <button onClick={() => { onSound?.('sync'); }} className="p-4 bg-white rounded-full text-black hover:bg-black hover:text-white transition-all shadow-md"><RefreshCw className="w-5 h-5"/></button>
            </div>
         </div>
       )}
 
-      {/* Restantes Tabs (production, tickets, hub-config) mantidos com a lógica anterior */}
       {activeTab === 'production' && (
-        <div className="space-y-16 animate-in fade-in">
-           <div className="flex justify-between items-end">
-              <h3 className="text-6xl font-brand font-black italic uppercase leading-none">Produção <br/><span className="text-red-600">e Manufatura.</span></h3>
+        <div className="space-y-12 animate-in fade-in">
+           <div className="flex justify-between items-end mb-16">
+              <h3 className="text-6xl font-brand font-black italic uppercase leading-none">Job <br/><span className="text-red-600">Inventory.</span></h3>
            </div>
-           <div className="grid grid-cols-1 gap-10">
+           
+           <div className="space-y-8">
               {orders.map(o => (
-                <div key={o.id} className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-12 group hover:border-black transition-all">
-                   <div className="flex-grow space-y-4">
-                      <div className="flex items-center space-x-8">
-                         <h5 className="text-4xl font-brand font-black italic uppercase text-black">{o.product}</h5>
-                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] ${o.status === 'Concluído' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600 animate-pulse'}`}>
-                           {o.status}
-                         </span>
+                <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black ring-4 ring-black/5' : 'border-gray-100 hover:border-red-600/30'}`}>
+                   <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
+                      <div className="flex-grow">
+                         <div className="flex items-center space-x-8 mb-6">
+                            <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
+                            <div className="flex items-center space-x-3 bg-red-50 text-red-600 px-6 py-2 rounded-full border border-red-100">
+                               <Activity className="w-4 h-4 animate-pulse" />
+                               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{o.status}</span>
+                            </div>
+                            <div className="hidden lg:flex items-center space-x-3 text-gray-300">
+                               <Clock className="w-4 h-4" />
+                               <span className="text-[10px] font-black uppercase tracking-widest">{new Date(o.timestamp).toLocaleDateString()}</span>
+                            </div>
+                         </div>
+                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
+                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Cliente</span><span className="text-black">{o.client}</span></div>
+                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Módulo Produto</span><span className="text-black">{o.product}</span></div>
+                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Nodo Industrial</span><span className="text-red-600">{o.nodeId}</span></div>
+                            <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
+                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-[12px] font-black uppercase text-gray-400 italic">
-                         <div><span className="block text-gray-300 mb-2">Ref ID</span>{o.id}</div>
-                         <div><span className="block text-gray-300 mb-2">Status</span>{o.status}</div>
-                         <div><span className="block text-gray-300 mb-2">Node</span>{o.nodeId}</div>
-                         <div><span className="block text-gray-300 mb-2">Valor</span>€{o.value}</div>
+                      <div className="flex space-x-4">
+                         <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full transition-all duration-500 shadow-xl ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400 hover:bg-black hover:text-white'}`}>
+                            {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
+                         </button>
+                         <button onClick={() => generatePDF(o)} className="p-8 bg-gray-50 text-black rounded-full hover:bg-black hover:text-white transition-all shadow-xl">
+                            <FileText className="w-8 h-8" />
+                         </button>
+                         {isB2B && o.status !== 'Concluído' && (
+                            <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="bg-black text-white px-12 py-6 rounded-full font-black uppercase text-[12px] tracking-widest hover:bg-red-600 transition-all shadow-xl">Finalizar Job</button>
+                         )}
                       </div>
                    </div>
-                   <div className="flex space-x-4">
-                      <button onClick={() => generatePDF(o)} className="p-8 bg-gray-50 rounded-full text-black hover:bg-black hover:text-white transition-all shadow-xl"><Download className="w-8 h-8"/></button>
-                      {isB2B && o.status !== 'Concluído' && (
-                        <button 
-                          onClick={() => onUpdateStatus(o.id, 'Concluído')}
-                          className="bg-black text-white px-12 py-6 rounded-[2.5rem] font-black uppercase text-[12px] tracking-widest hover:bg-red-600 transition-all shadow-xl"
-                        >
-                           Finalizar Job
-                        </button>
-                      )}
-                   </div>
+
+                   {expandedOrder === o.id && (
+                      <div className="p-16 bg-gray-50/50 border-t border-gray-100 animate-in slide-in-from-top-6 duration-700">
+                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                            <div className="lg:col-span-4 space-y-10">
+                               <h6 className="text-[11px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center border-l-4 border-red-600 pl-4">
+                                  <Zap className="w-4 h-4 mr-3" /> Protocolo Técnico
+                               </h6>
+                               <div className="space-y-5 bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100">
+                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                     <span className="text-[9px] font-black uppercase text-gray-400">Substrato</span>
+                                     <span className="text-[12px] font-black uppercase text-black">{o.material}</span>
+                                  </div>
+                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                     <span className="text-[9px] font-black uppercase text-gray-400">Acabamento</span>
+                                     <span className="text-[12px] font-black uppercase text-black">{o.finish}</span>
+                                  </div>
+                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                     <span className="text-[9px] font-black uppercase text-gray-400">Dimensões</span>
+                                     <span className="text-[12px] font-black uppercase text-black">{o.dimensions}</span>
+                                  </div>
+                                  <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                     <span className="text-[9px] font-black uppercase text-gray-400">Volumetria</span>
+                                     <span className="text-[12px] font-black uppercase text-black">{o.quantity} UN</span>
+                                  </div>
+                                  <button onClick={() => downloadAsset(o)} className="mt-4 w-full p-6 bg-red-600 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center space-x-4 hover:bg-black transition-all shadow-xl">
+                                     <Download className="w-5 h-5" /> <span>Download Asset R2</span>
+                                  </button>
+                               </div>
+                            </div>
+                            <div className="lg:col-span-8 space-y-10">
+                               <h6 className="text-[11px] font-black uppercase text-black tracking-[0.5em] flex items-center border-l-4 border-black pl-4">
+                                  <History className="w-4 h-4 mr-3" /> Transações Industriais
+                               </h6>
+                               <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100 min-h-[150px]">
+                                  <div className="space-y-6">
+                                     {o.history?.map((log, idx) => (
+                                        <div key={idx} className="flex gap-6">
+                                           <div className="flex flex-col items-center">
+                                              <div className="w-3 h-3 rounded-full bg-red-600 border-4 border-white ring-2 ring-red-600" />
+                                              {idx !== o.history.length - 1 && <div className="w-[2px] flex-grow bg-gray-100" />}
+                                           </div>
+                                           <div className="pb-6">
+                                              <div className="flex items-center space-x-4 mb-1">
+                                                 <span className="text-[10px] font-black uppercase text-black">{log.status}</span>
+                                                 <span className="text-[8px] font-mono text-gray-300 bg-gray-50 px-3 py-0.5 rounded-full">{new Date(log.timestamp).toLocaleString()}</span>
+                                              </div>
+                                              <p className="text-[11px] font-bold text-gray-400 italic leading-relaxed uppercase tracking-widest">{log.note}</p>
+                                           </div>
+                                        </div>
+                                     ))}
+                                  </div>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   )}
                 </div>
               ))}
            </div>

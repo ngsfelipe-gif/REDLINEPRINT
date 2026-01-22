@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound, ArrowRight } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound, ArrowRight, ShieldAlert } from 'lucide-react';
 import { User as UserType, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 
@@ -28,17 +28,17 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
     setIsProcessing(true);
     onSound?.('loading');
     
-    // Simulação de latência de rede industrial
     setTimeout(() => {
       const foundUser = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (foundUser) {
+        onSound?.('success');
         onLogin(foundUser);
       } else {
         onSound?.('error');
-        setError("ERRO DE PROTOCOLO: Identidade não sincronizada no grid cluster.");
+        setError("ERRO DE PROTOCOLO: Credenciais não sincronizadas no Cluster R2.");
         setIsProcessing(false);
       }
-    }, 1500);
+    }, 2000);
   };
 
   const quickLogin = (role: 'admin' | 'hub') => {
@@ -53,21 +53,21 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
   };
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/98 backdrop-blur-3xl overflow-y-auto animate-in fade-in">
-      <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-[#0A0A0A] rounded-[5rem] border border-white/5 overflow-hidden shadow-[0_0_120px_rgba(204,0,0,0.2)] m-auto">
+    <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl overflow-y-auto animate-in fade-in">
+      <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-[#0A0A0A] rounded-[5rem] border border-white/5 overflow-hidden shadow-[0_0_150px_rgba(204,0,0,0.3)] m-auto">
         
         {isProcessing && (
-          <div className="absolute inset-0 z-[600] bg-black/98 flex flex-col items-center justify-center text-center p-16 animate-in fade-in">
-             <div className="relative">
-                <Cpu className="w-24 h-24 text-red-600 animate-spin mb-8" />
-                <div className="absolute inset-0 bg-red-600/20 blur-2xl animate-pulse -z-10 rounded-full" />
+          <div className="absolute inset-0 z-[6000] bg-black/98 flex flex-col items-center justify-center text-center p-16 animate-in fade-in">
+             <div className="relative mb-12">
+                <Cpu className="w-24 h-24 text-red-600 animate-spin" />
+                <div className="absolute inset-0 bg-red-600/20 blur-2xl animate-pulse rounded-full" />
              </div>
-             <h3 className="text-5xl font-brand font-black italic text-white uppercase tracking-tighter mb-4">Handshake R2...</h3>
-             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">AUTORIZAÇÃO QUÂNTICA EM CURSO</p>
+             <h3 className="text-5xl font-brand font-black italic text-white uppercase tracking-tighter mb-4">Autenticação <br/><span className="text-red-600">Quântica.</span></h3>
+             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">Sincronizando com Cluster R2-Central</p>
           </div>
         )}
 
-        {/* Left Panel: High-Impact Brand */}
+        {/* Brand Side */}
         <div className="hidden lg:flex flex-col justify-between p-24 bg-[#0F0F0F] text-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity duration-1000"><Printer className="w-[500px] h-[500px]" /></div>
           <div className="absolute inset-0 industrial-grid opacity-[0.03]" />
@@ -110,11 +110,11 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
           
           <div className="flex items-center space-x-6 relative z-10">
              <div className="w-3 h-3 bg-red-600 rounded-full animate-ping" />
-             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-500 italic">Cluster Central: Optimal Status</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-500 italic">Cluster Status: Optimal</span>
           </div>
         </div>
 
-        {/* Right Panel: Clean Form UX */}
+        {/* Form Side */}
         <div className="p-20 md:p-32 flex flex-col justify-center relative bg-white">
           <button onClick={onBack} className="absolute top-16 right-16 p-5 text-gray-200 hover:text-black transition-all transform hover:rotate-90">
             <X className="w-10 h-10"/>
@@ -125,13 +125,13 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
                {mode === 'login' ? 'Terminal' : 'Registo'}<br/>
                <span className="text-red-600">Identidade.</span>
             </h3>
-            <p className="text-[11px] text-gray-400 uppercase tracking-[0.4em] font-black italic">Sincronização Segura ISO-R2</p>
+            <p className="text-[11px] text-gray-400 uppercase tracking-[0.4em] font-black italic">Handshake Industrial ISO-R2</p>
           </div>
 
           {error && (
             <div className="mb-10 p-8 bg-orange-50 border-l-[10px] border-orange-600 text-orange-900 flex items-center space-x-6 rounded-[2.5rem] animate-in slide-in-from-top-4 shadow-xl">
-               <AlertCircle className="w-8 h-8 shrink-0" />
-               <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed italic">{error}</p>
+               <ShieldAlert className="w-8 h-8 shrink-0" />
+               <p className="text-[11px] font-black uppercase tracking-widest italic">{error}</p>
             </div>
           )}
 
@@ -148,8 +148,8 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               <input 
                 type="email" 
                 value={email} 
-                onChange={e => { setEmail(e.target.value); if(e.target.value.length % 5 === 0) onSound?.('click'); }} 
-                placeholder="EMAIL DE ACESSO" 
+                onChange={e => { setEmail(e.target.value); onSound?.('click'); }} 
+                placeholder="EMAIL PROTOCOLO" 
                 className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" 
                 required 
               />
@@ -161,7 +161,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
                 type="password" 
                 value={password} 
                 onChange={e => { setPassword(e.target.value); onSound?.('click'); }} 
-                placeholder="PASSWORD R2" 
+                placeholder="PASSWORD MASTER" 
                 className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" 
                 required 
               />
@@ -171,7 +171,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               type="submit" 
               className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase text-[11px] tracking-[0.6em] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 group border-b-[10px] border-gray-900"
             >
-               <span>Entrar no Grid</span> <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
+               <span>Injetar no Grid</span> <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
             </button>
 
             <div className="flex flex-col items-center space-y-6 pt-10">
@@ -185,7 +185,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               
               <div className="flex items-center space-x-4">
                  <ShieldCheck className="w-4 h-4 text-green-500" />
-                 <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Encriptação AES-256 Ativa</span>
+                 <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest italic">Encriptação AES-256 Verified</span>
               </div>
             </div>
           </form>

@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers, Users, ShoppingCart, Package } from 'lucide-react';
-import { Language } from '../types';
+import React, { useMemo } from 'react';
+import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers, Users, ShoppingCart, Package, Activity, Monitor, BarChart3, Radio, RefreshCw } from 'lucide-react';
+import { Language, PartnerNode, User } from '../types';
 
 interface HeroProps {
   onStart: () => void;
@@ -12,16 +12,17 @@ interface HeroProps {
   usersCount?: number;
   ordersCount?: number;
   productsCount?: number;
+  hubs?: PartnerNode[];
 }
 
-const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsCount = 0, usersCount = 0, ordersCount = 0, productsCount = 0 }) => {
+const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsCount = 0, usersCount = 0, ordersCount = 0, productsCount = 0, hubs = [] }) => {
+  
   return (
     <div className="space-y-32">
       {/* Hero Section Master */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-white">
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
            <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[80%] bg-red-50 rounded-full blur-[150px] opacity-50"></div>
-           <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[60%] bg-gray-50 rounded-full blur-[120px] opacity-30"></div>
            <div className="industrial-grid absolute inset-0 opacity-40"></div>
         </div>
 
@@ -39,7 +40,7 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
             
             <div className="space-y-8">
               <p className="text-xl md:text-3xl text-gray-500 font-medium leading-relaxed max-w-2xl border-l-8 border-red-600 pl-10 italic">
-                A REDLINE PRINT não imprime papel. Nós fabricamos ativos visuais atómicos através de um grid global de nodes industriais sincronizados.
+                A REDLINE PRINT fabrica ativos visuais através de um grid global de nodes industriais sincronizados em tempo real.
               </p>
               
               <div className="flex flex-wrap gap-6 pt-4">
@@ -48,9 +49,6 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
                 </button>
                 <button onClick={onRegister} className="bg-black text-white px-12 py-6 font-black uppercase tracking-[0.4em] text-[11px] rounded-[2rem] hover:bg-red-600 transition-all flex items-center shadow-xl group">
                   <UserPlus className="mr-4 w-5 h-5 group-hover:scale-110" /> Registo de Cliente
-                </button>
-                <button onClick={onB2B} className="bg-white border-2 border-black text-black px-12 py-6 font-black uppercase tracking-[0.4em] text-[11px] rounded-[2rem] hover:bg-black hover:text-white transition-all shadow-lg">
-                  Portal de Hubs
                 </button>
               </div>
             </div>
@@ -90,6 +88,96 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
                 </div>
              </div>
           </div>
+        </div>
+      </section>
+
+      {/* R2 GLOBAL TELEMETRY DASHBOARD - Substituto do Mapa */}
+      <section className="bg-black py-40 relative overflow-hidden">
+        <div className="absolute inset-0 industrial-grid opacity-5" />
+        <div className="max-w-[1500px] mx-auto px-6 relative z-10">
+           <div className="flex flex-col lg:flex-row justify-between items-end gap-12 mb-24">
+              <div className="space-y-6">
+                 <h2 className="text-7xl font-brand font-black italic uppercase text-white tracking-tighter leading-none">R2 <span className="text-red-600">Grid Telemetry.</span></h2>
+                 <p className="text-[12px] font-black uppercase tracking-[0.6em] text-gray-500 italic">
+                    Fluxo de produção e monitorização de carga dos nodos industriais em tempo real.
+                 </p>
+              </div>
+              <div className="flex items-center space-x-6 bg-white/5 p-4 rounded-3xl border border-white/10">
+                 <RefreshCw className="w-5 h-5 text-red-600 animate-spin" />
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Syncing Cluster... 0.002ms</span>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Main Activity Monitor */}
+              <div className="lg:col-span-8 bg-[#070707] rounded-[4rem] border border-white/5 p-12 shadow-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-12 text-white/[0.02] font-brand font-black italic text-[15vw] select-none pointer-events-none">R3</div>
+                 
+                 <div className="flex items-center justify-between mb-16 relative z-10">
+                    <div className="flex items-center space-x-4">
+                       <Activity className="w-8 h-8 text-red-600" />
+                       <h4 className="text-3xl font-brand font-black italic text-white uppercase">Throughput Monitor</h4>
+                    </div>
+                    <div className="text-[10px] font-mono text-gray-500 uppercase">Master Node: Verified</div>
+                 </div>
+
+                 {/* Simulated Real-time Chart/Grid */}
+                 <div className="flex items-end justify-between h-64 gap-2 px-4 border-b border-white/5 pb-4">
+                    {Array.from({ length: 40 }).map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="bg-red-600/20 hover:bg-red-600 transition-all duration-500 rounded-t-lg flex-grow relative group/bar"
+                        style={{ height: `${Math.floor(Math.random() * 80) + 10}%` }}
+                      >
+                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black px-2 py-1 rounded text-[8px] font-black opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                            {Math.floor(Math.random() * 100)}%
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+                 <div className="flex justify-between mt-6 text-[8px] font-black text-gray-700 uppercase tracking-widest italic">
+                    <span>00:00:00</span>
+                    <span>Industrial Stream Flow</span>
+                    <span>{new Date().toLocaleTimeString()}</span>
+                 </div>
+              </div>
+
+              {/* Sidebar Stats */}
+              <div className="lg:col-span-4 space-y-8">
+                 {/* Hub Status List */}
+                 <div className="bg-[#0A0A0A] rounded-[3.5rem] border border-white/5 p-10 space-y-8 shadow-xl">
+                    <h5 className="text-[11px] font-black uppercase text-gray-500 tracking-[0.4em] mb-4">Node Saturation</h5>
+                    {hubs.map((h, i) => (
+                      <div key={h.id} className="space-y-3">
+                         <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black text-white uppercase italic">{h.name}</span>
+                            <span className="text-[12px] font-brand font-black italic text-red-600">{h.capacity}%</span>
+                         </div>
+                         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-red-600 transition-all duration-1000" 
+                              style={{ width: `${h.capacity}%` }} 
+                            />
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 {/* Master Metrics */}
+                 <div className="grid grid-cols-2 gap-8">
+                    <div className="bg-red-600 rounded-[3rem] p-8 text-white shadow-2xl shadow-red-600/20">
+                       <Radio className="w-8 h-8 mb-6 animate-pulse" />
+                       <span className="text-4xl font-brand font-black italic block leading-none">{usersCount}</span>
+                       <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-60">Entities Linked</span>
+                    </div>
+                    <div className="bg-white rounded-[3rem] p-8 text-black shadow-2xl">
+                       <Cpu className="w-8 h-8 mb-6 text-red-600" />
+                       <span className="text-4xl font-brand font-black italic block leading-none">R3</span>
+                       <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-40">Protocol Build</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
       </section>
 

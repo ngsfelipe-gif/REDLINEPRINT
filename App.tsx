@@ -47,8 +47,8 @@ const App: React.FC = () => {
       switch(type) {
         case 'click':
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(1500, now);
-          gain.gain.setValueAtTime(0.04, now);
+          osc.frequency.setValueAtTime(1200, now);
+          gain.gain.setValueAtTime(0.02, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
           osc.start(now);
           osc.stop(now + 0.05);
@@ -57,37 +57,37 @@ const App: React.FC = () => {
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(880, now);
           osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1);
-          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.setValueAtTime(0.03, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
           osc.start(now);
           osc.stop(now + 0.2);
           break;
         case 'sync':
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(2000, now);
-          osc.frequency.setValueAtTime(2500, now + 0.05);
-          gain.gain.setValueAtTime(0.03, now);
+          osc.frequency.setValueAtTime(1500, now);
+          osc.frequency.setValueAtTime(1800, now + 0.05);
+          gain.gain.setValueAtTime(0.02, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
           osc.start(now);
           osc.stop(now + 0.15);
           break;
         case 'error':
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(100, now);
-          osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-          gain.gain.setValueAtTime(0.05, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
           osc.start(now);
-          osc.stop(now + 0.3);
+          osc.stop(now + 0.4);
           break;
         case 'loading':
           osc.type = 'sine';
           osc.frequency.setValueAtTime(440, now);
-          osc.frequency.linearRampToValueAtTime(880, now + 1);
+          osc.frequency.linearRampToValueAtTime(660, now + 0.5);
           gain.gain.setValueAtTime(0.01, now);
-          gain.gain.linearRampToValueAtTime(0, now + 1);
+          gain.gain.linearRampToValueAtTime(0, now + 0.5);
           osc.start(now);
-          osc.stop(now + 1);
+          osc.stop(now + 0.5);
           break;
       }
     } catch(e) {}
@@ -195,6 +195,7 @@ const App: React.FC = () => {
             usersCount={users.length}
             ordersCount={orders.length}
             productsCount={products.length}
+            hubs={hubs}
           />
         )}
         {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} onSound={playSound} />}

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound } from 'lucide-react';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 interface BackofficeProps {
@@ -32,10 +32,9 @@ const Backoffice: React.FC<BackofficeProps> = ({
   const [activeView, setActiveView] = useState<'approvals' | 'orders' | 'hubs' | 'users' | 'products'>('approvals');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [credentialModal, setCredentialModal] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
-  const [showCreateClient, setShowCreateClient] = useState(false);
-  const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '' });
 
   if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Acesso Master Negado.</div>;
 
@@ -105,7 +104,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
           
           <div className="flex flex-wrap bg-white p-3 rounded-[3rem] shadow-2xl border border-gray-100 gap-3">
              {['approvals', 'orders', 'hubs', 'users', 'products'].map(v => (
-               /* Fixed: Corrected setActiveTab to setActiveView */
                <button key={v} onClick={() => { onSound?.('click'); setActiveView(v as any); }} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === v ? 'bg-black text-white shadow-xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}>
                   {v} {(v === 'approvals' && (pendingApprovals.length + pendingUsers.length) > 0) && <span className="ml-2 bg-red-600 px-2 py-0.5 rounded-full text-[8px] animate-pulse">{pendingApprovals.length + pendingUsers.length}</span>}
                </button>
@@ -122,10 +120,192 @@ const Backoffice: React.FC<BackofficeProps> = ({
            </div>
         )}
 
-        {/* Listagem Geral de Entidades com Impersonation para Hubs e Gestão de Credenciais */}
+        {/* Orders Table with Deep Protocol View Refined */}
+        {activeView === 'orders' && (
+           <div className="space-y-8">
+              {filteredItems.map((o: any) => (
+                 <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-2xl ${expandedOrder === o.id ? 'border-black ring-4 ring-black/5' : 'border-gray-100 hover:border-red-600/30'}`}>
+                    <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
+                       <div className="flex-grow">
+                          <div className="flex items-center space-x-8 mb-6">
+                             <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
+                             <div className="flex items-center space-x-3 bg-red-50 text-red-600 px-6 py-2 rounded-full border border-red-100">
+                                <Activity className="w-4 h-4 animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{o.status}</span>
+                             </div>
+                             <div className="hidden lg:flex items-center space-x-3 text-gray-300">
+                                <Clock className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{new Date(o.timestamp).toLocaleDateString()}</span>
+                             </div>
+                          </div>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
+                             <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Cliente Master</span><span className="text-black">{o.client}</span></div>
+                             <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Módulo Produto</span><span className="text-black">{o.product}</span></div>
+                             <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Node Industrial</span><span className="text-red-600">{o.nodeId}</span></div>
+                             <div className="space-y-1"><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Capital Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
+                          </div>
+                       </div>
+                       <div className="flex space-x-4">
+                          <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full transition-all duration-500 shadow-xl ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400 hover:bg-black hover:text-white'}`}>
+                             {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
+                          </button>
+                          <button onClick={() => generatePDF(o)} className="p-8 bg-gray-50 text-black rounded-full hover:bg-black hover:text-white transition-all shadow-xl">
+                             <FileText className="w-8 h-8" />
+                          </button>
+                          <button onClick={() => { onSound?.('click'); setEditingItem({type: 'order', data: {...o}}); }} className="p-8 bg-black text-white rounded-full hover:bg-red-600 transition-all shadow-xl">
+                             <Edit className="w-8 h-8" />
+                          </button>
+                       </div>
+                    </div>
+
+                    {/* Deep Protocol View - Detalhamento Completo */}
+                    {expandedOrder === o.id && (
+                       <div className="p-16 bg-gray-50/50 border-t border-gray-100 animate-in slide-in-from-top-6 duration-700">
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                             
+                             {/* Specs Técnicas */}
+                             <div className="lg:col-span-4 space-y-10">
+                                <h6 className="text-[11px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center border-l-4 border-red-600 pl-4">
+                                   <Zap className="w-4 h-4 mr-3" /> Protocolo Técnico
+                                </h6>
+                                <div className="space-y-5 bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100">
+                                   <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                      <span className="text-[9px] font-black uppercase text-gray-400">Substrato</span>
+                                      <span className="text-[12px] font-black uppercase text-black">{o.material}</span>
+                                   </div>
+                                   <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                      <span className="text-[9px] font-black uppercase text-gray-400">Acabamento</span>
+                                      <span className="text-[12px] font-black uppercase text-black">{o.finish}</span>
+                                   </div>
+                                   <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                      <span className="text-[9px] font-black uppercase text-gray-400">Dimensões</span>
+                                      <span className="text-[12px] font-black uppercase text-black">{o.dimensions}</span>
+                                   </div>
+                                   <div className="flex justify-between items-end border-b border-gray-50 pb-4">
+                                      <span className="text-[9px] font-black uppercase text-gray-400">Volumetria</span>
+                                      <span className="text-[12px] font-black uppercase text-black">{o.quantity} UN</span>
+                                   </div>
+                                   {o.fileName && (
+                                      <div className="pt-4 flex items-center space-x-4 bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200">
+                                         <ImageIcon className="w-6 h-6 text-red-600" />
+                                         <div className="flex-grow">
+                                            <span className="text-[8px] font-black uppercase text-gray-400 block">Asset Digital</span>
+                                            <span className="text-[10px] font-black uppercase text-black line-clamp-1">{o.fileName}</span>
+                                         </div>
+                                         <Download className="w-4 h-4 text-gray-300 hover:text-red-600 cursor-pointer" />
+                                      </div>
+                                   )}
+                                </div>
+                             </div>
+
+                             {/* Histórico e Observações */}
+                             <div className="lg:col-span-8 space-y-10">
+                                <h6 className="text-[11px] font-black uppercase text-black tracking-[0.5em] flex items-center border-l-4 border-black pl-4">
+                                   <History className="w-4 h-4 mr-3" /> Industrial Transactions
+                                </h6>
+                                <div className="space-y-6">
+                                   <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-gray-100 min-h-[150px]">
+                                      <span className="text-[8px] font-black uppercase text-gray-300 block mb-6 tracking-widest">Protocol Stream</span>
+                                      <div className="space-y-6">
+                                         {o.history?.map((log: any, idx: number) => (
+                                            <div key={idx} className="flex gap-6 group/log">
+                                               <div className="flex flex-col items-center">
+                                                  <div className="w-3 h-3 rounded-full bg-red-600 border-4 border-white ring-2 ring-red-600 shadow-lg" />
+                                                  {idx !== o.history.length - 1 && <div className="w-[2px] flex-grow bg-gray-100 group-hover/log:bg-red-200 transition-colors" />}
+                                               </div>
+                                               <div className="pb-6">
+                                                  <div className="flex items-center space-x-4 mb-1">
+                                                     <span className="text-[10px] font-black uppercase text-black">{log.status}</span>
+                                                     <span className="text-[8px] font-mono text-gray-300 bg-gray-50 px-3 py-0.5 rounded-full">{new Date(log.timestamp).toLocaleString()}</span>
+                                                  </div>
+                                                  <p className="text-[11px] font-bold text-gray-400 italic leading-relaxed uppercase tracking-widest">{log.note}</p>
+                                               </div>
+                                            </div>
+                                         ))}
+                                      </div>
+                                   </div>
+                                   
+                                   {o.observations && (
+                                      <div className="bg-orange-50/50 p-8 rounded-[2.5rem] border border-orange-100 flex items-start space-x-6">
+                                         <AlertCircle className="w-6 h-6 text-orange-600 mt-1" />
+                                         <div>
+                                            <span className="text-[8px] font-black uppercase text-orange-800 tracking-widest block mb-2">Operador Notes</span>
+                                            <p className="text-[11px] font-black text-orange-900 uppercase italic leading-relaxed">{o.observations}</p>
+                                         </div>
+                                      </div>
+                                   )}
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+              ))}
+           </div>
+        )}
+
+        {/* Demais Views (Approvals, Hubs, Users, Products) mantidas para garantir integridade */}
+        {activeView === 'approvals' && (
+          <div className="space-y-16 animate-in slide-in-from-bottom-10">
+             {pendingUsers.length > 0 && (
+               <div className="space-y-8">
+                  <h3 className="text-4xl font-brand font-black italic uppercase">Entidades em <span className="text-red-600">Quarentena.</span></h3>
+                  <div className="grid grid-cols-1 gap-4">
+                     {pendingUsers.map(u => (
+                       <div key={u.id} className="bg-white p-8 rounded-[3.5rem] border border-gray-100 shadow-xl flex justify-between items-center group hover:border-red-600 transition-all">
+                          <div className="flex items-center space-x-6">
+                             <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center font-brand font-black italic text-xl">{u.name[0]}</div>
+                             <div>
+                                <span className="text-2xl font-brand font-black italic uppercase text-black block">{u.name}</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{u.email} // Tier: {u.tier}</span>
+                             </div>
+                          </div>
+                          <div className="flex space-x-3">
+                             <button onClick={() => { onSound?.('success'); onUpdateUser(u.id, { status: 'Ativo' }); }} className="bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-green-600 transition-all">Autorizar Acesso</button>
+                          </div>
+                       </div>
+                     ))}
+                  </div>
+               </div>
+             )}
+
+             <div className="space-y-8">
+               <h3 className="text-4xl font-brand font-black italic uppercase">Fila de <span className="text-red-600">Handshake Industrial.</span></h3>
+               <div className="grid grid-cols-1 gap-6">
+                  {pendingApprovals.map(o => (
+                    <div key={o.id} className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-2xl flex justify-between items-center group hover:border-red-600 transition-all">
+                       <div className="flex-grow">
+                          <div className="flex items-center space-x-6 mb-4">
+                             <span className="text-3xl font-brand font-black italic text-black uppercase">{o.id}</span>
+                             <span className="px-5 py-2 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest">{o.product}</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-8 text-[10px] font-black uppercase text-gray-400 italic">
+                             <div><span className="block text-gray-300">Cliente</span>{o.client}</div>
+                             <div><span className="block text-gray-300">Substrato</span>{o.material}</div>
+                             <div><span className="block text-gray-300">Capital</span>€{o.value}</div>
+                          </div>
+                       </div>
+                       <div className="flex items-center space-x-4">
+                          <select className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl text-[10px] font-black uppercase" id={`h-${o.id}`}>
+                             <option value="">NODO...</option>
+                             {hubs.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                          </select>
+                          <button onClick={() => {
+                            const h = (document.getElementById(`h-${o.id}`) as HTMLSelectElement).value;
+                            if(h) { onSound?.('success'); onUpdateStatus(o.id, 'Aprovado', h); }
+                          }} className="bg-black text-white p-5 rounded-full hover:bg-green-600 transition-all shadow-xl"><CheckCircle2/></button>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+             </div>
+          </div>
+        )}
+
+        {/* Seção de Listagem para as outras views (Users, Hubs, Products) */}
         <div className="grid grid-cols-1 gap-4">
-          {activeView !== 'approvals' && filteredItems.map((item: any) => (
-             <div key={item.id} className="bg-white p-8 rounded-[3rem] border border-gray-50 hover:border-black shadow-lg transition-all flex items-center justify-between">
+          {activeView !== 'approvals' && activeView !== 'orders' && filteredItems.map((item: any) => (
+             <div key={item.id} className="bg-white p-8 rounded-[3.5rem] border border-gray-50 hover:border-black shadow-lg transition-all flex items-center justify-between">
                 <div className="flex items-center space-x-8">
                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-brand font-black italic text-xl shadow-inner ${activeView === 'users' ? 'bg-red-600 text-white' : 'bg-black text-white'}`}>
                       {item.name ? item.name[0] : '#'}
