@@ -18,10 +18,9 @@ import { Zap, ShieldCheck, RefreshCw } from 'lucide-react';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
-  const [adminBuffer, setAdminBuffer] = useState<User | null>(null); // Armazena o admin real durante o shadow mode
+  const [adminBuffer, setAdminBuffer] = useState<User | null>(null);
   const [language, setLanguage] = useState<Language>('PT');
   
-  // Gestão Financeira Global
   const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
 
   const [users, setUsers] = useState<User[]>([
@@ -29,7 +28,7 @@ const App: React.FC = () => {
     { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() },
     { id: 'STD-01', name: 'Utilizador Standard', email: 'user@redline.eu', password: 'user', role: 'Utilizador_Standard', permissions: ['BUY'], tier: 'Bronze', status: 'Ativo', joinedAt: Date.now(), partnerCommissionRate: 2.5, balance: 45.50 }
   ]);
-  const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES.map(h => ({ ...h, platformCommission: 5.0 })));
+  const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES.map(h => ({ ...h, platformCommission: 5.0, primaryCommission: 15.0 })));
   const [hubRequests, setHubRequests] = useState<HubRegistrationRequest[]>([]);
   const [authRequests, setAuthRequests] = useState<AuthorizationRequest[]>([]);
   const [orders, setOrders] = useState<ProductionJob[]>(MOCK_JOBS);
@@ -75,39 +74,40 @@ const App: React.FC = () => {
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id !== orderId) return o;
-      
-      // Se concluído, creditar cashback ao cliente se aplicável
-      if (newStatus === 'Concluído' && o.status !== 'Concluído') {
-        const client = users.find(u => u.id === o.clientId);
-        if (client && client.role === 'Utilizador_Standard') {
-          const cashback = parseFloat(o.value) * 0.02; // 2% REDCOIN default
-          handleUpdateUser(client.id, { balance: (client.balance || 0) + cashback });
-          notify("Cashback R2 Ativo", `€${cashback.toFixed(2)} creditados em balance.`, "success");
+    setOrders(prev => {
+      const updated = prev.map(o => {
+        if (o.id !== orderId) return o;
+        
+        if (newStatus === 'Concluído' && o.status !== 'Concluído') {
+          const client = users.find(u => u.id === o.clientId);
+          if (client && client.role === 'Utilizador_Standard') {
+            const cashback = parseFloat(o.value) * 0.02;
+            handleUpdateUser(client.id, { balance: (client.balance || 0) + cashback });
+            notify("Cashback R2 Ativo", `€${cashback.toFixed(2)} creditados em balance.`, "success");
+          }
         }
-      }
 
-      return { 
-        ...o, 
-        status: newStatus, 
-        nodeId: nodeId || o.nodeId, 
-        progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : (newStatus === 'Expedição' ? 85 : o.progress)),
-        history: [...o.history, { 
-          timestamp: Date.now(), 
+        return { 
+          ...o, 
           status: newStatus, 
-          author: user?.name || 'Sistema R3', 
-          note: note || `Operação de status validada pelo nodo industrial.` 
-        }]
-      };
-    }));
+          nodeId: nodeId || o.nodeId, 
+          progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : (newStatus === 'Expedição' ? 85 : o.progress)),
+          history: [...o.history, { 
+            timestamp: Date.now(), 
+            status: newStatus, 
+            author: user?.name || 'Sistema R3', 
+            note: note || `Operação de status validada pelo nodo industrial.` 
+          }]
+        };
+      });
+      return updated;
+    });
     notify("Grid Sync", `Encomenda ${orderId} atualizada para ${newStatus}.`, "sync");
   };
 
   const handleUpdateUser = (userId: string, updates: Partial<User>) => {
     setUsers(prev => {
       const newList = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
-      // Se o utilizador atualizado for o logado, atualiza a sessão também
       if (user?.id === userId) {
         setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
       }
@@ -122,7 +122,6 @@ const App: React.FC = () => {
   };
 
   const handleCreateOrder = (order: ProductionJob, guestData?: { name: string, email: string, password?: string }) => {
-    // Lógica para converter convidados em Standard Users se necessário
     let finalUser = user;
     if (!user && guestData) {
       const newUser: User = {
@@ -153,15 +152,18 @@ const App: React.FC = () => {
     
     setOrders(prev => [hierarchicalOrder, ...prev]);
     notify("Protocolo Injetado", `Encomenda ${order.id} aguarda validação Admin.`, "sync");
-  };
-
-  const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
-    notify("Master Sync", `Dados do Job ${orderId} atualizados.`, "sync");
+    setActiveTab('account');
   };
 
   const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updates } : p));
+    setProducts(prev => {
+      const exists = prev.find(p => p.id === productId);
+      if (exists) {
+        return prev.map(p => p.id === productId ? { ...p, ...updates } : p);
+      } else {
+        return [...prev, updates as ExtendedProduct];
+      }
+    });
     notify("Módulo Atualizado", `Ativo ${productId} sincronizado.`, "sync");
   };
 
@@ -184,7 +186,6 @@ const App: React.FC = () => {
     notify("Entidade Provisionada", `Acesso gerado para ${newUser.name}.`, "success");
   };
 
-  // Shadow Mode (Impersonation)
   const handleImpersonate = (targetUser: User) => {
     if (user?.role !== 'Administrador') return;
     setAdminBuffer(user);
@@ -210,10 +211,10 @@ const App: React.FC = () => {
       onLogout={() => { playSound('click'); setUser(null); setActiveTab('home'); }}
     >
       {adminBuffer && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-8 py-3 rounded-full flex items-center space-x-4 shadow-[0_0_40px_rgba(204,0,0,0.5)] border border-white/20 animate-bounce">
-           <ShieldCheck className="w-5 h-5" />
-           <span className="text-[10px] font-black uppercase tracking-widest">Sombra Ativa: {user?.name}</span>
-           <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-4 py-1 rounded-full text-[9px] font-black uppercase hover:bg-black hover:text-white transition-all">Sair</button>
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-8 py-4 rounded-full flex items-center space-x-6 shadow-[0_0_60px_rgba(204,0,0,0.6)] border border-white/30 animate-bounce">
+           <ShieldCheck className="w-6 h-6" />
+           <span className="text-[11px] font-black uppercase tracking-[0.3em]">Shadow Protocol: {user?.name}</span>
+           <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-6 py-2 rounded-full text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all shadow-lg">Restore Admin</button>
         </div>
       )}
 
@@ -246,7 +247,7 @@ const App: React.FC = () => {
             onUpdateUser={handleUpdateUser}
             onUpdateHub={handleUpdateHub}
             onUpdateProduct={handleUpdateProduct}
-            onUpdateOrder={handleUpdateOrderGranular}
+            onUpdateOrder={(id, updates) => setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o))}
             onImpersonate={handleImpersonate}
             onCreateUser={(u) => setUsers(prev => [...prev, u])}
             onCreateClient={handleCreateClientByAdmin}
@@ -262,7 +263,7 @@ const App: React.FC = () => {
             user={user} 
             orders={orders.filter(o => {
                if (user.role === 'Administrador') return true;
-               if (user.role === 'B2B_Admin') return o.nodeId === user.managedHubId;
+               if (user.role === 'B2B_Admin') return o.nodeId === user.managedHubId && o.status !== 'Pendente_Admin';
                return o.clientId === user.id;
             })} 
             tickets={tickets.filter(t => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? t.targetHubId === user.managedHubId : t.creatorId === user.id))}

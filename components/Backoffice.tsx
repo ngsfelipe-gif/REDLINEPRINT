@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode } from 'lucide-react';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 import { MATERIALS, FINISHES } from '../constants';
 
@@ -35,12 +35,34 @@ const Backoffice: React.FC<BackofficeProps> = ({
   const [activeView, setActiveView] = useState<'approvals' | 'orders' | 'hubs' | 'users' | 'products' | 'financials'>('approvals');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState<'user' | 'product' | null>(null);
 
   if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Master Protocol Denied.</div>;
 
   const pendingAdminApprovals = useMemo(() => orders.filter(o => o.status === 'Pendente_Admin'), [orders]);
+
+  const financials = useMemo(() => {
+    let totalRevenue = 0;
+    let totalPlatform = 0;
+    let totalHub = 0;
+
+    orders.forEach(o => {
+      const val = parseFloat(o.value) || 0;
+      totalRevenue += val;
+      
+      const hub = hubs.find(h => h.id === o.nodeId);
+      const hubRate = hub?.primaryCommission || 15;
+      const platRate = hub?.platformCommission || globalPlatformFee;
+      
+      const platShare = (val * platRate) / 100;
+      const hubGross = (val * hubRate) / 100;
+      
+      totalPlatform += platShare;
+      totalHub += (hubGross - platShare);
+    });
+
+    return { totalRevenue, totalPlatform, totalHub, totalNet: totalPlatform };
+  }, [orders, hubs, globalPlatformFee]);
 
   const filteredItems = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -53,7 +75,8 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
   return (
     <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
-      <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-16">
+      {/* Header Refinado */}
+      <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-24">
         <div>
           <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
              <ShieldCheck className="w-4 h-4" />
@@ -66,7 +89,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
            {['approvals', 'orders', 'hubs', 'users', 'products', 'financials'].map(v => (
              <button 
               key={v} 
-              onClick={() => { onSound?.('click'); setActiveView(v as any); }} 
+              onClick={() => { onSound?.('click'); setActiveView(v as any); setSearchTerm(''); }} 
               className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeView === v ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}
              >
                 {v} 
@@ -78,7 +101,8 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      <div className="mb-12 flex justify-between items-center">
+      {/* Busca e Ações Master */}
+      <div className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
          <div className="bg-white p-2 rounded-[3rem] border border-gray-100 shadow-2xl flex items-center max-w-2xl w-full">
             <Search className="w-8 h-8 text-gray-300 ml-6" />
             <input type="text" placeholder={`LOCALIZAR EM ${activeView.toUpperCase()}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent flex-grow outline-none font-black uppercase text-[12px] p-8 placeholder:text-gray-200" />
@@ -89,9 +113,146 @@ const Backoffice: React.FC<BackofficeProps> = ({
          </div>
       </div>
 
-      {/* VIEW: USERS MANAGEMENT */}
+      {/* VIEW: FINANCIALS - ENGENHARIA DE RECEITA */}
+      {activeView === 'financials' && (
+        <div className="space-y-12 animate-in fade-in">
+           <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
+              <div className="flex items-center space-x-8">
+                 <div className="p-8 bg-red-600 rounded-[2.5rem] text-white shadow-xl"><Settings className="w-12 h-12 animate-spin-slow" /></div>
+                 <div>
+                    <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita</h4>
+                    <h3 className="text-4xl font-brand font-black italic uppercase text-black">Taxa da Plataforma Redline (%)</h3>
+                 </div>
+              </div>
+              <div className="flex items-center space-x-6">
+                 <div className="flex items-center bg-gray-50 px-12 py-8 rounded-[3rem] border border-gray-100 shadow-inner">
+                    <input 
+                      type="number" 
+                      value={globalPlatformFee} 
+                      onChange={(e) => setGlobalPlatformFee(parseFloat(e.target.value))} 
+                      className="bg-transparent text-6xl font-brand font-black italic text-black outline-none w-32 text-center" 
+                    />
+                    <span className="text-4xl font-brand font-black italic text-red-600 ml-4">%</span>
+                 </div>
+              </div>
+           </div>
+
+           {/* Dashboard de KPIs Financeiros */}
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
+                 <div className="absolute inset-0 industrial-grid opacity-5" />
+                 <CreditCard className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">Gross Revenue</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalRevenue.toLocaleString()}</span>
+              </div>
+              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
+                 <Coins className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Platform Share</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalPlatform.toLocaleString()}</span>
+              </div>
+              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
+                 <PieChart className="w-12 h-12 text-orange-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Hub Payouts</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalHub.toLocaleString()}</span>
+              </div>
+              <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
+                 <TrendingUp className="w-12 h-12 text-white mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-4">Net Industrial</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalNet.toLocaleString()}</span>
+              </div>
+           </div>
+
+           {/* Painel de Gestão de Comissões por HUB */}
+           <div className="bg-white p-12 rounded-[5rem] shadow-2xl border border-gray-100">
+              <h4 className="text-4xl font-brand font-black italic uppercase text-black mb-12 flex items-center gap-4">
+                 <Percent className="w-10 h-10 text-red-600" />
+                 Gestão de Comissões por Nodo
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                 {hubs.map(h => (
+                    <div key={h.id} className="bg-gray-50 p-8 rounded-[3rem] border border-gray-100 flex flex-col justify-between group hover:border-black transition-all">
+                       <div className="flex justify-between items-start mb-6">
+                          <div>
+                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{h.id}</span>
+                             <h5 className="text-2xl font-brand font-black italic uppercase text-black leading-none">{h.name}</h5>
+                          </div>
+                       </div>
+                       <div className="space-y-6">
+                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                             <span className="text-[10px] font-black uppercase text-gray-500">Hub Share (%)</span>
+                             <input 
+                                type="number" 
+                                value={h.primaryCommission} 
+                                onChange={(e) => onUpdateHub(h.id, { primaryCommission: parseFloat(e.target.value) })}
+                                className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none"
+                             />
+                          </div>
+                          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                             <span className="text-[10px] font-black uppercase text-gray-500">Plat. Fee (%)</span>
+                             <input 
+                                type="number" 
+                                value={h.platformCommission} 
+                                onChange={(e) => onUpdateHub(h.id, { platformCommission: parseFloat(e.target.value) })}
+                                className="bg-transparent text-xl font-brand font-black italic text-black w-16 text-right outline-none"
+                             />
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+           </div>
+
+           {/* Ledger de Transações em Tempo Real */}
+           <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 overflow-hidden">
+              <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                 <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em]">Grid Financial Ledger (Real-time)</h4>
+                 <div className="flex items-center space-x-3 text-green-500 text-[10px] font-black uppercase tracking-widest">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+                    <span>Sync Active</span>
+                 </div>
+              </div>
+              <div className="overflow-x-auto">
+                 <table className="w-full text-left">
+                    <thead>
+                       <tr className="border-b border-gray-50">
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Barcode/Order</th>
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Módulo</th>
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Gross</th>
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Platform Fee</th>
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Net Earn</th>
+                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Status Grid</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                       {orders.map(o => {
+                          const val = parseFloat(o.value) || 0;
+                          const hub = hubs.find(h => h.id === o.nodeId);
+                          const fee = (val * (hub?.platformCommission || globalPlatformFee)) / 100;
+                          return (
+                            <tr key={o.id} className="hover:bg-gray-50 transition-colors group cursor-default">
+                               <td className="px-12 py-8 font-brand font-black italic text-black uppercase tracking-tighter text-lg">{o.id}</td>
+                               <td className="px-12 py-8 font-black text-gray-400 text-[11px] uppercase tracking-widest">{o.product}</td>
+                               <td className="px-12 py-8 font-black text-black text-[11px]">€{val.toLocaleString()}</td>
+                               <td className="px-12 py-8 font-black text-red-600 text-[11px]">-€{fee.toLocaleString()}</td>
+                               <td className="px-12 py-8 font-black text-black text-[13px] group-hover:scale-110 transition-transform">€{(val - fee).toLocaleString()}</td>
+                               <td className="px-12 py-8">
+                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+                                     {o.status}
+                                  </span>
+                               </td>
+                            </tr>
+                          );
+                       })}
+                    </tbody>
+                 </table>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* VIEW: USERS MANAGEMENT (SHADOW MODE) */}
       {activeView === 'users' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 animate-in slide-in-from-bottom-5">
            {filteredItems.map((u: any) => (
              <div key={u.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
                 <div className="flex justify-between items-start mb-10">
@@ -99,14 +260,14 @@ const Backoffice: React.FC<BackofficeProps> = ({
                    <div className="flex space-x-2">
                       <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all"><Eye className="w-5 h-5" /></button>
                       <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all"><Edit className="w-5 h-5" /></button>
+                      <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
                    </div>
                 </div>
-                <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2">{u.name}</h4>
+                <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2 leading-none">{u.name}</h4>
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{u.email}</p>
                 <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
                    <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
                    <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600">{u.tier}</span>
-                   {u.managedHubId && <span className="text-[9px] font-black uppercase text-black italic">HUB: {u.managedHubId}</span>}
                 </div>
              </div>
            ))}
@@ -115,7 +276,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
       {/* VIEW: PRODUCTS MANAGEMENT */}
       {activeView === 'products' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-8 animate-in slide-in-from-bottom-5">
            {filteredItems.map((p: any) => (
              <div key={p.id} className="bg-white rounded-[4rem] border border-gray-100 shadow-xl overflow-hidden group hover:border-red-600 transition-all">
                 <div className="aspect-square bg-gray-50 relative overflow-hidden">
@@ -126,9 +287,9 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 </div>
                 <div className="p-8">
                    <span className="text-[8px] font-black uppercase text-red-600 tracking-widest mb-2 block">{p.category}</span>
-                   <h5 className="text-2xl font-brand font-black italic uppercase text-black mb-4">{p.name}</h5>
+                   <h5 className="text-2xl font-brand font-black italic uppercase text-black mb-4 leading-none">{p.name}</h5>
                    <div className="flex justify-between items-end pt-4 border-t border-gray-50">
-                      <span className="text-3xl font-brand font-black italic">€{p.basePrice}</span>
+                      <span className="text-3xl font-brand font-black italic text-black">€{p.basePrice}</span>
                       <span className="text-[9px] font-black uppercase text-gray-400">ID: {p.id}</span>
                    </div>
                 </div>
@@ -137,7 +298,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* Outras views (Approvals, Orders, Hubs, Financials) permanecem com as lógicas já existentes mas com o UX unificado */}
+      {/* VIEW: APPROVALS */}
       {activeView === 'approvals' && (
         <div className="space-y-12 animate-in slide-in-from-bottom-5">
            {pendingAdminApprovals.length > 0 ? (
@@ -189,19 +350,37 @@ const Backoffice: React.FC<BackofficeProps> = ({
               <div className="space-y-8">
                  {editingItem.type === 'user' && (
                     <>
-                       <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
-                       <input type="email" value={editingItem.data.email} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
-                       <select value={editingItem.data.role} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600">
-                          <option value="Utilizador_Standard">Standard Client</option>
-                          <option value="B2B_Admin">HUB Partner</option>
-                       </select>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome da Entidade</label>
+                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Email de Protocolo</label>
+                          <input type="email" value={editingItem.data.email} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nível de Acesso (Role)</label>
+                          <select value={editingItem.data.role} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600">
+                             <option value="Utilizador_Standard">Standard Client</option>
+                             <option value="B2B_Admin">HUB Partner</option>
+                          </select>
+                       </div>
                     </>
                  )}
                  {editingItem.type === 'product' && (
                     <>
-                       <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
-                       <input type="number" value={editingItem.data.basePrice} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, basePrice: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
-                       <textarea value={editingItem.data.description} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, description: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 h-32" />
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome do Módulo</label>
+                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Preço Base (€)</label>
+                          <input type="number" value={editingItem.data.basePrice} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, basePrice: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Descrição Técnica</label>
+                          <textarea value={editingItem.data.description} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, description: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 h-32" />
+                       </div>
                     </>
                  )}
                  <button onClick={() => { 
@@ -217,7 +396,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* MODAL: CREATE MODAL */}
+      {/* MODAL: CREATE MODAL (USER / PRODUCT) */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-8 animate-in fade-in">
            <div className="bg-white w-full max-w-2xl rounded-[5rem] p-20 shadow-2xl border-[15px] border-red-600 relative overflow-y-auto max-h-[90vh]">
@@ -273,56 +452,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
                        <button type="submit" className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all">Injetar Módulo no Grid</button>
                     </form>
                  )}
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* VIEW: FINANCIALS - REFRESHED */}
-      {activeView === 'financials' && (
-        <div className="space-y-12 animate-in fade-in">
-           <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
-              <div className="flex items-center space-x-8">
-                 <div className="p-8 bg-red-600 rounded-[2.5rem] text-white shadow-xl"><Settings className="w-12 h-12 animate-spin-slow" /></div>
-                 <div>
-                    <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita</h4>
-                    <h3 className="text-4xl font-brand font-black italic uppercase text-black">Taxa da Plataforma Redline (%)</h3>
-                 </div>
-              </div>
-              <div className="flex items-center space-x-6">
-                 <div className="flex items-center bg-gray-50 px-12 py-8 rounded-[3rem] border border-gray-100 shadow-inner">
-                    <input 
-                      type="number" 
-                      value={globalPlatformFee} 
-                      onChange={(e) => setGlobalPlatformFee(parseFloat(e.target.value))} 
-                      className="bg-transparent text-6xl font-brand font-black italic text-black outline-none w-32 text-center" 
-                    />
-                    <span className="text-4xl font-brand font-black italic text-red-600 ml-4">%</span>
-                 </div>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
-                 <div className="absolute inset-0 industrial-grid opacity-5" />
-                 <CreditCard className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">Gross Revenue</span>
-                 <span className="text-6xl font-brand font-black italic block">€{orders.reduce((acc, o) => acc + parseFloat(o.value), 0).toLocaleString()}</span>
-              </div>
-              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
-                 <Coins className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Platform Share</span>
-                 <span className="text-6xl font-brand font-black italic block">€{(orders.reduce((acc, o) => acc + parseFloat(o.value), 0) * (globalPlatformFee/100)).toLocaleString()}</span>
-              </div>
-              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
-                 <PieChart className="w-12 h-12 text-orange-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Hub Payouts</span>
-                 <span className="text-6xl font-brand font-black italic block">€{(orders.reduce((acc, o) => acc + parseFloat(o.value), 0) * 0.15).toLocaleString()}</span>
-              </div>
-              <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
-                 <TrendingUp className="w-12 h-12 text-white mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-4">Net Industrial</span>
-                 <span className="text-6xl font-brand font-black italic block">€{(orders.reduce((acc, o) => acc + parseFloat(o.value), 0) * 0.8).toLocaleString()}</span>
               </div>
            </div>
         </div>
