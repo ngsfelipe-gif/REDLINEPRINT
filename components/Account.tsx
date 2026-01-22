@@ -1,7 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
-import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown, Barcode, Search, Truck, PlayCircle } from 'lucide-react';
+// Fixed missing imports: MapPin, UserCheck, and User (as UserIcon)
+import { 
+  Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, 
+  Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, 
+  Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, 
+  Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown, 
+  Barcode, Search, Truck, PlayCircle, MapPin, UserCheck, User as UserIcon 
+} from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 
 interface AccountProps {
@@ -31,25 +38,25 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
   const myHub = hubs.find(h => h.id === user.managedHubId);
 
   const financials = useMemo(() => {
-    const relevantOrders = orders.filter(o => isB2B ? o.nodeId === user.managedHubId : o.clientId === user.id);
+    const relevantOrders = orders.filter(o => isB2B ? (o.nodeId === user.managedHubId && o.status === 'Concluído') : (o.clientId === user.id && o.status === 'Concluído'));
     const totalVolume = relevantOrders.reduce((acc, o) => acc + parseFloat(o.value), 0);
-    const hubRate = isB2B && myHub ? (myHub.primaryCommission || 0) : 0;
-    const grossHubEarnings = (totalVolume * hubRate) / 100;
+    const hubRate = isB2B && myHub ? (myHub.primaryCommission || 15) : 0;
     const platRate = isB2B && myHub ? (myHub.platformCommission || 5) : 0;
+    
+    const grossHubEarnings = (totalVolume * hubRate) / 100;
     const platformDeduction = (totalVolume * platRate) / 100;
     const netEarnings = grossHubEarnings - platformDeduction;
-    const cashbackTotal = isStandard ? (user.balance || 0) : 0;
     
     return { 
       totalVolume, 
       grossHubEarnings,
       platformDeduction,
       netEarnings,
-      cashbackTotal, 
+      cashbackTotal: user.balance || 0, 
       count: relevantOrders.length,
       average: relevantOrders.length > 0 ? totalVolume / relevantOrders.length : 0 
     };
-  }, [orders, isB2B, myHub, user, isStandard]);
+  }, [orders, isB2B, myHub, user]);
 
   const handleBarcodeSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +65,8 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
       setExpandedOrder(found.id);
       setActiveTab('production');
       onSound?.('success');
+      const element = document.getElementById(`order-${found.id}`);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       onSound?.('error');
     }
@@ -65,119 +74,142 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 pb-32 industrial-grid animate-in fade-in">
-      <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-16 mb-20 flex flex-col xl:flex-row justify-between items-center gap-12">
+    <div className="max-w-[1600px] mx-auto px-10 pb-32 industrial-grid animate-in fade-in">
+      {/* Dynamic Dashboard Header */}
+      <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-16 mb-20 flex flex-col xl:flex-row justify-between items-center gap-12 group hover:border-red-600/20 transition-all">
         <div className="flex items-center space-x-12">
-           <div className={`w-32 h-32 text-white rounded-[3rem] flex items-center justify-center font-brand font-black italic text-6xl shadow-2xl border-b-[12px] ${isAdmin ? 'bg-red-600 border-black' : 'bg-black border-red-600'}`}>{user.name[0]}</div>
+           <div className={`w-32 h-32 text-white rounded-[3.5rem] flex items-center justify-center font-brand font-black italic text-6xl shadow-2xl border-b-[15px] transition-transform group-hover:scale-105 duration-700 ${isAdmin ? 'bg-red-600 border-black' : 'bg-black border-red-600'}`}>
+              {user.name[0]}
+           </div>
            <div>
-              <h2 className="text-6xl font-brand font-black italic uppercase tracking-tighter text-black leading-none">{user.name}</h2>
-              <div className="flex items-center space-x-6 mt-4">
-                 <span className={`px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest border ${isStandard ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-red-50 text-red-600 border-red-100'}`}>{user.role.replace('_', ' ')}</span>
-                 {isB2B && <div className="flex items-center space-x-3 bg-black text-white px-6 py-2 rounded-full"><Server className="w-3 h-3 text-red-600"/> <span className="text-[11px] font-black uppercase italic tracking-widest">{myHub?.name}</span></div>}
+              <div className="flex items-center space-x-4 mb-2">
+                 <h2 className="text-6xl font-brand font-black italic uppercase tracking-tighter text-black leading-none">{user.name}</h2>
+                 {user.tier === 'Platina' && <Zap className="w-8 h-8 text-red-600 animate-pulse" />}
+              </div>
+              <div className="flex items-center space-x-6">
+                 <span className={`px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest border shadow-sm ${isStandard ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-red-50 text-red-600 border-red-100'}`}>{user.role.replace('_', ' ')}</span>
+                 {isB2B && (
+                    <div className="flex items-center space-x-3 bg-black text-white px-6 py-2 rounded-full shadow-lg">
+                       <Server className="w-3 h-3 text-red-600"/> 
+                       <span className="text-[11px] font-black uppercase italic tracking-widest">{myHub?.name}</span>
+                    </div>
+                 )}
+                 <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">ID: {user.id}</span>
               </div>
            </div>
         </div>
         
-        <div className="flex flex-col items-end gap-6">
-          <div className="flex flex-wrap space-x-4 bg-gray-50 p-3 rounded-[3rem] border border-gray-100 shadow-inner">
+        <div className="flex flex-col items-end gap-8">
+          <div className="flex flex-wrap space-x-4 bg-gray-100/50 p-3 rounded-[3.5rem] border border-gray-100 shadow-inner backdrop-blur-md">
              {['overview', 'production', 'finances', 'profile'].map(tab => (
-               <button key={tab} onClick={() => { onSound?.('click'); setActiveTab(tab as any); }} className={`px-10 py-5 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-black'}`}>{tab}</button>
+               <button 
+                key={tab} 
+                onClick={() => { onSound?.('click'); setActiveTab(tab as any); }} 
+                className={`px-12 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === tab ? 'bg-black text-white shadow-2xl scale-110 z-10' : 'text-gray-400 hover:text-black hover:bg-white'}`}
+               >
+                  {tab}
+                  {tab === 'production' && orders.filter(o => o.status === 'Em Produção').length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[8px] animate-pulse shadow-lg">{orders.filter(o => o.status === 'Em Produção').length}</span>
+                  )}
+               </button>
              ))}
           </div>
           
-          <form onSubmit={handleBarcodeSearch} className="flex bg-black p-1 rounded-full border border-white/10 w-full max-w-sm group focus-within:ring-2 focus-within:ring-red-600 transition-all">
+          <form onSubmit={handleBarcodeSearch} className="flex bg-black p-1 rounded-full border border-white/10 w-full max-w-sm group focus-within:ring-4 focus-within:ring-red-600/30 transition-all shadow-2xl">
              <div className="flex items-center px-6"><Barcode className="w-5 h-5 text-red-600 group-focus-within:animate-pulse" /></div>
-             <input type="text" placeholder="SCAN BARCODE / ORDER ID..." value={scanTerm} onChange={e => setScanTerm(e.target.value)} className="bg-transparent text-white font-mono text-[10px] uppercase p-4 outline-none flex-grow placeholder:text-gray-700" />
-             <button type="submit" className="bg-red-600 text-white p-4 rounded-full hover:bg-white hover:text-black transition-all"><Search className="w-4 h-4" /></button>
+             <input type="text" placeholder="LOCALIZAR BARCODE..." value={scanTerm} onChange={e => setScanTerm(e.target.value)} className="bg-transparent text-white font-mono text-[11px] uppercase p-4 outline-none flex-grow placeholder:text-gray-700" />
+             <button type="submit" className="bg-red-600 text-white p-4 rounded-full hover:bg-white hover:text-black transition-all shadow-lg"><Search className="w-5 h-5" /></button>
           </form>
         </div>
       </div>
 
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 animate-in slide-in-from-bottom-10">
-           <div className="bg-white p-12 rounded-[4.5rem] shadow-xl border border-gray-50">
-              <span className="text-[10px] font-black uppercase text-gray-400 block mb-10">Jobs no Grid</span>
-              <span className="text-7xl font-brand font-black italic">{financials.count}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-10 animate-in slide-in-from-bottom-10">
+           <div className="bg-white p-14 rounded-[4.5rem] shadow-xl border border-gray-100 group hover:border-black transition-all">
+              <span className="text-[11px] font-black uppercase text-gray-400 tracking-widest block mb-12 flex items-center"><Package className="w-4 h-4 mr-3 text-red-600" /> Protocolos no Grid</span>
+              <span className="text-8xl font-brand font-black italic text-black leading-none">{financials.count}</span>
            </div>
-           <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden">
+           <div className="bg-black text-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
               <div className="absolute inset-0 industrial-grid opacity-5" />
-              <span className="text-[10px] font-black uppercase text-gray-500 block mb-10">Volume Industrial</span>
-              <span className="text-5xl font-brand font-black italic">€{financials.totalVolume.toLocaleString()}</span>
+              <span className="text-[11px] font-black uppercase text-gray-500 tracking-widest block mb-12 relative z-10 flex items-center"><Activity className="w-4 h-4 mr-3 text-red-600" /> Volume de Manufatura</span>
+              <span className="text-6xl font-brand font-black italic text-white leading-none relative z-10">€{financials.totalVolume.toLocaleString()}</span>
            </div>
-           <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative">
-              <div className="absolute top-8 right-8"><Activity className="w-6 h-6 animate-pulse opacity-50" /></div>
-              <span className="text-[10px] font-black uppercase text-white/50 block mb-10">{isB2B ? 'Net Hub Earned' : 'Cashback R2'}</span>
-              <span className="text-5xl font-brand font-black italic">€{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
+           <div className="bg-red-600 text-white p-14 rounded-[4.5rem] shadow-2xl relative group hover:scale-[1.02] transition-transform">
+              <div className="absolute top-10 right-10"><Zap className="w-10 h-10 animate-pulse text-white/40" /></div>
+              <span className="text-[11px] font-black uppercase text-white/50 tracking-widest block mb-12">{isB2B ? 'Net Hub Earnings' : 'Cashback REDCOIN'}</span>
+              <span className="text-6xl font-brand font-black italic text-white leading-none">€{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
            </div>
-           <div className="bg-white p-12 rounded-[4.5rem] shadow-xl border border-gray-50">
-              <span className="text-[10px] font-black uppercase text-gray-400 block mb-10">Ticket Médio</span>
-              <span className="text-5xl font-brand font-black italic text-black">€{financials.average.toLocaleString()}</span>
+           <div className="bg-white p-14 rounded-[4.5rem] shadow-xl border border-gray-100 group hover:border-black transition-all">
+              <span className="text-[11px] font-black uppercase text-gray-400 tracking-widest block mb-12 flex items-center"><TrendingUp className="w-4 h-4 mr-3 text-red-600" /> Rendimento Médio</span>
+              <span className="text-6xl font-brand font-black italic text-black leading-none">€{financials.average.toLocaleString()}</span>
            </div>
         </div>
       )}
 
+      {/* VIEW: FINANCES - MASTER LEDGER */}
       {activeTab === 'finances' && (
         <div className="space-y-12 animate-in fade-in">
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl border border-gray-100 group hover:border-black transition-all">
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="bg-white p-14 rounded-[5rem] shadow-2xl border border-gray-100 group hover:border-black transition-all flex flex-col justify-between h-[350px]">
                  <div className="flex items-center space-x-6 mb-12">
-                    <div className="p-5 bg-black rounded-3xl text-red-600"><CreditCard className="w-8 h-8"/></div>
-                    <h4 className="text-3xl font-brand font-black italic uppercase leading-none">Gross <br/>Volume.</h4>
+                    <div className="p-6 bg-black rounded-3xl text-red-600 shadow-lg group-hover:rotate-12 transition-transform"><CreditCard className="w-10 h-10"/></div>
+                    <h4 className="text-4xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter">Gross <br/>Volume.</h4>
                  </div>
-                 <span className="text-6xl font-brand font-black italic text-black">€{financials.totalVolume.toLocaleString()}</span>
+                 <span className="text-7xl font-brand font-black italic text-black">€{financials.totalVolume.toLocaleString()}</span>
               </div>
-              <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl border border-gray-100 flex flex-col justify-between">
+              <div className="bg-white p-14 rounded-[5rem] shadow-2xl border border-gray-100 flex flex-col justify-between h-[350px]">
                  <div className="flex items-center space-x-6 mb-12">
-                    <div className="p-5 bg-orange-500 rounded-3xl text-white"><ShieldAlert className="w-8 h-8"/></div>
-                    <h4 className="text-3xl font-brand font-black italic uppercase leading-none">Plat. <br/>Fee ({myHub?.platformCommission || 5}%).</h4>
+                    <div className="p-6 bg-orange-500 rounded-3xl text-white shadow-lg"><ShieldAlert className="w-10 h-10"/></div>
+                    <h4 className="text-4xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter">Deduções <br/>Grid ({isB2B ? (myHub?.platformCommission || 5) : 0}%).</h4>
                  </div>
-                 <span className="text-6xl font-brand font-black italic text-black">-€{financials.platformDeduction.toLocaleString()}</span>
+                 <span className="text-7xl font-brand font-black italic text-black">-€{financials.platformDeduction.toLocaleString()}</span>
               </div>
-              <div className="bg-black p-12 rounded-[4.5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden group">
+              <div className="bg-black p-14 rounded-[5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden group h-[350px]">
                  <div className="absolute inset-0 industrial-grid opacity-5" />
                  <div className="flex items-center space-x-6 mb-12 relative z-10">
-                    <div className="p-5 bg-red-600 rounded-3xl text-white group-hover:scale-110 transition-transform"><Wallet className="w-8 h-8"/></div>
-                    <h4 className="text-3xl font-brand font-black italic uppercase leading-none text-white">Net <br/>Profit.</h4>
+                    <div className="p-6 bg-red-600 rounded-3xl text-white shadow-lg group-hover:scale-110 transition-transform"><Wallet className="w-10 h-10"/></div>
+                    <h4 className="text-4xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter text-white">Net Earned <br/>Credit.</h4>
                  </div>
-                 <span className="text-6xl font-brand font-black italic text-white relative z-10">€{financials.netEarnings.toLocaleString()}</span>
+                 <span className="text-7xl font-brand font-black italic text-white relative z-10">€{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
               </div>
            </div>
 
            <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 overflow-hidden">
-              <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                 <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em]">Grid Financial Ledger (Real-time)</h4>
-                 <div className="flex items-center space-x-3 text-green-500 text-[10px] font-black uppercase tracking-widest">
+              <div className="p-16 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                 <h4 className="text-[13px] font-black uppercase text-black tracking-[0.5em] flex items-center">
+                    <FileDigit className="w-5 h-5 mr-4 text-red-600" /> Global Financial Ledger
+                 </h4>
+                 <div className="flex items-center space-x-4 bg-green-50 px-6 py-2 rounded-full border border-green-100">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
-                    <span>Sync Active</span>
+                    <span className="text-green-600 text-[10px] font-black uppercase tracking-widest">Sincronização Ativa</span>
                  </div>
               </div>
               <div className="overflow-x-auto">
                  <table className="w-full text-left">
                     <thead>
-                       <tr className="border-b border-gray-50">
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Barcode/Order</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Módulo</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Gross</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Platform Fee</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Net Earn</th>
-                          <th className="px-12 py-8 text-[9px] font-black uppercase text-gray-400">Status Grid</th>
+                       <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest">Order Protocol</th>
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest">Módulo Asset</th>
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Gross Value</th>
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Dedução Platform</th>
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Net Liquidação</th>
                        </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-100">
                        {orders.filter(o => isB2B ? o.nodeId === user.managedHubId : o.clientId === user.id).map(o => {
                           const val = parseFloat(o.value);
-                          const fee = (val * (myHub?.platformCommission || 5)) / 100;
+                          const fee = (val * (isB2B ? (myHub?.platformCommission || 5) : 0)) / 100;
                           return (
-                            <tr key={o.id} className="hover:bg-gray-50 transition-colors group cursor-default">
-                               <td className="px-12 py-8 font-brand font-black italic text-black uppercase tracking-tighter text-lg">{o.id}</td>
-                               <td className="px-12 py-8 font-black text-gray-400 text-[11px] uppercase tracking-widest">{o.product}</td>
-                               <td className="px-12 py-8 font-black text-black text-[11px]">€{val.toLocaleString()}</td>
-                               <td className="px-12 py-8 font-black text-red-600 text-[11px]">-€{fee.toLocaleString()}</td>
-                               <td className="px-12 py-8 font-black text-black text-[13px] group-hover:scale-110 transition-transform">€{(val - fee).toLocaleString()}</td>
-                               <td className="px-12 py-8">
-                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
-                                     {o.status}
-                                  </span>
+                            <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group cursor-default">
+                               <td className="px-16 py-10 font-brand font-black italic text-black uppercase tracking-tighter text-2xl">{o.id}</td>
+                               <td className="px-16 py-10">
+                                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-1">Industrial Module</span>
+                                  <span className="text-[12px] font-black uppercase text-black italic">{o.product}</span>
+                               </td>
+                               <td className="px-16 py-10 font-brand font-black italic text-black text-xl text-right">€{val.toLocaleString()}</td>
+                               <td className="px-16 py-10 font-black text-red-600 text-[13px] text-right">-€{fee.toLocaleString()}</td>
+                               <td className="px-16 py-10 text-right">
+                                  <span className="bg-black text-white px-8 py-3 rounded-2xl font-brand font-black italic text-2xl group-hover:bg-red-600 transition-all">€{(val - fee).toLocaleString()}</span>
                                </td>
                             </tr>
                           );
@@ -189,127 +221,174 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
         </div>
       )}
 
+      {/* VIEW: PRODUCTION GRID */}
       {activeTab === 'production' && (
-        <div className="space-y-8 animate-in fade-in">
+        <div className="space-y-10 animate-in fade-in">
            {orders.length > 0 ? orders.filter(o => isB2B ? o.nodeId === user.managedHubId : o.clientId === user.id).map(o => (
-             <div key={o.id} id={`order-${o.id}`} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black ring-[10px] ring-black/5 scale-[1.01]' : 'border-gray-100 hover:border-red-600/30'}`}>
-                <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
-                   <div className="flex-grow">
-                      <div className="flex items-center space-x-8 mb-6">
-                         <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
-                         <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase border ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : (o.status === 'Rejeitado' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600 border-red-100')}`}>{o.status.replace('_', ' ')}</span>
-                         {o.priority && <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full text-[8px] font-black uppercase animate-pulse"><Zap className="w-3 h-3 text-red-600"/> <span>Priority</span></div>}
+             <div key={o.id} id={`order-${o.id}`} className={`bg-white rounded-[5rem] border transition-all duration-700 overflow-hidden shadow-2xl relative ${expandedOrder === o.id ? 'border-black ring-[20px] ring-black/5 scale-[1.02]' : 'border-gray-100 hover:border-red-600/30'}`}>
+                {o.priority && <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />}
+                
+                <div className="p-16 flex flex-col xl:flex-row justify-between items-center gap-16">
+                   <div className="flex-grow w-full">
+                      <div className="flex flex-wrap items-center gap-8 mb-10">
+                         <span className="text-6xl font-brand font-black italic text-black uppercase tracking-tighter leading-none">{o.id}</span>
+                         <span className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border shadow-sm ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : (o.status === 'Rejeitado' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600 border-red-100')}`}>{o.status.replace('_', ' ')}</span>
+                         {o.priority && (
+                           <div className="flex items-center space-x-3 bg-black text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg">
+                              <Zap className="w-4 h-4 text-red-600"/> <span>Priority Alpha</span>
+                           </div>
+                         )}
                       </div>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[11px] font-black uppercase text-gray-400 italic">
-                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Entidade</span><span className="text-black">{o.client}</span></div>
-                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Módulo</span><span className="text-black">{o.product}</span></div>
-                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Dimensões Axis</span><span className="text-black font-brand">{o.dimensions || 'N/A'}</span></div>
-                         <div><span className="block text-[8px] text-gray-300 tracking-[0.3em]">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
+                      
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
+                         <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] block">Entidade Master</span>
+                            <span className="text-black font-brand font-black italic uppercase text-2xl">{o.client}</span>
+                         </div>
+                         <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] block">Módulo Produção</span>
+                            <span className="text-black font-brand font-black italic uppercase text-2xl">{o.product}</span>
+                         </div>
+                         <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] block">Dimensões Axis</span>
+                            <span className="text-black font-brand font-black italic text-2xl uppercase">{o.dimensions || 'Dynamic'}</span>
+                         </div>
+                         <div className="space-y-2 text-right">
+                            <span className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] block">Valor Ativo</span>
+                            <span className="text-red-600 font-brand font-black italic text-4xl leading-none">€{o.value}</span>
+                         </div>
                       </div>
                    </div>
 
-                   {/* CONTROLO B2B EXCLUSIVO */}
+                   {/* OPERATIONAL HUB CONTROLS */}
                    {isB2B && o.status !== 'Concluído' && o.status !== 'Rejeitado' && (
-                     <div className="bg-gray-50 p-4 rounded-[2.5rem] flex items-center space-x-4 border border-gray-100 animate-in slide-in-from-right-4">
+                     <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-[3.5rem] flex items-center space-x-4 border border-gray-100 shadow-xl animate-in zoom-in-95 duration-500 shrink-0">
                         {o.status === 'Aprovado' && (
-                          <button onClick={() => onUpdateStatus(o.id, 'Em Produção')} className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3">
-                             <PlayCircle className="w-4 h-4" /> <span>Iniciar Produção</span>
+                          <button onClick={() => onUpdateStatus(o.id, 'Em Produção')} className="bg-black text-white px-10 py-6 rounded-full font-black uppercase tracking-[0.3em] text-[11px] hover:bg-red-600 transition-all flex items-center space-x-4 shadow-xl">
+                             <PlayCircle className="w-5 h-5" /> <span>Start Production</span>
                           </button>
                         )}
                         {o.status === 'Em Produção' && (
-                          <button onClick={() => onUpdateStatus(o.id, 'Expedição')} className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3">
-                             <Truck className="w-4 h-4" /> <span>Marcar Expedição</span>
+                          <button onClick={() => onUpdateStatus(o.id, 'Expedição')} className="bg-black text-white px-10 py-6 rounded-full font-black uppercase tracking-[0.3em] text-[11px] hover:bg-red-600 transition-all flex items-center space-x-4 shadow-xl">
+                             <Truck className="w-5 h-5" /> <span>Dispatch Unit</span>
                           </button>
                         )}
                         {o.status === 'Expedição' && (
-                          <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="bg-red-600 text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center space-x-3">
-                             <CheckCircle2 className="w-4 h-4" /> <span>Concluir Job</span>
+                          <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="bg-red-600 text-white px-10 py-6 rounded-full font-black uppercase tracking-[0.3em] text-[11px] hover:bg-black transition-all flex items-center space-x-4 shadow-xl">
+                             <CheckCircle2 className="w-5 h-5" /> <span>Finalize Job</span>
                           </button>
                         )}
                      </div>
                    )}
 
-                   <div className="flex space-x-4">
-                      <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-8 rounded-full shadow-xl transition-all ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400'}`}>
-                         {expandedOrder === o.id ? <ChevronUp className="w-8 h-8" /> : <ChevronDown className="w-8 h-8" />}
+                   <div className="flex space-x-4 shrink-0">
+                      <button onClick={() => { onSound?.('click'); setExpandedOrder(expandedOrder === o.id ? null : o.id); }} className={`p-10 rounded-[2.5rem] shadow-xl transition-all duration-500 flex items-center justify-center ${expandedOrder === o.id ? 'bg-black text-white rotate-180' : 'bg-gray-50 text-gray-400 hover:text-black'}`}>
+                         <ChevronDown className="w-10 h-10" />
                       </button>
-                      <div className="flex space-x-2">
-                        <button onClick={() => { onSound?.('success'); generateOrderPDF(o, hubs.find(h => h.id === o.nodeId)); }} title="Download Production Spec" className="p-8 bg-black text-white rounded-full hover:bg-red-600 transition-all shadow-xl">
-                           <FileDown className="w-8 h-8"/>
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => { onSound?.('success'); generateOrderPDF(o, hubs.find(h => h.id === o.nodeId)); }} className="p-6 bg-black text-white rounded-2xl hover:bg-red-600 transition-all shadow-xl group/btn">
+                           <FileDown className="w-6 h-6 group-hover/btn:scale-110 transition-transform"/>
                         </button>
                         {(isAdmin || isB2B || o.clientId === user.id) && o.fileName && (
-                          <button onClick={() => { onSound?.('success'); downloadOriginalAsset(o); }} title="Download Original Asset" className="p-8 bg-red-600 text-white rounded-full hover:bg-black transition-all shadow-xl">
-                             <Download className="w-8 h-8"/>
+                          <button onClick={() => { onSound?.('success'); downloadOriginalAsset(o); }} className="p-6 bg-red-600 text-white rounded-2xl hover:bg-black transition-all shadow-xl group/btn">
+                             <Download className="w-6 h-6 group-hover/btn:scale-110 transition-transform"/>
                           </button>
                         )}
                       </div>
                    </div>
                 </div>
+
                 {expandedOrder === o.id && (
-                   <div className="p-16 bg-gray-50/50 border-t border-gray-100 animate-in slide-in-from-top-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
-                         <div className="space-y-8 text-center lg:text-left">
-                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center justify-center lg:justify-start"><Server className="w-4 h-4 mr-3" /> Grid Source Node</h5>
-                            <div className="p-8 bg-white rounded-[2.5rem] shadow-xl border border-gray-100">
-                               <span className="text-[12px] font-black uppercase block text-black">{hubs.find(h => h.id === o.nodeId)?.name || 'Redline Central R2'}</span>
-                               <span className="text-[10px] font-black uppercase text-gray-400 italic tracking-widest">{hubs.find(h => h.id === o.nodeId)?.location || 'Grid Descentralizado'}</span>
-                            </div>
-                            <div className="p-8 bg-black text-white rounded-[2.5rem] shadow-xl flex flex-col items-center group/barcode">
-                               <div className="flex items-center space-x-3 mb-6">
-                                  <Barcode className="w-8 h-8 text-red-600" />
-                                  <span className="text-[12px] font-brand font-black italic uppercase">Industrial Scan</span>
+                   <div className="p-20 bg-gray-50/50 border-t-2 border-gray-100 animate-in slide-in-from-top-10 duration-700">
+                      <div className="grid grid-cols-1 xl:grid-cols-3 gap-20">
+                         {/* Hub Telemetry */}
+                         <div className="space-y-10">
+                            <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.6em] flex items-center mb-8"><Server className="w-6 h-6 mr-4" /> Node Grid Telemetry</h5>
+                            <div className="p-10 bg-white rounded-[3.5rem] shadow-2xl border border-gray-100 hover:border-red-600 transition-all">
+                               <div className="flex justify-between items-start mb-6">
+                                  <div>
+                                     <span className="text-[11px] font-black uppercase text-gray-400 tracking-widest block mb-2">Assigned Facility</span>
+                                     <span className="text-3xl font-brand font-black italic uppercase block text-black">{hubs.find(h => h.id === o.nodeId)?.name || 'CENTRAL REDLINE GRID'}</span>
+                                  </div>
+                                  <div className="bg-red-50 p-4 rounded-2xl"><Activity className="w-6 h-6 text-red-600 animate-pulse" /></div>
                                </div>
-                               <div className="w-full bg-white p-6 rounded-xl flex items-center justify-center overflow-hidden">
-                                  <div className="flex gap-0.5 group-hover/barcode:scale-110 transition-transform duration-700">
-                                     {o.id.split('').map((c, i) => (
-                                       <div key={i} className="bg-black" style={{ width: (i % 3 === 0 ? '4px' : '1px'), height: '40px' }} />
+                               <div className="flex items-center space-x-6 pt-6 border-t border-gray-50 text-[11px] font-black uppercase text-gray-400 italic">
+                                  <div className="flex items-center"><MapPin className="w-4 h-4 mr-2 text-red-600" /> {hubs.find(h => h.id === o.nodeId)?.location || 'Global Cluster'}</div>
+                                  <div className="flex items-center"><Clock className="w-4 h-4 mr-2 text-red-600" /> Sync: 0.02ms</div>
+                               </div>
+                            </div>
+                            
+                            {/* Barcode Scanner UI Replacement */}
+                            <div className="p-10 bg-black text-white rounded-[3.5rem] shadow-2xl flex flex-col items-center group/barcode hover:scale-105 transition-all duration-700">
+                               <div className="flex items-center space-x-4 mb-8">
+                                  <Barcode className="w-10 h-10 text-red-600 animate-pulse" />
+                                  <span className="text-2xl font-brand font-black italic uppercase tracking-widest">Industrial Scan</span>
+                               </div>
+                               <div className="w-full bg-white p-8 rounded-3xl flex items-center justify-center overflow-hidden shadow-inner border-[10px] border-black">
+                                  <div className="flex gap-1 group-hover/barcode:scale-x-125 transition-transform duration-[2s] ease-in-out">
+                                     {Array.from({length: 40}).map((_, i) => (
+                                       <div key={i} className="bg-black" style={{ width: (i % 5 === 0 ? '6px' : (i % 2 === 0 ? '1.5px' : '3px')), height: '60px' }} />
                                      ))}
                                   </div>
                                </div>
-                               <span className="text-[9px] font-mono opacity-40 uppercase mt-4">TOKEN: {btoa(o.id).slice(0, 24)}</span>
+                               <div className="mt-8 text-center">
+                                  <span className="text-[10px] font-mono text-red-600 block mb-1">R2_SECURE_TOKEN_V4.2</span>
+                                  <span className="text-[12px] font-mono text-gray-500 uppercase">{btoa(o.id).slice(0, 32)}</span>
+                               </div>
                             </div>
                          </div>
-                         <div className="space-y-8">
-                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center"><FileDigit className="w-4 h-4 mr-3" /> Technical Spec</h5>
-                            <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 space-y-6 shadow-xl">
-                               <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                                  <div className="flex items-center space-x-4">
-                                     <FileText className="w-8 h-8 text-red-600" />
+
+                         {/* Industrial Blueprints */}
+                         <div className="space-y-10">
+                            <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.6em] flex items-center mb-8"><FileDigit className="w-6 h-6 mr-4" /> Technical Blueprint</h5>
+                            <div className="p-12 bg-white rounded-[4rem] border border-gray-100 space-y-10 shadow-2xl relative overflow-hidden group/card">
+                               <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 opacity-5 group-hover/card:scale-150 transition-transform duration-1000 rounded-full -mr-16 -mt-16" />
+                               <div className="flex items-center justify-between border-b border-gray-100 pb-8 relative z-10">
+                                  <div className="flex items-center space-x-6">
+                                     <div className="p-4 bg-gray-50 rounded-2xl"><FileText className="w-10 h-10 text-red-600" /></div>
                                      <div>
-                                        <span className="text-[10px] font-black uppercase text-black block">{o.fileName || 'RL_ASSET_MASTER.PDF'}</span>
-                                        <span className="text-[8px] text-gray-400 uppercase tracking-widest">Vector Protocol 4.2</span>
+                                        <span className="text-[11px] font-black uppercase text-black block tracking-widest leading-none mb-2">{o.fileName || 'REDLINE_ASSET_R2.PDF'}</span>
+                                        <span className="text-[9px] text-gray-400 uppercase tracking-[0.4em] font-bold">Encrypted Vector Protocol</span>
                                      </div>
                                   </div>
                                </div>
-                               <div className="grid grid-cols-2 gap-4">
-                                  <div className="p-4 bg-gray-50 rounded-2xl">
-                                     <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Material</span>
-                                     <span className="text-[10px] font-black text-black uppercase">{o.material}</span>
+                               <div className="grid grid-cols-2 gap-8 relative z-10">
+                                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-red-600 transition-all">
+                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Substrato Industrial</span>
+                                     <span className="text-[12px] font-black text-black uppercase italic leading-tight">{o.material}</span>
                                   </div>
-                                  <div className="p-4 bg-gray-50 rounded-2xl">
-                                     <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Finish</span>
-                                     <span className="text-[10px] font-black text-black uppercase">{o.finish}</span>
+                                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-red-600 transition-all">
+                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Acabamento R2</span>
+                                     <span className="text-[12px] font-black text-black uppercase italic leading-tight">{o.finish}</span>
                                   </div>
-                                  <div className="p-4 bg-gray-50 rounded-2xl">
-                                     <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Qty</span>
-                                     <span className="text-[10px] font-black text-black uppercase">{o.quantity} un</span>
+                                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-red-600 transition-all">
+                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Unidades Ativas</span>
+                                     <span className="text-3xl font-brand font-black italic text-black leading-none">{o.quantity} <span className="text-[10px] font-normal opacity-30">u.</span></span>
                                   </div>
-                                  <div className="p-4 bg-gray-50 rounded-2xl">
-                                     <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Dims</span>
-                                     <span className="text-[10px] font-black text-black uppercase">{o.dimensions}</span>
+                                  <div className="p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-red-600 transition-all">
+                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Dimensões Axis</span>
+                                     <span className="text-3xl font-brand font-black italic text-black leading-none">{o.dimensions || 'N/A'}</span>
                                   </div>
                                </div>
                             </div>
                          </div>
-                         <div className="space-y-8">
-                            <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.5em] flex items-center"><History className="w-4 h-4 mr-3" /> Operational Log</h5>
-                            <div className="space-y-6 border-l-2 border-red-100 pl-8 ml-2">
+
+                         {/* Log with Motion UX */}
+                         <div className="space-y-10">
+                            <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.6em] flex items-center mb-8"><History className="w-6 h-6 mr-4" /> Operational Audit Log</h5>
+                            <div className="space-y-8 border-l-[3px] border-red-100 pl-10 ml-3 py-4">
                                {o.history.map((h, i) => (
-                                 <div key={i} className="relative">
-                                    <div className="absolute -left-[37px] top-0 w-4 h-4 bg-red-600 rounded-full border-4 border-white shadow-md" />
-                                    <span className="text-[8px] font-black text-gray-300 uppercase block tracking-widest">{new Date(h.timestamp).toLocaleString()}</span>
-                                    <span className="text-[10px] font-black text-black uppercase block mt-1">{h.status}</span>
-                                    <p className="text-[9px] text-gray-400 italic mt-2 leading-relaxed">"{h.note}"</p>
+                                 <div key={i} className="relative animate-in slide-in-from-left-4" style={{ animationDelay: `${i * 100}ms` }}>
+                                    <div className="absolute -left-[54px] top-0 w-6 h-6 bg-red-600 rounded-full border-[6px] border-white shadow-[0_0_15px_rgba(204,0,0,0.3)] group-hover:scale-125 transition-transform" />
+                                    <div className="bg-white p-6 rounded-[2rem] shadow-lg border border-gray-100 hover:border-red-600 transition-all group/log">
+                                       <span className="text-[9px] font-black text-gray-300 uppercase block tracking-widest mb-2">{new Date(h.timestamp).toLocaleString()}</span>
+                                       <span className="text-[13px] font-black text-black uppercase block italic group-hover/log:text-red-600 transition-colors">{h.status}</span>
+                                       <p className="text-[11px] text-gray-400 font-medium mt-3 leading-relaxed">"{h.note}"</p>
+                                       <div className="mt-4 flex items-center space-x-3 opacity-30 group-hover/log:opacity-100 transition-opacity">
+                                          <UserCheck className="w-3 h-3" />
+                                          <span className="text-[8px] font-black uppercase tracking-widest">Signed: {h.author}</span>
+                                       </div>
+                                    </div>
                                  </div>
                                ))}
                             </div>
@@ -319,33 +398,34 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                 )}
              </div>
            )) : (
-             <div className="py-40 text-center space-y-8 opacity-20">
-                <Radio className="w-24 h-24 mx-auto animate-pulse" />
-                <p className="text-4xl font-brand font-black italic uppercase">Sem Ativos no Grid.</p>
+             <div className="py-60 text-center space-y-12 opacity-10 animate-pulse">
+                <Radio className="w-32 h-32 mx-auto text-black" />
+                <p className="text-6xl font-brand font-black italic uppercase tracking-tighter">Grid Deserto. Aguardando Injeção.</p>
              </div>
            )}
         </div>
       )}
 
       {activeTab === 'profile' && (
-        <div className="max-w-2xl mx-auto py-12 animate-in fade-in">
-           <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl">
-              <h3 className="text-5xl font-brand font-black italic uppercase mb-12">Gestão de <span className="text-red-600">Identidade.</span></h3>
-              <form onSubmit={(e) => { e.preventDefault(); onUpdateUser(user.id, profileForm); onSound?.('success'); }} className="space-y-8">
+        <div className="max-w-2xl mx-auto py-12 animate-in fade-in zoom-in-95">
+           <div className="bg-white p-20 rounded-[6rem] border border-gray-100 shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-16 text-red-600/5 rotate-12"><Settings className="w-64 h-64" /></div>
+              <h3 className="text-6xl font-brand font-black italic uppercase mb-16 leading-none relative z-10">Gestão de <br/><span className="text-red-600">Identidade Master.</span></h3>
+              <form onSubmit={(e) => { e.preventDefault(); onUpdateUser(user.id, profileForm); onSound?.('success'); }} className="space-y-10 relative z-10">
                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Nome da Entidade</label>
-                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                    <label className="text-[11px] font-black uppercase text-gray-400 tracking-widest ml-8 flex items-center"><UserIcon className="w-4 h-4 mr-3" /> Nome da Entidade</label>
+                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full bg-gray-50 p-10 rounded-[3rem] font-brand font-black italic uppercase text-2xl outline-none border-2 border-transparent focus:border-red-600 shadow-inner transition-all" />
                  </div>
                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Email de Protocolo</label>
-                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                    <label className="text-[11px] font-black uppercase text-gray-400 tracking-widest ml-8 flex items-center"><Mail className="w-4 h-4 mr-3" /> Email de Protocolo</label>
+                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} className="w-full bg-gray-50 p-10 rounded-[3rem] font-brand font-black italic uppercase text-2xl outline-none border-2 border-transparent focus:border-red-600 shadow-inner transition-all" />
                  </div>
                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Nova Password Master</label>
-                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="DEIXE EM BRANCO PARA MANTER" className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                    <label className="text-[11px] font-black uppercase text-gray-400 tracking-widest ml-8 flex items-center"><Lock className="w-4 h-4 mr-3" /> Nova Master Password</label>
+                    <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="DEIXE VAZIO PARA MANTER" className="w-full bg-gray-50 p-10 rounded-[3rem] font-brand font-black italic uppercase text-2xl outline-none border-2 border-transparent focus:border-red-600 shadow-inner transition-all" />
                  </div>
-                 <button type="submit" className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[13px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 group">
-                    <span>Sincronizar Credenciais</span> <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-700" />
+                 <button type="submit" className="w-full bg-black text-white p-14 rounded-[4rem] font-brand font-black italic uppercase tracking-[0.5em] text-2xl hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-8 group border-b-[15px] border-gray-900">
+                    <span>Sincronizar Credenciais</span> <RefreshCw className="w-8 h-8 group-hover:rotate-180 transition-transform duration-1000" />
                  </button>
               </form>
            </div>

@@ -75,7 +75,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
   return (
     <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
-      {/* Header Refinado */}
+      {/* Dynamic Header */}
       <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-24">
         <div>
           <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
@@ -101,7 +101,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      {/* Busca e Ações Master */}
+      {/* Global Search & Master Actions */}
       <div className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
          <div className="bg-white p-2 rounded-[3rem] border border-gray-100 shadow-2xl flex items-center max-w-2xl w-full">
             <Search className="w-8 h-8 text-gray-300 ml-6" />

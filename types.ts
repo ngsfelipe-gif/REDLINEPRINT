@@ -32,6 +32,7 @@ export interface User {
   managedHubId?: string;
   partnerCommissionRate?: number; 
   balance?: number; 
+  auditTrail?: string[];
 }
 
 export interface SupportMessage {

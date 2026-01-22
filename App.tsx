@@ -18,14 +18,16 @@ import { Zap, ShieldCheck, RefreshCw } from 'lucide-react';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
-  const [adminBuffer, setAdminBuffer] = useState<User | null>(null);
+  const [adminBuffer, setAdminBuffer] = useState<User | null>(null); // Buffer para restauro pós-Shadow Mode
   const [language, setLanguage] = useState<Language>('PT');
   
+  // Master Configuration for Financials
   const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
 
+  // Central Sync States
   const [users, setUsers] = useState<User[]>([
-    { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now() },
-    { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() },
+    { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now(), balance: 15400.00 },
+    { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now(), balance: 450.25 },
     { id: 'STD-01', name: 'Utilizador Standard', email: 'user@redline.eu', password: 'user', role: 'Utilizador_Standard', permissions: ['BUY'], tier: 'Bronze', status: 'Ativo', joinedAt: Date.now(), partnerCommissionRate: 2.5, balance: 45.50 }
   ]);
   const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES.map(h => ({ ...h, platformCommission: 5.0, primaryCommission: 15.0 })));
@@ -73,18 +75,35 @@ const App: React.FC = () => {
     setTimeout(() => setActiveToast(null), 5000);
   };
 
+  // Logic: When an order is completed, process hierarchical commissions and client cashback automatically
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
     setOrders(prev => {
       const updated = prev.map(o => {
         if (o.id !== orderId) return o;
         
+        // Trigger Financials on Completion
         if (newStatus === 'Concluído' && o.status !== 'Concluído') {
-          const client = users.find(u => u.id === o.clientId);
-          if (client && client.role === 'Utilizador_Standard') {
-            const cashback = parseFloat(o.value) * 0.02;
-            handleUpdateUser(client.id, { balance: (client.balance || 0) + cashback });
-            notify("Cashback R2 Ativo", `€${cashback.toFixed(2)} creditados em balance.`, "success");
+          const val = parseFloat(o.value);
+          const currentHub = hubs.find(h => h.id === (nodeId || o.nodeId));
+          const hubRate = currentHub?.primaryCommission || 15;
+          const platRate = currentHub?.platformCommission || globalPlatformFee;
+          
+          const platformAmount = (val * platRate) / 100;
+          const hubGross = (val * hubRate) / 100;
+          const hubNet = hubGross - platformAmount;
+          const clientCashback = val * 0.02; // 2% REDCOIN Cashback
+
+          // Real-time Balance Sync
+          handleUpdateUserInternal('ADMIN-01', { balance: (users.find(u=>u.id==='ADMIN-01')?.balance || 0) + platformAmount });
+          
+          const hubOwner = users.find(u => u.managedHubId === (nodeId || o.nodeId));
+          if (hubOwner) {
+             handleUpdateUserInternal(hubOwner.id, { balance: (hubOwner.balance || 0) + hubNet });
           }
+
+          handleUpdateUserInternal(o.clientId, { balance: (users.find(u=>u.id===o.clientId)?.balance || 0) + clientCashback });
+          
+          notify("Grid Sync: Liquidado", `Volume de €${val} processado. Comissões e Cashback sincronizados.`, "success");
         }
 
         return { 
@@ -96,16 +115,16 @@ const App: React.FC = () => {
             timestamp: Date.now(), 
             status: newStatus, 
             author: user?.name || 'Sistema R3', 
-            note: note || `Operação de status validada pelo nodo industrial.` 
+            note: note || `Operação validada no cluster industrial.` 
           }]
         };
       });
       return updated;
     });
-    notify("Grid Sync", `Encomenda ${orderId} atualizada para ${newStatus}.`, "sync");
+    notify("Master Grid Sync", `Encomenda ${orderId} atualizada para ${newStatus}.`, "sync");
   };
 
-  const handleUpdateUser = (userId: string, updates: Partial<User>) => {
+  const handleUpdateUserInternal = (userId: string, updates: Partial<User>) => {
     setUsers(prev => {
       const newList = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
       if (user?.id === userId) {
@@ -113,12 +132,16 @@ const App: React.FC = () => {
       }
       return newList;
     });
+  };
+
+  const handleUpdateUserPublic = (userId: string, updates: Partial<User>) => {
+    handleUpdateUserInternal(userId, updates);
     notify("Master Sync", `Entidade ${userId} sincronizada.`, "sync");
   };
 
   const handleUpdateHub = (hubId: string, updates: Partial<PartnerNode>) => {
     setHubs(prev => prev.map(h => h.id === hubId ? { ...h, ...updates } : h));
-    notify("Nodo Industrial", `Parâmetros do Hub ${hubId} modificados.`, "sync");
+    notify("Nodo Industrial", `Hub ${hubId} atualizado no Grid.`, "sync");
   };
 
   const handleCreateOrder = (order: ProductionJob, guestData?: { name: string, email: string, password?: string }) => {
@@ -140,19 +163,24 @@ const App: React.FC = () => {
       setUsers(prev => [...prev, newUser]);
       setUser(newUser);
       finalUser = newUser;
-      notify("Identidade Criada", `Conta Standard provisionada para ${guestData.email}`, "success");
+      notify("Identidade Ativa", `Conta provisionada para ${guestData.email}`, "success");
     }
 
-    const hierarchicalOrder: ProductionJob = {
+    const syncOrder: ProductionJob = {
       ...order,
       client: finalUser?.name || order.client,
       clientId: finalUser?.id || order.clientId,
       status: 'Pendente_Admin' 
     };
     
-    setOrders(prev => [hierarchicalOrder, ...prev]);
-    notify("Protocolo Injetado", `Encomenda ${order.id} aguarda validação Admin.`, "sync");
+    setOrders(prev => [syncOrder, ...prev]);
+    notify("Injeção de Asset", `Protocolo ${order.id} injetado para aprovação Master.`, "sync");
     setActiveTab('account');
+  };
+
+  const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+    notify("Auditoria Sync", `Dados do Job ${orderId} atualizados.`, "sync");
   };
 
   const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
@@ -164,15 +192,16 @@ const App: React.FC = () => {
         return [...prev, updates as ExtendedProduct];
       }
     });
-    notify("Módulo Atualizado", `Ativo ${productId} sincronizado.`, "sync");
+    notify("Inventory Sync", `Módulo ${productId} sincronizado no catálogo.`, "sync");
   };
 
   const handleCreateClientByAdmin = (clientData: Partial<User>) => {
+    const autoPass = Math.random().toString(36).slice(-8);
     const newUser: User = {
       id: `CLI-${Date.now()}`,
       name: clientData.name || 'Nova Entidade',
       email: clientData.email || 'entidade@redline.eu',
-      password: Math.random().toString(36).slice(-8), 
+      password: autoPass, 
       role: clientData.role || 'Utilizador_Standard',
       permissions: ['BUY'],
       tier: 'Bronze',
@@ -183,15 +212,16 @@ const App: React.FC = () => {
       ...clientData
     };
     setUsers(prev => [...prev, newUser]);
-    notify("Entidade Provisionada", `Acesso gerado para ${newUser.name}.`, "success");
+    notify("Entidade Provisionada", `Credenciais: ${newUser.email} / PW: ${autoPass}`, "success");
   };
 
+  // Shadow Mode Protocol
   const handleImpersonate = (targetUser: User) => {
     if (user?.role !== 'Administrador') return;
     setAdminBuffer(user);
     setUser(targetUser);
     setActiveTab('account');
-    notify("Shadow Mode", `Controlo total emulado: ${targetUser.name}.`, "sync");
+    notify("Shadow Mode", `Controlo Master emulado: ${targetUser.name}.`, "sync");
   };
 
   const handleStopImpersonation = () => {
@@ -199,7 +229,7 @@ const App: React.FC = () => {
       setUser(adminBuffer);
       setAdminBuffer(null);
       setActiveTab('production');
-      notify("Master Restore", "Controlo Super Admin restabelecido.", "sync");
+      notify("Master Restore", "Controlo Administrador Central restabelecido.", "sync");
     }
   };
 
@@ -211,10 +241,10 @@ const App: React.FC = () => {
       onLogout={() => { playSound('click'); setUser(null); setActiveTab('home'); }}
     >
       {adminBuffer && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-8 py-4 rounded-full flex items-center space-x-6 shadow-[0_0_60px_rgba(204,0,0,0.6)] border border-white/30 animate-bounce">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-10 py-4 rounded-full flex items-center space-x-6 shadow-[0_0_60px_rgba(204,0,0,0.6)] border border-white/30 animate-bounce">
            <ShieldCheck className="w-6 h-6" />
-           <span className="text-[11px] font-black uppercase tracking-[0.3em]">Shadow Protocol: {user?.name}</span>
-           <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-6 py-2 rounded-full text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all shadow-lg">Restore Admin</button>
+           <span className="text-[11px] font-black uppercase tracking-[0.3em]">Protocolo Sombra: {user?.name}</span>
+           <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-6 py-2 rounded-full text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all shadow-lg">Sair</button>
         </div>
       )}
 
@@ -244,10 +274,10 @@ const App: React.FC = () => {
             onApproveHub={(id) => {}} 
             onApproveAuth={(id) => {}}
             onUpdateStatus={handleUpdateOrderStatus}
-            onUpdateUser={handleUpdateUser}
+            onUpdateUser={handleUpdateUserPublic}
             onUpdateHub={handleUpdateHub}
             onUpdateProduct={handleUpdateProduct}
-            onUpdateOrder={(id, updates) => setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o))}
+            onUpdateOrder={handleUpdateOrderGranular}
             onImpersonate={handleImpersonate}
             onCreateUser={(u) => setUsers(prev => [...prev, u])}
             onCreateClient={handleCreateClientByAdmin}
@@ -272,7 +302,7 @@ const App: React.FC = () => {
             onRequestAuth={(req) => setAuthRequests(prev => [...prev, { ...req, id: `AUTH-${Date.now()}`, timestamp: Date.now(), status: 'Pendente' }])}
             language={language} onLogout={() => { setUser(null); setActiveTab('home'); }}
             onSound={playSound}
-            onUpdateUser={handleUpdateUser}
+            onUpdateUser={handleUpdateUserPublic}
           />
         )}
       </div>
