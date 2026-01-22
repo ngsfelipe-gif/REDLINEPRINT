@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown } from 'lucide-react';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 
 interface BackofficeProps {
@@ -36,15 +36,15 @@ const Backoffice: React.FC<BackofficeProps> = ({
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
-  if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Acesso Master Negado.</div>;
+  if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Master Protocol Denied.</div>;
 
-  const pendingAdminApprovals = orders.filter(o => o.status === 'Pendente_Admin');
+  // Garante reatividade total nas ordens pendentes
+  const pendingAdminApprovals = useMemo(() => orders.filter(o => o.status === 'Pendente_Admin'), [orders]);
 
   const financials = useMemo(() => {
     let totalRevenue = 0;
     let hubCommissions = 0;
     let platformShare = 0;
-    let partnerShare = 0;
     let cashbackGiven = 0;
 
     orders.filter(o => o.status === 'Concluído').forEach(order => {
@@ -54,17 +54,14 @@ const Backoffice: React.FC<BackofficeProps> = ({
       const client = users.find(u => u.id === order.clientId);
       
       if (hub) {
-        hubCommissions += val * ((hub.primaryCommission || 0) / 100);
-        platformShare += val * ((hub.platformCommission || globalPlatformFee) / 100);
+        hubCommissions += (val * (hub.primaryCommission || 0)) / 100;
+        platformShare += (val * (hub.platformCommission || globalPlatformFee)) / 100;
       }
-      if (client) {
-        if (client.partnerCommissionRate) partnerShare += val * (client.partnerCommissionRate / 100);
-        if (client.role === 'Utilizador_Standard') cashbackGiven += val * 0.02;
-      }
+      if (client && client.role === 'Utilizador_Standard') cashbackGiven += val * 0.02;
     });
 
-    const net = totalRevenue - hubCommissions - platformShare - partnerShare - cashbackGiven;
-    return { totalRevenue, totalHub: hubCommissions, totalPlatform: platformShare, totalPartner: partnerShare, cashbackGiven, totalNet: net };
+    const net = totalRevenue - hubCommissions - platformShare - cashbackGiven;
+    return { totalRevenue, totalHub: hubCommissions, totalPlatform: platformShare, cashbackGiven, totalNet: net };
   }, [orders, hubs, users, globalPlatformFee]);
 
   const filteredItems = useMemo(() => {
@@ -76,129 +73,116 @@ const Backoffice: React.FC<BackofficeProps> = ({
     return [];
   }, [users, orders, products, hubs, activeView, searchTerm]);
 
-  const handleSaveEdit = () => {
-    if (!editingItem) return;
-    const { type, data } = editingItem;
-    if (type === 'user') onUpdateUser(data.id, data);
-    if (type === 'hub') onUpdateHub(data.id, data);
-    if (type === 'product') onUpdateProduct(data.id, data);
-    if (type === 'order') onUpdateOrder(data.id, data);
-    setEditingItem(null);
-    onSound?.('success');
-  };
-
-  const handleDownloadPDF = (o: ProductionJob) => {
-    onSound?.('success');
-    const hub = hubs.find(h => h.id === o.nodeId);
-    generateOrderPDF(o, hub);
-  };
-
-  const handleDownloadAsset = (o: ProductionJob) => {
-    onSound?.('success');
-    downloadOriginalAsset(o);
-  };
-
   return (
-    <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in flex flex-col lg:flex-row gap-12">
-      <div className="flex-grow">
-        <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-16">
-          <div>
-            <h2 className="text-7xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">Torre de <br/><span className="text-red-600">Controlo.</span></h2>
-            <div className="flex items-center space-x-6 mt-10">
-               <div className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center shadow-2xl border-l-8 border-red-600">
-                 <ShieldCheck className="w-4 h-4 mr-3 text-red-600" /> MASTER SESSION: VERIFIED
-               </div>
-            </div>
+    <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
+      <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-16">
+        <div>
+          <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
+             <ShieldCheck className="w-4 h-4" />
+             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Master Control v4.2</span>
           </div>
-          
-          <div className="flex flex-wrap bg-white p-3 rounded-[3rem] shadow-2xl border border-gray-100 gap-3">
-             {['approvals', 'orders', 'hubs', 'users', 'products', 'financials'].map(v => (
-               <button key={v} onClick={() => { onSound?.('click'); setActiveView(v as any); }} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === v ? 'bg-black text-white shadow-xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}>
-                  {v} {(v === 'approvals' && pendingAdminApprovals.length > 0) && <span className="ml-2 bg-red-600 px-2 py-0.5 rounded-full text-[8px] animate-pulse">{pendingAdminApprovals.length}</span>}
-               </button>
-             ))}
-          </div>
+          <h2 className="text-8xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">Torre de <br/><span className="text-red-600">Controlo.</span></h2>
         </div>
+        
+        <div className="flex flex-wrap bg-white p-3 rounded-[3.5rem] shadow-2xl border border-gray-100 gap-4">
+           {['approvals', 'orders', 'hubs', 'users', 'products', 'financials'].map(v => (
+             <button 
+              key={v} 
+              onClick={() => { onSound?.('click'); setActiveView(v as any); }} 
+              className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeView === v ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}
+             >
+                {v} 
+                {(v === 'approvals' && pendingAdminApprovals.length > 0) && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] animate-bounce shadow-lg border-2 border-white">{pendingAdminApprovals.length}</span>
+                )}
+             </button>
+           ))}
+        </div>
+      </div>
 
-        {activeView === 'financials' && (
-          <div className="space-y-12 animate-in fade-in">
-             <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
-                <div className="flex items-center space-x-8">
-                   <div className="p-6 bg-red-600 rounded-3xl text-white shadow-xl"><Settings className="w-10 h-10 animate-spin-slow" /></div>
-                   <div>
-                      <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita</h4>
-                      <h3 className="text-3xl font-brand font-black italic uppercase text-black">Taxa da Plataforma Redline (%)</h3>
-                   </div>
-                </div>
-                <div className="flex items-center space-x-6">
-                   <div className="flex items-center bg-gray-50 px-10 py-6 rounded-[2.5rem] border border-gray-100 shadow-inner">
-                      <input type="number" value={globalPlatformFee} onChange={(e) => setGlobalPlatformFee(parseFloat(e.target.value))} className="bg-transparent text-5xl font-brand font-black italic text-black outline-none w-24 text-center" />
-                      <span className="text-3xl font-brand font-black italic text-red-600 ml-2">%</span>
-                   </div>
-                </div>
+      {activeView === 'approvals' && (
+        <div className="space-y-12 animate-in slide-in-from-bottom-5">
+           {pendingAdminApprovals.length > 0 ? (
+             <div className="grid grid-cols-1 gap-8">
+               {pendingAdminApprovals.map(o => (
+                 <div key={o.id} className="bg-white p-12 rounded-[5rem] border-2 border-red-100 shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-12 group hover:border-red-600 transition-all">
+                    <div className="flex-grow flex items-center space-x-12">
+                       <div className="bg-black text-red-600 p-10 rounded-[3rem] shadow-xl group-hover:rotate-12 transition-transform">
+                          <Package className="w-12 h-12" />
+                       </div>
+                       <div>
+                          <div className="flex items-center space-x-4 mb-3">
+                             <span className="text-5xl font-brand font-black italic text-black uppercase">{o.id}</span>
+                             <span className="bg-red-50 text-red-600 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-100">Injeção Pendente</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-[11px] font-black uppercase text-gray-400 italic">
+                             <div><span className="text-gray-300 block mb-1">Entidade:</span>{o.client}</div>
+                             <div><span className="text-gray-300 block mb-1">Módulo:</span>{o.product}</div>
+                             <div><span className="text-gray-300 block mb-1">Valor:</span>€{o.value}</div>
+                             <div><span className="text-gray-300 block mb-1">HUB Destino:</span>{hubs.find(h => h.id === o.nodeId)?.name}</div>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="flex space-x-4">
+                       <button onClick={() => { onSound?.('error'); onUpdateStatus(o.id, 'Rejeitado'); }} className="p-8 bg-gray-50 text-gray-400 rounded-full hover:bg-black hover:text-white transition-all shadow-xl"><X className="w-8 h-8"/></button>
+                       <button onClick={() => { onSound?.('success'); onUpdateStatus(o.id, 'Aprovado'); }} className="bg-red-600 text-white px-16 py-8 rounded-full font-black uppercase text-[12px] tracking-[0.4em] hover:bg-black transition-all shadow-2xl flex items-center space-x-4">
+                          <span>Aprovar Ordem</span> <CheckCircle className="w-6 h-6" />
+                       </button>
+                    </div>
+                 </div>
+               ))}
              </div>
-
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="bg-black text-white p-10 rounded-[4rem] shadow-2xl relative overflow-hidden group">
-                   <div className="absolute inset-0 industrial-grid opacity-5" />
-                   <CreditCard className="w-10 h-10 text-red-600 mb-6" />
-                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Revenue Bruto</span>
-                   <span className="text-5xl font-brand font-black italic block">€{financials.totalRevenue.toLocaleString()}</span>
-                </div>
-                <div className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-xl group">
-                   <Coins className="w-10 h-10 text-red-600 mb-6" />
-                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Plataforma (Fee)</span>
-                   <span className="text-5xl font-brand font-black italic block">€{financials.totalPlatform.toLocaleString()}</span>
-                </div>
-                <div className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-xl group">
-                   <PieChart className="w-10 h-10 text-orange-600 mb-6" />
-                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Comissão HUBs</span>
-                   <span className="text-5xl font-brand font-black italic block">€{financials.totalHub.toLocaleString()}</span>
-                </div>
-                <div className="bg-red-600 text-white p-10 rounded-[4rem] shadow-2xl relative overflow-hidden group">
-                   <TrendingUp className="w-10 h-10 text-white mb-6" />
-                   <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-2">Net Industrial</span>
-                   <span className="text-5xl font-brand font-black italic block">€{financials.totalNet.toLocaleString()}</span>
-                </div>
+           ) : (
+             <div className="py-40 text-center space-y-10 opacity-20">
+                <ShieldCheck className="w-32 h-32 mx-auto" />
+                <p className="text-5xl font-brand font-black italic uppercase">Grid em Repouso. Zero Pendentes.</p>
              </div>
-          </div>
-        )}
+           )}
+        </div>
+      )}
 
-        {activeView === 'orders' && (
-           <div className="space-y-8">
-              <div className="bg-white p-2 rounded-[2.5rem] border border-gray-100 shadow-2xl flex items-center mb-12">
-                 <Search className="w-6 h-6 text-gray-300 ml-6" />
-                 <input type="text" placeholder="LOCALIZAR JOB NO GRID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent flex-grow outline-none font-black uppercase text-[11px] p-6" />
-              </div>
+      {activeView === 'orders' && (
+        <div className="space-y-12">
+           <div className="bg-white p-2 rounded-[3rem] border border-gray-100 shadow-2xl flex items-center max-w-2xl">
+              <Search className="w-8 h-8 text-gray-300 ml-6" />
+              <input 
+                type="text" 
+                placeholder="LOCALIZAR JOB NO GRID..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="bg-transparent flex-grow outline-none font-black uppercase text-[12px] p-8 placeholder:text-gray-200" 
+              />
+           </div>
+           <div className="grid grid-cols-1 gap-8">
               {filteredItems.map((o: any) => (
-                <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black ring-4 ring-black/5' : 'border-gray-100 hover:border-red-600/30'}`}>
-                   <div className="p-10 flex flex-col md:flex-row justify-between items-center gap-10">
+                <div key={o.id} className={`bg-white rounded-[4.5rem] border transition-all duration-500 overflow-hidden shadow-xl ${expandedOrder === o.id ? 'border-black ring-[10px] ring-black/5 scale-[1.01]' : 'border-gray-100 hover:border-red-600/30'}`}>
+                   <div className="p-12 flex flex-col md:flex-row justify-between items-center gap-12">
                       <div className="flex-grow">
                          <div className="flex items-center space-x-8 mb-6">
-                            <span className="text-3xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
+                            <span className="text-4xl font-brand font-black italic text-black uppercase tracking-tighter">{o.id}</span>
                             <div className="flex items-center space-x-3 bg-red-50 text-red-600 px-6 py-2 rounded-full border border-red-100">
                                <Activity className="w-4 h-4 animate-pulse" />
                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{o.status.replace('_', ' ')}</span>
                             </div>
                          </div>
-                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-[10px] font-black uppercase text-gray-400 italic">
+                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-[10px] font-black uppercase text-gray-400 italic">
                             <div><span className="text-gray-300 block mb-1">Entidade</span><span className="text-black">{o.client}</span></div>
                             <div><span className="text-gray-300 block mb-1">Módulo</span><span className="text-black">{o.product}</span></div>
-                            <div><span className="text-gray-300 block mb-1">Dimensões</span><span className="text-black font-brand">{o.dimensions || 'N/A'}</span></div>
-                            <div><span className="text-gray-300 block mb-1">Valor Ativo</span><span className="text-black font-brand">€{o.value}</span></div>
+                            <div><span className="text-gray-300 block mb-1">Dimensões Axis</span><span className="text-black font-brand">{o.dimensions || 'N/A'}</span></div>
+                            <div><span className="text-gray-300 block mb-1">Valor Industrial</span><span className="text-black font-brand">€{o.value}</span></div>
                          </div>
                       </div>
                       <div className="flex space-x-4">
-                         <button onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)} className={`p-6 rounded-3xl transition-all shadow-xl ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400 hover:bg-black hover:text-white'}`}>
-                            {expandedOrder === o.id ? <ChevronUp /> : <ChevronDown />}
+                         <button onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)} className={`p-8 rounded-full transition-all shadow-xl ${expandedOrder === o.id ? 'bg-black text-white' : 'bg-gray-50 text-gray-400 hover:bg-black hover:text-white'}`}>
+                            {expandedOrder === o.id ? <ChevronUp className="w-8 h-8"/> : <ChevronDown className="w-8 h-8"/>}
                          </button>
                          <div className="flex space-x-2">
-                           <button onClick={() => handleDownloadPDF(o)} title="Descarregar PDF" className="p-6 bg-black text-white rounded-3xl hover:bg-red-600 transition-all shadow-xl">
-                              <FileDown className="w-5 h-5"/>
+                           <button onClick={() => { onSound?.('success'); generateOrderPDF(o, hubs.find(h => h.id === o.nodeId)); }} title="Download Production Spec" className="p-8 bg-black text-white rounded-full hover:bg-red-600 transition-all shadow-xl">
+                              <FileDown className="w-8 h-8"/>
                            </button>
                            {o.fileName && (
-                             <button onClick={() => handleDownloadAsset(o)} title="Descarregar Ativo" className="p-6 bg-red-50 text-red-600 rounded-3xl hover:bg-black hover:text-white transition-all shadow-xl">
-                                <Download className="w-5 h-5"/>
+                             <button onClick={() => { onSound?.('success'); downloadOriginalAsset(o); }} title="Download Original Asset" className="p-8 bg-red-50 text-red-600 rounded-full hover:bg-black hover:text-white transition-all shadow-xl">
+                                <Download className="w-8 h-8"/>
                              </button>
                            )}
                          </div>
@@ -209,24 +193,33 @@ const Backoffice: React.FC<BackofficeProps> = ({
                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
                             <div className="space-y-8">
                                <h5 className="text-[10px] font-black uppercase text-red-600 tracking-widest flex items-center"><Server className="w-4 h-4 mr-3" /> Distribuição Industrial</h5>
-                               <div className="p-6 bg-white rounded-3xl border border-gray-100 shadow-xl">
-                                  <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Nodo Processamento</span>
-                                  <span className="text-[11px] font-black text-black uppercase">{hubs.find(h => h.id === o.nodeId)?.name || 'Central R2'}</span>
+                               <div className="p-8 bg-white rounded-[3rem] border border-gray-100 shadow-xl">
+                                  <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Nodo Atribuído</span>
+                                  <span className="text-[13px] font-black text-black uppercase">{hubs.find(h => h.id === o.nodeId)?.name || 'Grid Central R2'}</span>
                                </div>
-                               <div className="p-8 bg-black text-white rounded-[2.5rem] flex items-center space-x-6 shadow-2xl">
-                                  <QrCode className="w-10 h-10 text-red-600" />
-                                  <span className="text-[10px] font-mono text-white/40">AUTH_HASH: {o.id}-{Math.random().toString(16).slice(2, 8).toUpperCase()}</span>
+                               <div className="p-10 bg-black text-white rounded-[3rem] flex flex-col items-center shadow-2xl relative group/barcode">
+                                  <div className="absolute top-4 right-4"><Barcode className="w-4 h-4 text-red-600 opacity-30" /></div>
+                                  <div className="w-full bg-white p-6 rounded-xl flex items-center justify-center overflow-hidden mb-4">
+                                     <div className="flex gap-1 group-hover/barcode:scale-105 transition-transform duration-500">
+                                        {o.id.split('').map((c, i) => (
+                                          <div key={i} className="bg-black" style={{ width: (i % 3 === 0 ? '5px' : '2px'), height: '40px' }} />
+                                        ))}
+                                     </div>
+                                  </div>
+                                  <span className="text-[9px] font-mono text-white/30">SYNC_ID: {btoa(o.id).slice(0, 24)}</span>
                                </div>
                             </div>
                             <div className="space-y-8">
                                <h5 className="text-[10px] font-black uppercase text-red-600 tracking-widest flex items-center"><FileDigit className="w-4 h-4 mr-3" /> Assets & Engenharia</h5>
-                               <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 space-y-4 shadow-xl">
-                                  <div className="flex items-center justify-between">
-                                     <div className="flex items-center space-x-4">
-                                        <FileText className="w-6 h-6 text-red-600" />
-                                        <span className="text-[10px] font-black text-black uppercase">{o.fileName || 'asset_industrial_v1.pdf'}</span>
+                               <div className="p-10 bg-white rounded-[3rem] border border-gray-100 space-y-8 shadow-xl">
+                                  <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                     <div className="flex items-center space-x-6">
+                                        <div className="p-4 bg-red-50 rounded-2xl text-red-600"><FileText className="w-8 h-8" /></div>
+                                        <div>
+                                           <span className="text-[11px] font-black text-black uppercase block leading-none mb-1">{o.fileName || 'RL_ASSET_MASTER.PDF'}</span>
+                                           <span className="text-[8px] text-gray-400 uppercase tracking-widest">Protocolo R2 Ready</span>
+                                        </div>
                                      </div>
-                                     <button onClick={() => handleDownloadAsset(o)} className="p-4 bg-gray-50 rounded-xl hover:bg-black hover:text-white transition-all"><Download className="w-5 h-5"/></button>
                                   </div>
                                   <div className="grid grid-cols-2 gap-4">
                                      <div className="p-4 bg-gray-50 rounded-2xl text-[9px] font-black uppercase tracking-widest">Mat: {o.material}</div>
@@ -235,13 +228,14 @@ const Backoffice: React.FC<BackofficeProps> = ({
                                </div>
                             </div>
                             <div className="space-y-8">
-                               <h5 className="text-[10px] font-black uppercase text-red-600 tracking-widest flex items-center"><History className="w-4 h-4 mr-3" /> Protocolo R2-Log</h5>
-                               <div className="space-y-4 border-l-2 border-red-100 pl-8 ml-2">
+                               <h5 className="text-[10px] font-black uppercase text-red-600 tracking-widest flex items-center"><History className="w-4 h-4 mr-3" /> Protocolo de Auditoria</h5>
+                               <div className="space-y-6 border-l-2 border-red-100 pl-10 ml-2">
                                   {o.history.map((h: any, i: number) => (
                                     <div key={i} className="relative">
+                                       <div className="absolute -left-[45px] top-0 w-3 h-3 bg-red-600 rounded-full border-2 border-white" />
                                        <span className="text-[8px] font-black text-gray-300 uppercase block">{new Date(h.timestamp).toLocaleString()}</span>
-                                       <span className="text-[10px] font-black text-black uppercase block">{h.status}</span>
-                                       <p className="text-[9px] text-gray-400 italic">"{h.note}"</p>
+                                       <span className="text-[11px] font-black text-black uppercase block mt-1">{h.status}</span>
+                                       <p className="text-[9px] text-gray-400 italic mt-2 leading-relaxed">"{h.note}"</p>
                                     </div>
                                   ))}
                                </div>
@@ -252,83 +246,53 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 </div>
               ))}
            </div>
-        )}
+        </div>
+      )}
 
-        {(activeView === 'users' || activeView === 'hubs' || activeView === 'products') && (
-           <div className="grid grid-cols-1 gap-4">
-              {filteredItems.map((item: any) => (
-                 <div key={item.id} className="bg-white p-8 rounded-[3.5rem] border border-gray-50 hover:border-black shadow-lg transition-all flex items-center justify-between group">
-                    <div className="flex items-center space-x-8">
-                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-brand font-black italic text-xl shadow-inner ${activeView === 'users' ? 'bg-red-600 text-white' : 'bg-black text-white'}`}>
-                          {item.name ? item.name[0] : '#'}
-                       </div>
-                       <div>
-                          <h5 className="text-xl font-brand font-black italic uppercase text-black">{item.name || item.id}</h5>
-                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{item.email || item.category || item.status || item.role}</p>
-                       </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                       {(activeView === 'users' || activeView === 'hubs') && (
-                          <button onClick={() => onImpersonate(activeView === 'users' ? item : users.find(u => u.managedHubId === item.id))} className="px-6 py-3 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase hover:bg-red-600 hover:text-white transition-all flex items-center space-x-2">
-                             <ArrowUpRight className="w-4 h-4" /> <span>Shadow Mode</span>
-                          </button>
-                       )}
-                       <button onClick={() => setEditingItem({type: activeView.slice(0, -1) as any, data: {...item}})} className="p-4 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all">
-                          <Edit className="w-5 h-5" />
-                       </button>
-                    </div>
+      {activeView === 'financials' && (
+        <div className="space-y-12 animate-in fade-in">
+           <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
+              <div className="flex items-center space-x-8">
+                 <div className="p-8 bg-red-600 rounded-[2.5rem] text-white shadow-xl"><Settings className="w-12 h-12 animate-spin-slow" /></div>
+                 <div>
+                    <h4 className="text-[12px] font-black uppercase text-gray-400 tracking-widest block mb-2">Engenharia de Receita</h4>
+                    <h3 className="text-4xl font-brand font-black italic uppercase text-black">Taxa da Plataforma Redline (%)</h3>
                  </div>
-              ))}
+              </div>
+              <div className="flex items-center space-x-6">
+                 <div className="flex items-center bg-gray-50 px-12 py-8 rounded-[3rem] border border-gray-100 shadow-inner">
+                    <input 
+                      type="number" 
+                      value={globalPlatformFee} 
+                      onChange={(e) => setGlobalPlatformFee(parseFloat(e.target.value))} 
+                      className="bg-transparent text-6xl font-brand font-black italic text-black outline-none w-32 text-center" 
+                    />
+                    <span className="text-4xl font-brand font-black italic text-red-600 ml-4">%</span>
+                 </div>
+              </div>
            </div>
-        )}
-      </div>
 
-      {editingItem && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6 animate-in fade-in">
-           <div className="bg-white w-full max-w-2xl rounded-[5rem] p-16 shadow-2xl border-[15px] border-black relative overflow-y-auto max-h-[90vh]">
-              <button onClick={() => setEditingItem(null)} className="absolute top-10 right-10 p-4 text-gray-300 hover:text-black transition-all"><X className="w-8 h-8"/></button>
-              <h3 className="text-5xl font-brand font-black italic uppercase mb-12">Edit <span className="text-red-600">{editingItem.type}</span></h3>
-              <div className="space-y-8">
-                 {editingItem.type === 'user' && (
-                   <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase text-gray-400">Dados da Entidade</label>
-                      <input type="text" value={editingItem.data.name} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" />
-                      <input type="email" value={editingItem.data.email} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" />
-                      <div className="p-6 bg-red-50 rounded-3xl border border-red-100 space-y-4">
-                         <label className="text-[9px] font-black uppercase text-red-600">Comissão de Parceiro (%)</label>
-                         <input type="number" value={editingItem.data.partnerCommissionRate || 0} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, partnerCommissionRate: parseFloat(e.target.value)}})} className="w-full bg-white p-4 rounded-xl font-black text-xl outline-none" />
-                      </div>
-                      <select value={editingItem.data.role} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none">
-                         <option value="Cliente">Cliente B2B</option>
-                         <option value="B2B_Admin">Hub Manager</option>
-                         <option value="Administrador">Super Admin</option>
-                         <option value="Utilizador_Standard">Utilizador Comum</option>
-                      </select>
-                   </div>
-                 )}
-                 {editingItem.type === 'hub' && (
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black uppercase text-gray-400">Parâmetros de Comissão do Nodo</label>
-                       <input type="text" value={editingItem.data.name} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none" />
-                       <div className="grid grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                             <label className="text-[8px] font-black uppercase text-gray-400">Primary (%)</label>
-                             <input type="number" value={editingItem.data.primaryCommission} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, primaryCommission: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-4 rounded-xl font-black outline-none" />
-                          </div>
-                          <div className="space-y-2">
-                             <label className="text-[8px] font-black uppercase text-gray-400">Sec (%)</label>
-                             <input type="number" value={editingItem.data.secondaryCommission} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, secondaryCommission: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-4 rounded-xl font-black outline-none" />
-                          </div>
-                          <div className="space-y-2">
-                             <label className="text-[8px] font-black uppercase text-red-600">Plat (%)</label>
-                             <input type="number" value={editingItem.data.platformCommission} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, platformCommission: parseFloat(e.target.value)}})} className="w-full bg-red-50 p-4 rounded-xl font-black outline-none" />
-                          </div>
-                       </div>
-                    </div>
-                 )}
-                 <button onClick={handleSaveEdit} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[12px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-4">
-                    <Save className="w-5 h-5" /> <span>Persistir no Grid R2</span>
-                 </button>
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
+                 <div className="absolute inset-0 industrial-grid opacity-5" />
+                 <CreditCard className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">Gross Revenue</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalRevenue.toLocaleString()}</span>
+              </div>
+              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
+                 <Coins className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Platform Share</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalPlatform.toLocaleString()}</span>
+              </div>
+              <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
+                 <PieChart className="w-12 h-12 text-orange-600 mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Hub Payouts</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalHub.toLocaleString()}</span>
+              </div>
+              <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
+                 <TrendingUp className="w-12 h-12 text-white mb-10 group-hover:scale-110 transition-transform" />
+                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-4">Net Industrial</span>
+                 <span className="text-6xl font-brand font-black italic block">€{financials.totalNet.toLocaleString()}</span>
               </div>
            </div>
         </div>
