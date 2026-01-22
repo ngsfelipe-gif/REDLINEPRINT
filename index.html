@@ -21,13 +21,12 @@
             background-color: #ffffff;
             color: var(--black-brand);
             overflow-x: hidden;
-            font-size: 14px; /* Aumentado de 13px para 14px para melhor leitura */
+            font-size: 14px;
             line-height: 1.6;
         }
         .font-brand { font-family: 'Exo 2', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* Hierarquia visual refinada */
         h1 { font-size: clamp(2.8rem, 7vw, 5.5rem); }
         h2 { font-size: clamp(2.2rem, 5vw, 4.2rem); }
         h3 { font-size: clamp(1.6rem, 4vw, 3rem); }
@@ -39,36 +38,48 @@
             background-size: 50px 50px;
         }
 
-        .status-pulse {
-            animation: pulse-red 2s infinite;
+        /* Animações Futuristas */
+        @keyframes pulse-red-glow {
+            0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.4); opacity: 0.8; }
+            70% { box-shadow: 0 0 20px 20px rgba(204, 0, 0, 0); opacity: 1; }
+            100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); opacity: 0.8; }
         }
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.4); }
-            70% { box-shadow: 0 0 0 15px rgba(204, 0, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
+        .status-pulse {
+            animation: pulse-red-glow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
         }
 
-        @keyframes laser-scan {
-            0% { transform: translateX(-100%); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateX(100%); opacity: 0; }
+        @keyframes quantum-flux {
+            0% { filter: hue-rotate(0deg) brightness(1); transform: scale(1); }
+            50% { filter: hue-rotate(15deg) brightness(1.2); transform: scale(1.02); }
+            100% { filter: hue-rotate(0deg) brightness(1); transform: scale(1); }
         }
-        .laser-line {
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--red-brand), transparent);
-            width: 100%;
-            position: relative;
-            overflow: hidden;
+        .quantum-aura {
+            animation: quantum-flux 4s infinite ease-in-out;
         }
-        .laser-line::after {
-            content: '';
+
+        @keyframes laser-scan-v2 {
+            0% { transform: translateY(-100%); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        .laser-v2 {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 40%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, #fff, transparent);
-            animation: laser-scan 3s infinite linear;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--red-brand), #fff, var(--red-brand), transparent);
+            box-shadow: 0 0 15px var(--red-brand);
+            animation: laser-scan-v2 2s infinite ease-in-out;
+        }
+
+        @keyframes flow-horizontal {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .data-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(204, 0, 0, 0.1), transparent);
+            background-size: 200% 100%;
+            animation: flow-horizontal 3s infinite linear;
         }
 
         .shadow-industrial {
@@ -78,6 +89,20 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f8f8f8; }
         ::-webkit-scrollbar-thumb { background: #000; border-radius: 0px; }
+
+        /* Loader Glitch */
+        .glitch-loader::before {
+            content: attr(data-text);
+            position: absolute;
+            left: -2px;
+            text-shadow: 2px 0 var(--red-brand);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            0% { clip: rect(10px, 9999px, 15px, 0); }
+            100% { clip: rect(80px, 9999px, 95px, 0); }
+        }
     </style>
     <script type="importmap">
     {

@@ -13,18 +13,16 @@ import SupportCenter from './components/SupportCenter';
 import { MOCK_JOBS, MOCK_NODES, INITIAL_PRODUCTS, MOCK_TICKETS } from './constants';
 import { User, ProductionJob, PartnerNode, ExtendedProduct, Language, SupportTicket, HubRegistrationRequest, AuthorizationRequest } from './types';
 import { TRANSLATIONS } from './translations';
-import { Zap, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Zap, ShieldCheck, RefreshCw, Cpu, Database } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
-  const [adminBuffer, setAdminBuffer] = useState<User | null>(null); // Buffer para restauro pós-Shadow Mode
+  const [adminBuffer, setAdminBuffer] = useState<User | null>(null);
   const [language, setLanguage] = useState<Language>('PT');
   
-  // Master Configuration for Financials
   const [globalPlatformFee, setGlobalPlatformFee] = useState(5.0);
 
-  // Central Sync States
   const [users, setUsers] = useState<User[]>([
     { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now(), balance: 15400.00 },
     { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now(), balance: 450.25 },
@@ -38,50 +36,64 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<ExtendedProduct[]>(INITIAL_PRODUCTS.map(p => ({...p, status: 'Ativo', ownerHubId: p.ownerHubId || 'SYSTEM'})));
   
   const [showLogin, setShowLogin] = useState(false);
-  const [activeToast, setActiveToast] = useState<{title: string, msg: string, type?: 'success' | 'error' | 'sync'} | null>(null);
+  const [activeToast, setActiveToast] = useState<{title: string, msg: string, type?: 'success' | 'error' | 'sync' | 'loading'} | null>(null);
 
   const playSound = useCallback((type: 'click' | 'success' | 'sync' | 'error' | 'loading') => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
       const now = audioCtx.currentTime;
+
+      const createBleep = (freq: number, dur: number, type: OscillatorType = 'sine', slide?: number) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slide) osc.frequency.exponentialRampToValueAtTime(slide, now + dur);
+        
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      };
 
       switch(type) {
         case 'click':
-          osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); gain.gain.setValueAtTime(0.02, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.start(now); osc.stop(now + 0.05);
+          createBleep(1400, 0.05, 'sine');
           break;
         case 'success':
-          osc.type = 'triangle'; osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.1); gain.gain.setValueAtTime(0.03, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); osc.start(now); osc.stop(now + 0.2);
+          createBleep(660, 0.1, 'triangle', 880);
+          setTimeout(() => createBleep(880, 0.2, 'triangle', 1320), 50);
           break;
         case 'sync':
-          osc.type = 'sine'; osc.frequency.setValueAtTime(1500, now); osc.frequency.setValueAtTime(1800, now + 0.05); gain.gain.setValueAtTime(0.02, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15);
+          createBleep(1200, 0.1, 'sine', 1600);
+          createBleep(1400, 0.1, 'sine', 1800);
           break;
         case 'error':
-          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.4); gain.gain.setValueAtTime(0.04, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4);
+          createBleep(220, 0.4, 'sawtooth', 60);
           break;
         case 'loading':
-          osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(660, now + 0.5); gain.gain.setValueAtTime(0.01, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5);
+          createBleep(440, 0.3, 'sine', 220);
           break;
       }
     } catch(e) {}
   }, []);
 
-  const notify = (title: string, msg: string, type: 'success' | 'error' | 'sync' = 'sync') => {
-    playSound(type);
+  const notify = (title: string, msg: string, type: 'success' | 'error' | 'sync' | 'loading' = 'sync') => {
+    playSound(type === 'loading' ? 'loading' : (type === 'sync' ? 'sync' : type));
     setActiveToast({ title, msg, type });
-    setTimeout(() => setActiveToast(null), 5000);
+    if (type !== 'loading') {
+      setTimeout(() => setActiveToast(null), 5000);
+    }
   };
 
-  // Logic: When an order is completed, process hierarchical commissions and client cashback automatically
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
     setOrders(prev => {
       const updated = prev.map(o => {
         if (o.id !== orderId) return o;
         
-        // Trigger Financials on Completion
         if (newStatus === 'Concluído' && o.status !== 'Concluído') {
           const val = parseFloat(o.value);
           const currentHub = hubs.find(h => h.id === (nodeId || o.nodeId));
@@ -91,9 +103,8 @@ const App: React.FC = () => {
           const platformAmount = (val * platRate) / 100;
           const hubGross = (val * hubRate) / 100;
           const hubNet = hubGross - platformAmount;
-          const clientCashback = val * 0.02; // 2% REDCOIN Cashback
+          const clientCashback = val * 0.02;
 
-          // Real-time Balance Sync
           handleUpdateUserInternal('ADMIN-01', { balance: (users.find(u=>u.id==='ADMIN-01')?.balance || 0) + platformAmount });
           
           const hubOwner = users.find(u => u.managedHubId === (nodeId || o.nodeId));
@@ -215,7 +226,6 @@ const App: React.FC = () => {
     notify("Entidade Provisionada", `Credenciais: ${newUser.email} / PW: ${autoPass}`, "success");
   };
 
-  // Shadow Mode Protocol
   const handleImpersonate = (targetUser: User) => {
     if (user?.role !== 'Administrador') return;
     setAdminBuffer(user);
@@ -262,7 +272,7 @@ const App: React.FC = () => {
             hubs={hubs}
           />
         )}
-        {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} />}
+        {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} notify={notify} onSound={playSound} />}
         {activeTab === 'live' && <PublicGrid orders={orders.filter(o => o.status !== 'Pendente_Admin')} hubs={hubs} language={language} />}
         {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => {}} onTicketSubmit={(t) => {}} />}
         {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={(t) => {}} />}
@@ -308,13 +318,17 @@ const App: React.FC = () => {
       </div>
 
       {activeToast && (
-        <div className={`fixed bottom-10 right-10 z-[3000] bg-black text-white p-8 rounded-[2.5rem] shadow-2xl border-l-[15px] animate-in slide-in-from-right-10 w-[400px] ${activeToast.type === 'error' ? 'border-orange-600' : 'border-red-600'}`}>
-           <div className="flex items-center space-x-6">
-              {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : <Zap className="w-8 h-8 text-red-600 animate-pulse" />}
+        <div className={`fixed bottom-10 right-10 z-[3000] bg-black/90 backdrop-blur-3xl text-white p-8 rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.5)] border-l-[15px] animate-in slide-in-from-right-10 w-[400px] border-red-600 overflow-hidden group`}>
+           <div className="absolute inset-0 data-shimmer opacity-20 pointer-events-none" />
+           <div className="flex items-center space-x-6 relative z-10">
+              {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : (activeToast.type === 'loading' ? <Database className="w-8 h-8 text-red-600 animate-pulse" /> : <Zap className="w-8 h-8 text-red-600 animate-pulse" />)}
               <div>
                  <h4 className="text-[12px] font-black uppercase text-red-600 tracking-widest">{activeToast.title}</h4>
                  <p className="text-[13px] font-bold text-gray-400 mt-1 italic">{activeToast.msg}</p>
               </div>
+           </div>
+           <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600/20">
+              <div className="h-full bg-red-600 transition-all duration-[5000ms] ease-linear" style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
            </div>
         </div>
       )}
