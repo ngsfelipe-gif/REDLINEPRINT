@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound, ArrowRight } from 'lucide-react';
 import { User as UserType, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 
@@ -10,9 +10,10 @@ interface LoginPanelProps {
   registeredUsers: UserType[];
   onRegisterUser: (user: UserType) => void;
   language: Language;
+  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
 }
 
-const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUsers, onRegisterUser, language }) => {
+const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUsers, onRegisterUser, language, onSound }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +26,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
     e.preventDefault();
     setError('');
     setIsProcessing(true);
+    onSound?.('loading');
     
     // Simulação de latência de rede industrial
     setTimeout(() => {
@@ -32,13 +34,15 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
       if (foundUser) {
         onLogin(foundUser);
       } else {
-        setError("ERRO DE PROTOCOLO: Credenciais não reconhecidas no Grid R2.");
+        onSound?.('error');
+        setError("ERRO DE PROTOCOLO: Identidade não sincronizada no grid cluster.");
         setIsProcessing(false);
       }
     }, 1500);
   };
 
   const quickLogin = (role: 'admin' | 'hub') => {
+    onSound?.('click');
     if (role === 'admin') {
       setEmail('admin@redline.eu');
       setPassword('admin');
@@ -49,76 +53,89 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
   };
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl overflow-y-auto animate-in fade-in">
-      <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-black rounded-[5rem] border border-white/10 overflow-hidden shadow-[0_0_100px_rgba(204,0,0,0.4)] m-auto">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/98 backdrop-blur-3xl overflow-y-auto animate-in fade-in">
+      <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-[#0A0A0A] rounded-[5rem] border border-white/5 overflow-hidden shadow-[0_0_120px_rgba(204,0,0,0.2)] m-auto">
         
         {isProcessing && (
           <div className="absolute inset-0 z-[600] bg-black/98 flex flex-col items-center justify-center text-center p-16 animate-in fade-in">
-             <Cpu className="w-20 h-20 text-red-600 animate-spin mb-8" />
-             <h3 className="text-4xl font-brand font-black italic text-white uppercase tracking-tighter mb-4">Syncing Handshake...</h3>
-             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em]">R2 ENCRYPTION ACTIVE</p>
+             <div className="relative">
+                <Cpu className="w-24 h-24 text-red-600 animate-spin mb-8" />
+                <div className="absolute inset-0 bg-red-600/20 blur-2xl animate-pulse -z-10 rounded-full" />
+             </div>
+             <h3 className="text-5xl font-brand font-black italic text-white uppercase tracking-tighter mb-4">Handshake R2...</h3>
+             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">AUTORIZAÇÃO QUÂNTICA EM CURSO</p>
           </div>
         )}
 
-        {/* Left Panel: Brand & Info */}
-        <div className="hidden lg:flex flex-col justify-between p-24 bg-gradient-to-br from-red-600 to-red-950 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-10"><Printer className="w-96 h-96" /></div>
-          <div>
-            <div className="flex items-center space-x-5 mb-24">
-               <Printer className="w-12 h-12" />
-               <span className="font-brand text-4xl font-black italic tracking-tighter uppercase">REDLINE</span>
+        {/* Left Panel: High-Impact Brand */}
+        <div className="hidden lg:flex flex-col justify-between p-24 bg-[#0F0F0F] text-white relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity duration-1000"><Printer className="w-[500px] h-[500px]" /></div>
+          <div className="absolute inset-0 industrial-grid opacity-[0.03]" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center space-x-6 mb-32">
+               <div className="bg-red-600 p-3 rounded-2xl shadow-[0_0_30px_rgba(204,0,0,0.4)]">
+                  <Printer className="w-8 h-8" />
+               </div>
+               <span className="font-brand text-3xl font-black italic tracking-tighter uppercase">REDLINE <span className="text-red-600">R2</span></span>
             </div>
-            <h2 className="text-8xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter mb-10">{t.login_title}.</h2>
             
-            <div className="space-y-6">
-              <div className="bg-black/30 p-8 rounded-[3rem] border border-white/10 backdrop-blur-xl">
-                 <p className="text-[11px] text-white/60 leading-relaxed font-black uppercase tracking-widest italic">Acesso ao Grid R2 industrial para gestão de ativos globais e nodes de manufatura.</p>
+            <h2 className="text-8xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter mb-12">GRID <br/> <span className="text-red-600">ACCESS.</span></h2>
+            
+            <div className="space-y-8">
+              <div className="bg-white/5 p-10 rounded-[4rem] border border-white/5 backdrop-blur-3xl hover:border-red-600/20 transition-all">
+                 <p className="text-[13px] text-gray-400 leading-relaxed font-black uppercase tracking-widest italic border-l-4 border-red-600 pl-10">
+                    Acesso exclusivo para entidades certificadas. O terminal monitoriza latência, reputação e rendimento de produção em tempo real.
+                 </p>
               </div>
 
-              {/* Demo Credentials Helper Box */}
-              <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5 space-y-4">
-                 <div className="flex items-center space-x-3 mb-2">
-                    <KeyRound className="w-4 h-4 text-red-500" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-red-500">Acesso Rápido para Auditoria:</span>
-                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => quickLogin('admin')} className="bg-white/10 hover:bg-white/20 p-4 rounded-2xl text-[9px] font-black uppercase tracking-tighter text-left border border-white/5 transition-all">
-                       <span className="block text-red-500 mb-1">Super Admin</span>
-                       admin@redline.eu
-                    </button>
-                    <button onClick={() => quickLogin('hub')} className="bg-white/10 hover:bg-white/20 p-4 rounded-2xl text-[9px] font-black uppercase tracking-tighter text-left border border-white/5 transition-all">
-                       <span className="block text-red-500 mb-1">Hub B2B</span>
-                       fra@redline.eu
-                    </button>
-                 </div>
+              <div className="grid grid-cols-2 gap-6">
+                 <button onClick={() => quickLogin('admin')} className="bg-white/5 hover:bg-red-600 p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn">
+                    <span className="block text-gray-500 group-hover/btn:text-white mb-2 italic">Role: Super Admin</span>
+                    <div className="flex items-center justify-between">
+                       <span>Master Control</span>
+                       <ArrowRight className="w-4 h-4 opacity-0 group-hover/btn:opacity-100 transition-all" />
+                    </div>
+                 </button>
+                 <button onClick={() => quickLogin('hub')} className="bg-white/5 hover:bg-black p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn">
+                    <span className="block text-gray-500 group-hover/btn:text-white mb-2 italic">Role: Hub Partner</span>
+                    <div className="flex items-center justify-between">
+                       <span>Frankfurt Unit</span>
+                       <ArrowRight className="w-4 h-4 opacity-0 group-hover/btn:opacity-100 transition-all" />
+                    </div>
+                 </button>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-6">
-             <ShieldCheck className="w-6 h-6 text-red-600" />
-             <span className="text-[10px] font-black uppercase tracking-[0.5em]">Protocolo Seguro v.9.2-STABLE</span>
+          
+          <div className="flex items-center space-x-6 relative z-10">
+             <div className="w-3 h-3 bg-red-600 rounded-full animate-ping" />
+             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-500 italic">Cluster Central: Optimal Status</span>
           </div>
         </div>
 
-        {/* Right Panel: Form */}
+        {/* Right Panel: Clean Form UX */}
         <div className="p-20 md:p-32 flex flex-col justify-center relative bg-white">
-          <button onClick={onBack} className="absolute top-16 right-16 p-5 text-gray-200 hover:text-red-600 transition-all transform hover:rotate-90">
+          <button onClick={onBack} className="absolute top-16 right-16 p-5 text-gray-200 hover:text-black transition-all transform hover:rotate-90">
             <X className="w-10 h-10"/>
           </button>
           
-          <div className="mb-20">
-            <h3 className="text-6xl font-brand font-black italic uppercase text-black tracking-tighter leading-none mb-4">{mode === 'login' ? 'Auth Node' : 'Register'}</h3>
-            <p className="text-[11px] text-gray-400 uppercase tracking-[0.4em] font-black italic">Terminal de Conexão R2 Cluster</p>
+          <div className="mb-16">
+            <h3 className="text-6xl font-brand font-black italic uppercase text-black tracking-tighter leading-none mb-4">
+               {mode === 'login' ? 'Terminal' : 'Registo'}<br/>
+               <span className="text-red-600">Identidade.</span>
+            </h3>
+            <p className="text-[11px] text-gray-400 uppercase tracking-[0.4em] font-black italic">Sincronização Segura ISO-R2</p>
           </div>
 
           {error && (
-            <div className="mb-8 p-6 bg-red-50 border-l-4 border-red-600 text-red-600 flex items-center space-x-4 rounded-2xl animate-in slide-in-from-top-2">
-               <AlertCircle className="w-6 h-6 shrink-0" />
-               <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
+            <div className="mb-10 p-8 bg-orange-50 border-l-[10px] border-orange-600 text-orange-900 flex items-center space-x-6 rounded-[2.5rem] animate-in slide-in-from-top-4 shadow-xl">
+               <AlertCircle className="w-8 h-8 shrink-0" />
+               <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed italic">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="space-y-10">
+          <form onSubmit={handleAuth} className="space-y-8">
             {mode === 'register' && (
               <div className="relative group">
                 <UserIcon className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-red-600 transition-all"/>
@@ -131,7 +148,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               <input 
                 type="email" 
                 value={email} 
-                onChange={e => setEmail(e.target.value)} 
+                onChange={e => { setEmail(e.target.value); if(e.target.value.length % 5 === 0) onSound?.('click'); }} 
                 placeholder="EMAIL DE ACESSO" 
                 className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" 
                 required 
@@ -143,8 +160,8 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               <input 
                 type="password" 
                 value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                placeholder="PROTOCOL PASS" 
+                onChange={e => { setPassword(e.target.value); onSound?.('click'); }} 
+                placeholder="PASSWORD R2" 
                 className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[10px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" 
                 required 
               />
@@ -152,23 +169,23 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
             
             <button 
               type="submit" 
-              className="w-full bg-red-600 text-white p-10 rounded-[3rem] font-black uppercase text-[11px] tracking-[0.5em] hover:bg-black transition-all shadow-2xl flex items-center justify-center space-x-6 group"
+              className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase text-[11px] tracking-[0.6em] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 group border-b-[10px] border-gray-900"
             >
-               <span>Sincronizar Terminal</span> <Zap className="w-6 h-6 group-hover:animate-bounce" />
+               <span>Entrar no Grid</span> <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
             </button>
 
-            <div className="flex flex-col items-center space-y-4 pt-6">
+            <div className="flex flex-col items-center space-y-6 pt-10">
               <button 
                 type="button" 
-                onClick={() => setMode(mode === 'login' ? 'register' : 'login')} 
-                className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-300 hover:text-red-600 transition-all"
+                onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); onSound?.('click'); }} 
+                className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-red-600 transition-all"
               >
-                 {mode === 'login' ? 'Pedir Acesso ao Grid' : 'Voltar ao Login Master'}
+                 {mode === 'login' ? 'Nova Conta B2B' : 'Regressar ao Terminal'}
               </button>
               
-              <div className="flex items-center space-x-2 text-[8px] font-black text-gray-200 uppercase tracking-widest">
-                 <Info className="w-3 h-3" />
-                 <span>Audit ID: 0x-RED-SYN-25</span>
+              <div className="flex items-center space-x-4">
+                 <ShieldCheck className="w-4 h-4 text-green-500" />
+                 <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Encriptação AES-256 Ativa</span>
               </div>
             </div>
           </form>

@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar } from 'lucide-react';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 interface BackofficeProps {
   orders: ProductionJob[];
@@ -22,14 +23,17 @@ interface BackofficeProps {
   onImpersonate: (user: User) => void;
   onCreateUser: (u: User) => void;
   onCreateClient: (clientData: Partial<User>) => void;
+  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
 }
 
 const Backoffice: React.FC<BackofficeProps> = ({ 
-  orders, hubs, users, user, products, hubRequests, authRequests, language, onUpdateStatus, onUpdateUser, onUpdateHub, onUpdateProduct, onUpdateOrder, onApproveHub, onApproveAuth, onImpersonate, onCreateUser, onCreateClient
+  orders, hubs, users, user, products, hubRequests, authRequests, language, onUpdateStatus, onUpdateUser, onUpdateHub, onUpdateProduct, onUpdateOrder, onApproveHub, onApproveAuth, onImpersonate, onCreateUser, onCreateClient, onSound
 }) => {
   const [activeView, setActiveView] = useState<'approvals' | 'orders' | 'hubs' | 'users' | 'products'>('approvals');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
+  const [credentialModal, setCredentialModal] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '' });
 
@@ -46,6 +50,35 @@ const Backoffice: React.FC<BackofficeProps> = ({
     if (activeView === 'hubs') return hubs.filter(h => h.name.toLowerCase().includes(term));
     return [];
   }, [users, orders, products, hubs, activeView, searchTerm]);
+
+  const handleUpdateCredentials = () => {
+    if (credentialModal && newPassword) {
+      onUpdateUser(credentialModal.id, { password: newPassword });
+      setCredentialModal(null);
+      setNewPassword('');
+      onSound?.('success');
+    }
+  };
+
+  const generatePDF = (order: ProductionJob) => {
+    onSound?.('sync');
+    const doc = new jsPDF();
+    doc.setFillColor(204, 0, 0); doc.rect(0, 0, 210, 50, 'F');
+    doc.setTextColor(255); doc.setFontSize(28); doc.setFont('helvetica', 'bold');
+    doc.text("REDLINE R2 PRO", 20, 30);
+    doc.setFontSize(10); doc.text("CERTIFICADO DE CONFORMIDADE INDUSTRIAL R2 v4.2", 20, 40);
+    doc.setTextColor(0); doc.setFontSize(14);
+    doc.text(`JOB ID: ${order.id}`, 20, 70);
+    doc.text(`CLIENTE: ${order.client} (ID: ${order.clientId})`, 20, 80);
+    doc.text(`PRODUTO: ${order.product}`, 20, 90);
+    doc.text(`STATUS: ${order.status}`, 20, 100);
+    doc.text(`VALOR: €${order.value}`, 20, 110);
+    doc.text(`NODE DE PRODUÇÃO: ${order.nodeId}`, 20, 120);
+    doc.text(`DIMENSÕES: ${order.dimensions || 'N/A'}`, 20, 130);
+    doc.text(`MATERIAL: ${order.material}`, 20, 140);
+    doc.save(`REDLINE_MASTER_CERT_${order.id}.pdf`);
+    onSound?.('success');
+  };
 
   const handleSaveEdit = () => {
     if (!editingItem) return;
@@ -72,7 +105,8 @@ const Backoffice: React.FC<BackofficeProps> = ({
           
           <div className="flex flex-wrap bg-white p-3 rounded-[3rem] shadow-2xl border border-gray-100 gap-3">
              {['approvals', 'orders', 'hubs', 'users', 'products'].map(v => (
-               <button key={v} onClick={() => setActiveView(v as any)} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === v ? 'bg-black text-white shadow-xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}>
+               /* Fixed: Corrected setActiveTab to setActiveView */
+               <button key={v} onClick={() => { onSound?.('click'); setActiveView(v as any); }} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === v ? 'bg-black text-white shadow-xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}>
                   {v} {(v === 'approvals' && (pendingApprovals.length + pendingUsers.length) > 0) && <span className="ml-2 bg-red-600 px-2 py-0.5 rounded-full text-[8px] animate-pulse">{pendingApprovals.length + pendingUsers.length}</span>}
                </button>
              ))}
@@ -85,74 +119,10 @@ const Backoffice: React.FC<BackofficeProps> = ({
                  <div className="p-4"><Search className="w-5 h-5 text-gray-300" /></div>
                  <input type="text" placeholder={`PESQUISAR EM ${activeView.toUpperCase()}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent flex-grow outline-none font-black uppercase text-[10px]" />
               </div>
-              {activeView === 'users' && (
-                 <button onClick={() => setShowCreateClient(true)} className="bg-red-600 text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[11px] tracking-widest flex items-center shadow-2xl hover:bg-black transition-all">
-                    <UserPlus className="w-5 h-5 mr-3" /> Criar Cliente
-                 </button>
-              )}
            </div>
         )}
 
-        {activeView === 'approvals' && (
-          <div className="space-y-16 animate-in slide-in-from-bottom-10">
-             {pendingUsers.length > 0 && (
-               <div className="space-y-8">
-                  <h3 className="text-4xl font-brand font-black italic uppercase">Utilizadores em <span className="text-red-600">Quarentena.</span></h3>
-                  <div className="grid grid-cols-1 gap-4">
-                     {pendingUsers.map(u => (
-                       <div key={u.id} className="bg-white p-8 rounded-[3.5rem] border border-gray-100 shadow-xl flex justify-between items-center group hover:border-red-600 transition-all">
-                          <div className="flex items-center space-x-6">
-                             <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center font-brand font-black italic text-xl">{u.name[0]}</div>
-                             <div>
-                                <span className="text-2xl font-brand font-black italic uppercase text-black block">{u.name}</span>
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{u.email} // Tier: {u.tier}</span>
-                             </div>
-                          </div>
-                          <div className="flex space-x-3">
-                             <button onClick={() => onUpdateUser(u.id, { status: 'Ativo' })} className="bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-green-600 transition-all">Aprovar Acesso</button>
-                             <button className="bg-gray-50 text-gray-300 px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all">Rejeitar</button>
-                          </div>
-                       </div>
-                     ))}
-                  </div>
-               </div>
-             )}
-
-             <div className="space-y-8">
-               <h3 className="text-4xl font-brand font-black italic uppercase">Fila de <span className="text-red-600">Aprovação Industrial.</span></h3>
-               <div className="grid grid-cols-1 gap-6">
-                  {pendingApprovals.map(o => (
-                    <div key={o.id} className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-2xl flex justify-between items-center group hover:border-red-600 transition-all">
-                       <div className="flex-grow">
-                          <div className="flex items-center space-x-6 mb-4">
-                             <span className="text-3xl font-brand font-black italic text-black uppercase">{o.id}</span>
-                             <span className="px-5 py-2 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest">{o.product}</span>
-                          </div>
-                          <div className="grid grid-cols-4 gap-8 text-[10px] font-black uppercase text-gray-400 italic">
-                             <div><span className="block text-gray-300">Cliente</span>{o.client}</div>
-                             <div><span className="block text-gray-300">Tamanho</span>{o.dimensions || 'N/A'}</div>
-                             <div><span className="block text-gray-300">Material</span>{o.material}</div>
-                             <div><span className="block text-gray-300">Ficheiro</span>{o.fileName}</div>
-                          </div>
-                       </div>
-                       <div className="flex items-center space-x-4">
-                          <select className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl text-[10px] font-black uppercase" id={`h-${o.id}`}>
-                             <option value="">NODO...</option>
-                             {hubs.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                          </select>
-                          <button onClick={() => {
-                            const h = (document.getElementById(`h-${o.id}`) as HTMLSelectElement).value;
-                            if(h) onUpdateStatus(o.id, 'Aprovado', h);
-                          }} className="bg-black text-white p-5 rounded-full hover:bg-green-600 transition-all shadow-xl"><CheckCircle2/></button>
-                       </div>
-                    </div>
-                  ))}
-               </div>
-             </div>
-          </div>
-        )}
-
-        {/* Listagem Geral com Impersonation */}
+        {/* Listagem Geral de Entidades com Impersonation para Hubs e Gestão de Credenciais */}
         <div className="grid grid-cols-1 gap-4">
           {activeView !== 'approvals' && filteredItems.map((item: any) => (
              <div key={item.id} className="bg-white p-8 rounded-[3rem] border border-gray-50 hover:border-black shadow-lg transition-all flex items-center justify-between">
@@ -163,20 +133,33 @@ const Backoffice: React.FC<BackofficeProps> = ({
                    <div>
                       <h5 className="text-xl font-brand font-black italic uppercase text-black">{item.name || item.id}</h5>
                       <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{item.email || item.category || item.status}</p>
-                      {activeView === 'users' && <span className={`text-[8px] font-black uppercase tracking-widest mt-1 block ${item.status === 'Ativo' ? 'text-green-500' : 'text-orange-500'}`}>{item.status}</span>}
                    </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                   {activeView === 'users' && (
-                      <button onClick={() => onImpersonate(item)} className="px-6 py-3 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase hover:bg-red-600 hover:text-white transition-all flex items-center space-x-2">
-                         <ArrowUpRight className="w-4 h-4" /> <span>Shadow Mode</span>
+                   {(activeView === 'users' || activeView === 'hubs') && (
+                      <button 
+                        onClick={() => {
+                          const targetUser = activeView === 'users' ? item : users.find(u => u.managedHubId === item.id);
+                          if (targetUser) onImpersonate(targetUser);
+                        }} 
+                        className="px-6 py-3 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase hover:bg-red-600 hover:text-white transition-all flex items-center space-x-2"
+                      >
+                         <ArrowUpRight className="w-4 h-4" /> <span>Shadow</span>
+                      </button>
+                   )}
+                   {(activeView === 'users' || activeView === 'hubs') && (
+                      <button 
+                        onClick={() => {
+                          const u = activeView === 'users' ? item : users.find(u => u.managedHubId === item.id);
+                          if(u) setCredentialModal(u);
+                        }} 
+                        className="p-4 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"
+                      >
+                         <KeyRound className="w-5 h-5" />
                       </button>
                    )}
                    <button onClick={() => setEditingItem({type: activeView.slice(0, -1) as any, data: {...item}})} className="p-4 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all">
                       <Edit className="w-5 h-5" />
-                   </button>
-                   <button onClick={() => onUpdateUser(item.id, { status: item.status === 'Ativo' ? 'Bloqueado' : 'Ativo' })} className="p-4 bg-gray-50 rounded-2xl hover:bg-red-600 hover:text-white transition-all">
-                      {item.status === 'Ativo' ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
                    </button>
                 </div>
              </div>
@@ -184,70 +167,52 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      {/* Audit Stream Lateral */}
-      <div className="lg:w-[400px] space-y-8 pt-16">
-         <div className="bg-black text-white p-12 rounded-[4rem] border-t-[15px] border-red-600 shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 industrial-grid opacity-5" />
-            <div className="relative z-10">
-               <h4 className="text-[12px] font-black uppercase tracking-[0.4em] flex items-center mb-10">
-                 <Terminal className="w-5 h-5 mr-4 text-red-600" /> Audit Stream
-               </h4>
-               <div className="space-y-6">
-                  {orders.slice(0, 5).map(o => (
-                    <div key={o.id} className="border-l-2 border-red-600/30 pl-4 space-y-1 group hover:border-red-600 transition-all">
-                       <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">{o.status}</span>
-                       <p className="text-[10px] font-bold text-gray-400 italic">Job #{o.id} - Protocolo Industrial Ativo.</p>
-                       <span className="text-[8px] font-mono text-gray-600">{new Date(o.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                  ))}
-               </div>
-            </div>
-         </div>
-      </div>
-
-      {/* Modais de Edição e Criação mantidos conforme as diretrizes do desenvolvedor */}
-      {editingItem && (
-        <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in">
-           <div className="bg-white w-full max-w-xl rounded-[4rem] p-16 shadow-2xl border-[15px] border-red-600 relative overflow-y-auto max-h-[90vh]">
-              <button onClick={() => setEditingItem(null)} className="absolute top-10 right-10 p-4 text-gray-300 hover:text-black transition-all"><X className="w-8 h-8"/></button>
-              <h3 className="text-3xl font-brand font-black italic uppercase mb-10">Edição <span className="text-red-600">Granular R2.</span></h3>
-              <div className="space-y-6">
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Nome do Recurso</label>
-                    <input type="text" value={editingItem.data.name || editingItem.data.id} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+      {/* Modal de Gestão de Credenciais Master */}
+      {credentialModal && (
+        <div className="fixed inset-0 z-[7000] bg-black/98 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in">
+           <div className="bg-white w-full max-w-lg rounded-[4rem] p-16 shadow-2xl border-[15px] border-black relative">
+              <button onClick={() => setCredentialModal(null)} className="absolute top-10 right-10 p-4 text-gray-300 hover:text-black transition-all"><X className="w-8 h-8"/></button>
+              <h3 className="text-3xl font-brand font-black italic uppercase mb-10">Master <span className="text-red-600">Auth Control.</span></h3>
+              <div className="space-y-8">
+                 <div className="bg-gray-50 p-6 rounded-3xl">
+                    <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">Entidade</span>
+                    <span className="text-xl font-brand font-black italic text-black uppercase">{credentialModal.name}</span>
                  </div>
-                 {editingItem.type === 'user' && (
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Email Protocolo</label>
-                       <input type="email" value={editingItem.data.email} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, email: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
-                    </div>
-                 )}
-                 <button onClick={handleSaveEdit} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[12px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center">
-                    <Save className="w-5 h-5 mr-4" /> Aplicar Master
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Nova Password R3</label>
+                    <input 
+                      type="text" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)} 
+                      placeholder="GERAR TOKEN..."
+                      className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600"
+                    />
+                 </div>
+                 <button onClick={handleUpdateCredentials} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[12px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 mr-3" /> Atualizar Credencial
                  </button>
               </div>
            </div>
         </div>
       )}
 
-      {showCreateClient && (
-         <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in">
-            <div className="bg-white w-full max-w-lg rounded-[4rem] p-16 shadow-2xl border-[15px] border-black relative">
-               <button onClick={() => setShowCreateClient(false)} className="absolute top-10 right-10 p-4 text-gray-300 hover:text-black transition-all"><X className="w-8 h-8"/></button>
-               <h3 className="text-3xl font-brand font-black italic uppercase mb-10">Novo <span className="text-red-600">Cliente R2.</span></h3>
-               <div className="space-y-6">
-                  <input type="text" placeholder="NOME COMPLETO" value={newClientData.name} onChange={e => setNewClientData({...newClientData, name: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
-                  <input type="email" placeholder="EMAIL DE ACESSO" value={newClientData.email} onChange={e => setNewClientData({...newClientData, email: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
-                  <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 flex items-center space-x-4">
-                     <ShieldAlert className="w-8 h-8 text-red-600" />
-                     <p className="text-[9px] font-black text-red-800 uppercase italic">As credenciais serão geradas automaticamente e marcadas como 'Verificadas' pelo Administrador.</p>
-                  </div>
-                  <button onClick={() => { onCreateClient(newClientData); setShowCreateClient(false); }} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.4em] text-[12px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center">
-                     <Plus className="w-5 h-5 mr-3" /> Injetar Entidade
-                  </button>
-               </div>
-            </div>
-         </div>
+      {/* Outros modais mantidos por compatibilidade */}
+      {editingItem && (
+        <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in">
+           <div className="bg-white w-full max-w-xl rounded-[4rem] p-16 shadow-2xl border-[15px] border-red-600 relative overflow-y-auto max-h-[90vh]">
+              <button onClick={() => setEditingItem(null)} className="absolute top-12 right-12 p-4 text-gray-300 hover:text-black"><X className="w-8 h-8"/></button>
+              <h3 className="text-3xl font-brand font-black italic uppercase mb-10">Edição <span className="text-red-600">Granular R2.</span></h3>
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Nome do Recurso</label>
+                    <input type="text" value={editingItem.data.name || editingItem.data.id} onChange={e => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600" />
+                 </div>
+                 <button onClick={handleSaveEdit} className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase tracking-[0.5em] text-[12px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center">
+                    <Save className="w-5 h-5 mr-4" /> Aplicar Master
+                 </button>
+              </div>
+           </div>
+        </div>
       )}
     </div>
   );
