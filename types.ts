@@ -13,17 +13,18 @@ export enum Category {
 export type Permission = 
   | 'VIEW_ORDERS' 
   | 'PLACE_ORDERS' 
-  | 'APPROVE_BUDGETS' 
-  | 'MANAGE_TEAM' 
-  | 'MANAGE_CATALOG'
-  | 'MANAGE_HUBS'
+  | 'APPROVE_HUB_ORDERS' 
+  | 'MANAGE_HUBS' 
   | 'MANAGE_USERS'
-  | 'ACCESS_BACKOFFICE';
+  | 'ACCESS_ADMIN_PANEL'
+  | 'APPROVE_BUDGETS'
+  | 'MANAGE_TEAM'
+  | 'ACCESS_BACKOFFICE'
+  | 'MANAGE_CATALOG';
 
 export type UserRole = 
   | 'Cliente' 
   | 'B2B_Admin' 
-  | 'B2B_Operador' 
   | 'Administrador';
 
 export interface User {
@@ -34,9 +35,8 @@ export interface User {
   permissions: Permission[];
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Platina';
   company?: string;
-  creditLimit?: number;
-  creditUsed?: number;
   joinedAt: number;
+  creditLimit?: number;
 }
 
 export interface PartnerNode {
@@ -44,31 +44,12 @@ export interface PartnerNode {
   name: string;
   location: string;
   specialization: Category[];
-  status: 'Online' | 'Busy' | 'Maintenance';
+  status: 'Online' | 'Busy' | 'Maintenance' | 'Aguardando Validação';
   capacity: number;
   latency: string;
   image: string;
   description: string;
-  ownerId?: string; // ID do B2B Admin ou 'SYSTEM'
-}
-
-export interface ExtendedProduct {
-  id: string;
-  name: string;
-  category: Category;
-  description: string;
-  basePrice: number;
-  unit: 'm2' | 'un' | 'pack';
-  image: string;
-  badge?: 'NOVO' | 'ECO' | 'BEST' | 'PRO' | 'QUENTE';
-  specs: {
-    weight: string;
-    durability: string;
-    usage: string;
-    weatherResistance?: number;
-    ecoLevel?: number;
-    precisionLevel?: string;
-  };
+  ownerId: string; // ID do B2B Admin
 }
 
 export interface ProductionJob {
@@ -76,7 +57,7 @@ export interface ProductionJob {
   client: string;
   clientId: string;
   product: string;
-  status: 'Orçamento Gerado' | 'Pre-flight' | 'Impressão' | 'Acabamento' | 'Expedição' | 'Entregue';
+  status: 'Pendente Aprovação Hub' | 'Orçamento Gerado' | 'Pre-flight' | 'Impressão' | 'Acabamento' | 'Expedição' | 'Entregue';
   priority: boolean;
   deadline: string;
   timestamp: number;
@@ -86,7 +67,7 @@ export interface ProductionJob {
   dimensions?: string;
   quantity?: string;
   progress: number;
-  nodeId?: string;
+  nodeId: string;
 }
 
 export interface Notification {
@@ -95,8 +76,8 @@ export interface Notification {
   message: string;
   timestamp: number;
   read: boolean;
-  type: 'Confirmed' | 'Production' | 'Shipped' | 'Delivered';
-  orderId: string;
+  type: 'Confirmed' | 'Production' | 'Alert' | 'System';
+  orderId?: string;
 }
 
 export interface TicketMessage {
@@ -117,4 +98,26 @@ export interface SupportTicket {
   messages: TicketMessage[];
   creatorId: string;
   orderId?: string;
+}
+
+/**
+ * Interface para os produtos no catálogo com detalhes técnicos estendidos.
+ */
+export interface ExtendedProduct {
+  id: string;
+  name: string;
+  category: Category;
+  description: string;
+  basePrice: number;
+  unit: string;
+  image: string;
+  badge?: string;
+  specs: {
+    weight: string;
+    durability: string;
+    usage: string;
+    weatherResistance: number;
+    ecoLevel: number;
+    precisionLevel: string;
+  };
 }

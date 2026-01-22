@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { User as UserType, ProductionJob, SupportTicket, Notification } from '../types';
 import { 
-  Activity, Zap, ShieldCheck, Eye, X, Cpu, LogOut, Send, Download, FileText, FileCheck, Plus, Inbox, Clock
+  Activity, Zap, ShieldCheck, Eye, X, Cpu, LogOut, Send, Download, FileText, FileCheck, Plus, Inbox, Clock, AlertCircle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -28,49 +28,43 @@ const Account: React.FC<AccountProps> = ({
   const [replyText, setReplyText] = useState('');
 
   const isAdmin = user.role === 'Administrador';
-  const myOrders = isAdmin ? orders : orders.filter(o => o.clientId === user.id || o.client === user.name);
+  const myOrders = isAdmin ? orders : orders.filter(o => o.clientId === user.id);
   const myTickets = isAdmin ? tickets : tickets.filter(t => t.creatorId === user.id);
-  const pendingApprovals = myOrders.filter(o => o.status === 'Orçamento Gerado');
   const deliveredOrders = myOrders.filter(o => o.status === 'Entregue');
 
   const handleGenerateInvoice = (order: ProductionJob) => {
     const doc = new jsPDF();
-    const invoiceId = `REDLINE-INV-${order.id}-${Date.now().toString().slice(-4)}`;
+    const invoiceId = `REDLINE-FAT-${order.id}-${Date.now().toString().slice(-4)}`;
     
-    // Header Industrial de Fatura
+    // Design Industrial Fatura
     doc.setFillColor(10, 10, 10);
     doc.rect(0, 0, 210, 60, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(32);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REDLINE PRINTING', 20, 35);
+    doc.text('REDLINE PRINT', 20, 35);
     doc.setFontSize(9);
     doc.text(`INDUSTRIAL INVOICE // PROOF OF PRODUCTION // REF: ${invoiceId}`, 20, 48);
 
-    // Dados Fiscais e de Node
     doc.setTextColor(10, 10, 10);
     doc.setFontSize(10);
-    doc.text('CENTRAL DE FATURAÇÃO:', 20, 80);
+    doc.text('EMISSOR:', 20, 80);
     doc.setFontSize(9);
     doc.text('Redline Systems industrial cluster FRA-01', 20, 86);
-    doc.text('60306 Frankfurt am Main, Germany', 20, 91);
+    doc.text('Frankfurt-on-Main, Germany', 20, 91);
     
     doc.setFontSize(10);
-    doc.text('RECEPTOR DO ASSET:', 120, 80);
+    doc.text('CLIENTE:', 120, 80);
     doc.setFontSize(9);
     doc.text(order.client, 120, 86);
-    doc.text(`ID DE CLIENTE: ${order.clientId}`, 120, 91);
+    doc.text(`ID: ${order.clientId}`, 120, 91);
 
-    // Tabela Industrial
     doc.setFillColor(245, 245, 247);
     doc.rect(15, 110, 180, 12, 'F');
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ESPECIFICAÇÃO DO PRODUTO', 20, 117.5);
-    doc.text('VOL.', 140, 117.5);
+    doc.text('DESCRIÇÃO TÉCNICA', 20, 117.5);
+    doc.text('VOLUME', 140, 117.5);
     doc.text('TOTAL EUR', 170, 117.5);
 
-    doc.setFont('helvetica', 'normal');
     doc.text(order.product, 20, 135);
     doc.text(order.quantity || '1', 140, 135);
     doc.text(`${order.value}`, 170, 135);
@@ -78,12 +72,11 @@ const Account: React.FC<AccountProps> = ({
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`Material: ${order.material || 'Standard Industrial'}`, 20, 142);
-    doc.text(`Nodo de Fabrico: ${order.nodeId || 'R2-Global'}`, 20, 147);
+    doc.text(`Node Hub: ${order.nodeId}`, 20, 147);
 
-    // Footer Certificado
     doc.setTextColor(180, 180, 180);
-    doc.text(`CERTIFICADO DIGITAL R2-HASH: ${btoa(order.id).slice(0, 20)}`, 20, 275);
-    doc.text('Fatura gerada automaticamente após confirmação de entrega atómica no Node de destino.', 20, 280);
+    doc.text(`R2-HASH: ${btoa(order.id).slice(0, 20)}`, 20, 275);
+    doc.text('Documento gerado automaticamente pelo Ecossistema REDLINE R2.', 20, 280);
 
     doc.save(`${invoiceId}.pdf`);
   };
@@ -104,20 +97,20 @@ const Account: React.FC<AccountProps> = ({
            <div>
               <h2 className="text-5xl md:text-6xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">{user.name}</h2>
               <div className="flex items-center space-x-4 mt-3">
-                 <span className="px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100">{user.role}</span>
+                 <span className="px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100 shadow-sm">{user.role}</span>
                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">ID: {user.id}</span>
               </div>
            </div>
         </div>
 
-        <div className="flex flex-wrap bg-gray-50 p-2 rounded-[2.5rem] gap-2">
-           {['overview', 'orders', 'approvals', 'inbox', 'financeiro'].map(tab => (
+        <div className="flex flex-wrap bg-gray-50 p-2 rounded-[2.5rem] gap-2 shadow-inner border border-gray-100">
+           {['overview', 'orders', 'inbox', 'financeiro'].map(tab => (
              <button 
                key={tab} 
                onClick={() => setSubTab(tab)}
                className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${subTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-black hover:bg-white'}`}
              >
-               {tab === 'approvals' && pendingApprovals.length > 0 ? `Aprovações (${pendingApprovals.length})` : tab}
+               {tab}
              </button>
            ))}
            <button onClick={onLogout} className="px-6 py-4 text-gray-400 hover:text-red-600 transition-all"><LogOut className="w-6 h-6"/></button>
@@ -128,20 +121,20 @@ const Account: React.FC<AccountProps> = ({
         <div className="xl:col-span-8 space-y-12">
            {subTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in slide-in-from-bottom-6">
-                 <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl border-b-[15px] border-red-600 group hover:scale-[1.02] transition-transform">
+                 <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl border-b-[15px] border-red-600 hover:scale-[1.02] transition-transform">
                     <Activity className="w-12 h-12 text-red-600 mb-10" />
                     <span className="text-7xl font-brand font-black italic block leading-none mb-2">{myOrders.length}</span>
-                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.5em]">Pedidos Ativos</span>
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.5em]">Pedidos na Rede</span>
                  </div>
-                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-xl transition-all">
+                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-2xl transition-all">
                     <Zap className="w-12 h-12 text-red-600 mb-10" />
                     <span className="text-7xl font-brand font-black italic block leading-none mb-2">{deliveredOrders.length}</span>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Entregas R2</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Concluídos R2</span>
                  </div>
-                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-xl transition-all">
+                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-2xl transition-all">
                     <ShieldCheck className="w-12 h-12 text-red-600 mb-10" />
                     <span className="text-4xl font-brand font-black italic block leading-none uppercase mb-2">{user.tier} RANK</span>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Nível de Acesso</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Auth Tier</span>
                  </div>
               </div>
            )}
@@ -157,7 +150,7 @@ const Account: React.FC<AccountProps> = ({
                             </div>
                             <div>
                                <h5 className="text-3xl font-brand font-black italic uppercase leading-none mb-1 text-black">{order.product}</h5>
-                               <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Job: {order.id} // TS: {new Date(order.timestamp).toLocaleDateString()}</span>
+                               <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Ordem: {order.id} // Node: {order.nodeId}</span>
                             </div>
                          </div>
                          <div className="text-right">
@@ -172,7 +165,7 @@ const Account: React.FC<AccountProps> = ({
                          <div className="flex space-x-4">
                             {order.status === 'Entregue' && (
                               <button onClick={() => handleGenerateInvoice(order)} className="flex items-center space-x-3 bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-xl">
-                                <Download className="w-4 h-4" /> <span>Fatura</span>
+                                <Download className="w-4 h-4" /> <span>PDF</span>
                               </button>
                             )}
                             <button onClick={() => setSelectedOrder(order)} className="p-4 bg-gray-50 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Eye className="w-5 h-5"/></button>
@@ -215,7 +208,7 @@ const Account: React.FC<AccountProps> = ({
                             </div>
                             <div className="flex items-center space-x-3">
                                <Clock className="w-4 h-4 text-gray-300" />
-                               <span className="text-[8px] font-black uppercase text-gray-400">Live Sync</span>
+                               <span className="text-[8px] font-black uppercase text-gray-400">Live Sync Ready</span>
                             </div>
                          </div>
                          <div className="flex-grow overflow-y-auto p-10 space-y-8 industrial-grid">
@@ -234,11 +227,11 @@ const Account: React.FC<AccountProps> = ({
                                   value={replyText}
                                   onChange={e => setReplyText(e.target.value)}
                                   onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                                  placeholder="INSERIR INSTRUÇÃO TÉCNICA..." 
+                                  placeholder="INSERIR RESPOSTA TÉCNICA..." 
                                   className="flex-grow bg-gray-50 border-2 border-transparent p-5 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none focus:border-red-600 shadow-inner" 
                                />
-                               <button onClick={handleSendMessage} className="bg-black text-white p-5 rounded-2xl hover:bg-red-600 transition-all shadow-xl group">
-                                  <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                               <button onClick={handleSendMessage} className="bg-black text-white p-5 rounded-2xl hover:bg-red-600 transition-all shadow-xl">
+                                  <Send className="w-6 h-6" />
                                </button>
                             </div>
                          </div>
@@ -261,20 +254,20 @@ const Account: React.FC<AccountProps> = ({
                        <span className="text-6xl font-brand font-black italic">€{(myOrders.reduce((acc, o) => acc + parseFloat(o.value), 0)).toLocaleString()}</span>
                     </div>
                     <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl flex flex-col justify-between border-b-[15px] border-red-600">
-                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] block mb-4">Crédito Industrial</span>
-                       <span className="text-6xl font-brand font-black italic text-red-600">€50,0k</span>
+                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] block mb-4">Crédito Disponível</span>
+                       <span className="text-6xl font-brand font-black italic text-red-600">€15,0k</span>
                     </div>
                  </div>
 
                  <div className="bg-white rounded-[4rem] border border-gray-100 shadow-2xl overflow-hidden">
                     <div className="p-10 border-b border-gray-50">
-                       <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-red-600">Arquivos Fiscais R2</h4>
+                       <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-red-600">Arquivo Fiscal Automático</h4>
                     </div>
                     <div className="divide-y divide-gray-50">
                        {deliveredOrders.length === 0 ? (
                          <div className="p-32 text-center opacity-10">
                             <FileText className="w-24 h-24 mx-auto mb-6" />
-                            <p className="text-[12px] font-black uppercase tracking-[1em]">Sem Faturas</p>
+                            <p className="text-[12px] font-black uppercase tracking-[1em]">Sem Documentos</p>
                          </div>
                        ) : (
                          deliveredOrders.map(o => (
@@ -284,13 +277,13 @@ const Account: React.FC<AccountProps> = ({
                                     <FileCheck className="w-8 h-8" />
                                  </div>
                                  <div>
-                                    <h5 className="text-[14px] font-black uppercase tracking-widest text-black">INVOICE_{o.id}</h5>
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mt-1">Sincronizado via Node FRA-01 // {new Date(o.timestamp).toLocaleDateString()}</span>
+                                    <h5 className="text-[14px] font-black uppercase tracking-widest text-black">FATURA_{o.id}</h5>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mt-1">{new Date(o.timestamp).toLocaleDateString()} // Node: {o.nodeId}</span>
                                  </div>
                               </div>
                               <div className="flex items-center space-x-12">
                                  <span className="text-2xl font-brand font-black italic text-black">€{o.value}</span>
-                                 <button onClick={() => handleGenerateInvoice(o)} className="flex items-center space-x-3 text-[10px] font-black uppercase text-red-600 hover:text-black tracking-[0.3em] transition-all bg-red-50 px-6 py-3 rounded-2xl group">
+                                 <button onClick={() => handleGenerateInvoice(o)} className="flex items-center space-x-3 text-[10px] font-black uppercase text-red-600 hover:text-black tracking-[0.3em] transition-all bg-red-50 px-6 py-3 rounded-2xl group border border-red-100">
                                     <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" /> <span>PDF</span>
                                  </button>
                               </div>
@@ -312,12 +305,12 @@ const Account: React.FC<AccountProps> = ({
               <h4 className="text-4xl font-brand font-black italic uppercase tracking-tighter mb-10 leading-tight text-white">Status da <br /> Identidade.</h4>
               <div className="space-y-6">
                  <div className="flex justify-between items-center text-[10px] font-black uppercase border-b border-white/10 pb-6">
-                    <span className="text-gray-600">Sync Node</span>
+                    <span className="text-gray-600">Hub Local</span>
                     <span className="text-red-600">FRA-MASTER</span>
                  </div>
                  <div className="flex justify-between items-center text-[10px] font-black uppercase border-b border-white/10 pb-6">
-                    <span className="text-gray-600">Cotação R2</span>
-                    <span className="text-green-500">Premium Opt-in</span>
+                    <span className="text-gray-600">Status Sync</span>
+                    <span className="text-green-500">Opt-in Active</span>
                  </div>
                  <div className="flex justify-between items-center text-[10px] font-black uppercase">
                     <span className="text-gray-600">Rank Industrial</span>
@@ -326,8 +319,66 @@ const Account: React.FC<AccountProps> = ({
               </div>
               <button className="w-full mt-12 bg-white/5 border border-white/10 p-6 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all">Relatório Detalhado</button>
            </div>
+
+           <div className="bg-white border border-gray-100 p-12 rounded-[4rem] shadow-xl animate-in slide-in-from-right-10 delay-200">
+              <div className="flex items-center space-x-4 mb-8">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+                <h5 className="text-[10px] font-black uppercase tracking-widest text-black">Alertas R2</h5>
+              </div>
+              {notifications.slice(0, 3).map(n => (
+                <div key={n.id} className="mb-6 pb-6 border-b border-gray-50 last:border-0 last:mb-0">
+                  <span className="text-[8px] font-black text-red-600 uppercase tracking-widest block mb-1">{n.title}</span>
+                  <p className="text-[10px] font-medium text-gray-400 line-clamp-2 italic">{n.message}</p>
+                </div>
+              ))}
+           </div>
         </div>
       </div>
+
+      {/* MODAL DETALHE ORDEM */}
+      {selectedOrder && (
+         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl animate-in fade-in">
+             <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in-95">
+                <div className="w-full md:w-[350px] bg-black text-white p-12 flex flex-col justify-between border-r-[15px] border-red-600">
+                    <div>
+                      <Cpu className="w-10 h-10 text-red-600 mb-10" />
+                      <h4 className="text-4xl font-brand font-black italic uppercase tracking-tighter mb-8 leading-none">Dados do <br /> Módulo.</h4>
+                      <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-500">Transmissão Ativa via Hub {selectedOrder.nodeId}.</p>
+                    </div>
+                    <button onClick={() => setSelectedOrder(null)} className="flex items-center space-x-4 text-[10px] font-black uppercase tracking-[0.4em] hover:text-red-600 transition-all">
+                       <X className="w-6 h-6" /> <span>Fechar Terminal</span>
+                    </button>
+                </div>
+                <div className="flex-grow p-16 industrial-grid overflow-y-auto max-h-[85vh]">
+                    <div className="mb-12">
+                       <h3 className="text-5xl font-brand font-black italic uppercase tracking-tighter leading-none text-black mb-4">{selectedOrder.product}</h3>
+                       <span className="text-4xl font-brand font-black italic text-red-600">€{selectedOrder.value}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-8 mb-12">
+                       <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
+                          <span className="text-[8px] font-black uppercase text-gray-400 block mb-2">Especificação Técnica</span>
+                          <p className="text-[11px] font-black uppercase leading-relaxed text-gray-600">{selectedOrder.material || 'N/A'}</p>
+                       </div>
+                       <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
+                          <span className="text-[8px] font-black uppercase text-gray-400 block mb-2">Volume / Unidade</span>
+                          <p className="text-[11px] font-black uppercase leading-relaxed text-gray-600">{selectedOrder.quantity || '1'} Unid.</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4">
+                       <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                          <span>Status de Produção</span>
+                          <span className="text-red-600">{selectedOrder.status}</span>
+                       </div>
+                       <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-red-600 shimmer transition-all duration-1000" style={{ width: `${selectedOrder.progress}%` }} />
+                       </div>
+                    </div>
+                </div>
+             </div>
+         </div>
+      )}
     </div>
   );
 };
