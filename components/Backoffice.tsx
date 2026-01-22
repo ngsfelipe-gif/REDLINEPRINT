@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent } from 'lucide-react';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent, Filter, MapPin, ExternalLink, Box } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 import { MATERIALS, FINISHES } from '../constants';
 
@@ -36,6 +36,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
   const [showCreateModal, setShowCreateModal] = useState<'user' | 'product' | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Master Protocol Denied.</div>;
 
@@ -67,7 +68,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
   const filteredItems = useMemo(() => {
     const term = searchTerm.toLowerCase();
     if (activeView === 'users') return users.filter(u => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
-    if (activeView === 'orders') return orders.filter(o => o.id.toLowerCase().includes(term) || o.client.toLowerCase().includes(term));
+    if (activeView === 'orders') return orders.filter(o => o.id.toLowerCase().includes(term) || o.client.toLowerCase().includes(term) || o.product.toLowerCase().includes(term));
     if (activeView === 'products') return products.filter(p => p.name.toLowerCase().includes(term));
     if (activeView === 'hubs') return hubs.filter(h => h.name.toLowerCase().includes(term));
     return [];
@@ -75,12 +76,12 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
   return (
     <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
-      {/* Dynamic Header */}
+      {/* Header Central de Comando */}
       <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-24">
         <div>
           <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
              <ShieldCheck className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Master Control v4.2</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.5</span>
           </div>
           <h2 className="text-8xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">Torre de <br/><span className="text-red-600">Controlo.</span></h2>
         </div>
@@ -101,7 +102,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      {/* Global Search & Master Actions */}
+      {/* Busca e Barra de Ações Rápidas */}
       <div className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
          <div className="bg-white p-2 rounded-[3rem] border border-gray-100 shadow-2xl flex items-center max-w-2xl w-full">
             <Search className="w-8 h-8 text-gray-300 ml-6" />
@@ -112,6 +113,159 @@ const Backoffice: React.FC<BackofficeProps> = ({
             {activeView === 'products' && <button onClick={() => setShowCreateModal('product')} className="bg-black text-white px-10 py-6 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-red-600 transition-all flex items-center space-x-4 shadow-xl"><Plus className="w-5 h-5" /> <span>Injetar Módulo</span></button>}
          </div>
       </div>
+
+      {/* VIEW: ORDERS - DETALHAMENTO TOTAL PARA ADMIN */}
+      {activeView === 'orders' && (
+        <div className="space-y-8 animate-in fade-in">
+           {filteredItems.length > 0 ? (
+             <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 overflow-hidden">
+                <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                   <h4 className="text-[12px] font-black uppercase text-black tracking-[0.4em] flex items-center">
+                      <Box className="w-5 h-5 mr-3 text-red-600" /> Protocolos Globais de Produção
+                   </h4>
+                   <div className="flex items-center space-x-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      <span>{filteredItems.length} Unidades no Grid</span>
+                      <RefreshCw className="w-4 h-4 animate-spin-slow text-red-600" />
+                   </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                   <table className="w-full text-left">
+                      <thead>
+                         <tr className="bg-white border-b border-gray-100">
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Barcode / ID</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Módulo Ativo</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Entidade Cliente</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Nodo HUB</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">Status Grid</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-right">Valor Asset</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-center">Protocolo</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                         {filteredItems.map((o: any) => (
+                           <React.Fragment key={o.id}>
+                             <tr className={`hover:bg-gray-50/50 transition-colors group cursor-pointer ${expandedOrder === o.id ? 'bg-red-50/30' : ''}`} onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
+                                <td className="px-10 py-10">
+                                   <div className="flex items-center space-x-4">
+                                      <div className={`w-1 h-12 rounded-full ${o.status === 'Concluído' ? 'bg-green-500' : (o.status === 'Em Produção' ? 'bg-red-600 animate-pulse' : 'bg-gray-300')}`} />
+                                      <span className="font-brand font-black italic text-black uppercase tracking-tighter text-xl">{o.id}</span>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <span className="text-[11px] font-black text-black uppercase tracking-tight">{o.product}</span>
+                                   <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mt-1">{o.dimensions || 'Atomic Unit'}</span>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">{o.client}</span>
+                                   <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest block mt-1">ID: {o.clientId}</span>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <div className="flex items-center space-x-3">
+                                      <Server className="w-3 h-3 text-red-600" />
+                                      <span className="text-[10px] font-black text-black uppercase">{hubs.find(h => h.id === o.nodeId)?.name || 'Central Grid'}</span>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-10">
+                                   <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase border shadow-sm ${o.status === 'Concluído' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+                                      {o.status.replace('_', ' ')}
+                                   </span>
+                                </td>
+                                <td className="px-10 py-10 text-right">
+                                   <span className="font-brand font-black italic text-black text-xl">€{o.value}</span>
+                                </td>
+                                <td className="px-10 py-10 text-center">
+                                   <button className="p-3 bg-gray-50 text-gray-400 rounded-xl group-hover:bg-black group-hover:text-white transition-all">
+                                      {expandedOrder === o.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                   </button>
+                                </td>
+                             </tr>
+                             
+                             {/* Expanded Row for Full Order Metadata */}
+                             {expandedOrder === o.id && (
+                               <tr className="bg-gray-50/80 animate-in slide-in-from-top-4">
+                                  <td colSpan={7} className="p-12">
+                                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
+                                        {/* Detalhes Técnicos */}
+                                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
+                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><FileDigit className="w-4 h-4 mr-3" /> Especificação Asset</h5>
+                                           <div className="grid grid-cols-2 gap-4">
+                                              <div className="p-4 bg-gray-50 rounded-2xl">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Substrato</span>
+                                                 <span className="text-[10px] font-bold text-black uppercase">{o.material}</span>
+                                              </div>
+                                              <div className="p-4 bg-gray-50 rounded-2xl">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Acabamento</span>
+                                                 <span className="text-[10px] font-bold text-black uppercase">{o.finish}</span>
+                                              </div>
+                                              <div className="p-4 bg-gray-50 rounded-2xl">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Quant. Ativa</span>
+                                                 <span className="text-[12px] font-brand font-black italic text-black">{o.quantity} u.</span>
+                                              </div>
+                                              <div className="p-4 bg-gray-50 rounded-2xl">
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Injeção Data</span>
+                                                 <span className="text-[10px] font-bold text-black">{new Date(o.timestamp).toLocaleDateString()}</span>
+                                              </div>
+                                           </div>
+                                        </div>
+
+                                        {/* Ações e Downloads */}
+                                        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
+                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><ExternalLink className="w-4 h-4 mr-3" /> Protocolos de Saída</h5>
+                                           <div className="flex flex-col space-y-4">
+                                              <button onClick={() => generateOrderPDF(o, hubs.find(h => h.id === o.nodeId))} className="w-full flex items-center justify-between p-5 bg-black text-white rounded-2xl hover:bg-red-600 transition-all shadow-lg group/btn">
+                                                 <span className="text-[9px] font-black uppercase tracking-widest">Download Guia R2</span>
+                                                 <FileDown className="w-4 h-4 group-hover/btn:scale-110" />
+                                              </button>
+                                              {o.fileName && (
+                                                <button onClick={() => downloadOriginalAsset(o)} className="w-full flex items-center justify-between p-5 bg-red-600 text-white rounded-2xl hover:bg-black transition-all shadow-lg group/btn">
+                                                   <span className="text-[9px] font-black uppercase tracking-widest">Original Source Asset</span>
+                                                   <Download className="w-4 h-4 group-hover/btn:scale-110" />
+                                                </button>
+                                              )}
+                                              <div className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                                 <Barcode className="w-16 h-8 text-gray-300" />
+                                              </div>
+                                           </div>
+                                        </div>
+
+                                        {/* Auditoria Operacional */}
+                                        <div className="xl:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
+                                           <h5 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center mb-6"><History className="w-4 h-4 mr-3" /> Global Operational Log</h5>
+                                           <div className="max-h-48 overflow-y-auto space-y-4 scrollbar-hide">
+                                              {o.history?.map((log: any, idx: number) => (
+                                                <div key={idx} className="flex items-start space-x-4 border-l-2 border-red-100 pl-4 relative">
+                                                   <div className="absolute -left-[5px] top-1 w-2 h-2 bg-red-600 rounded-full" />
+                                                   <div className="flex-grow">
+                                                      <div className="flex justify-between items-center mb-1">
+                                                         <span className="text-[10px] font-black uppercase text-black">{log.status}</span>
+                                                         <span className="text-[8px] font-bold text-gray-300">{new Date(log.timestamp).toLocaleString()}</span>
+                                                      </div>
+                                                      <p className="text-[10px] text-gray-400 italic">"{log.note}"</p>
+                                                      <span className="text-[7px] font-black uppercase text-gray-300 block mt-1">Operador: {log.author}</span>
+                                                   </div>
+                                                </div>
+                                              ))}
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </td>
+                               </tr>
+                             )}
+                           </React.Fragment>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+           ) : (
+             <div className="py-40 text-center space-y-10 opacity-20">
+                <Box className="w-32 h-32 mx-auto" />
+                <p className="text-5xl font-brand font-black italic uppercase">Grid Deserto. Nenhuma Ordem Localizada.</p>
+             </div>
+           )}
+        </div>
+      )}
 
       {/* VIEW: FINANCIALS - ENGENHARIA DE RECEITA */}
       {activeView === 'financials' && (
