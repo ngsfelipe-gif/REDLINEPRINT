@@ -93,61 +93,41 @@ const App: React.FC = () => {
     playSound('success');
   };
 
-  const handleRegisterHub = (req: HubRegistrationRequest) => {
-    setHubRequests(prev => [req, ...prev]);
-    notify("Candidatura Hub", `Empresa ${req.companyName} aguarda aprovação Master.`);
+  const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+    notify("Encomenda Atualizada", `Dados da encomenda ${orderId} modificados via Master Control.`);
   };
 
-  const handleApproveHub = (requestId: string) => {
-    const req = hubRequests.find(r => r.id === requestId);
-    if (!req) return;
-    const newHub: PartnerNode = {
-      id: `NODE-${Date.now()}`,
-      name: req.companyName,
-      location: req.location,
-      status: 'Online',
-      capacity: 0,
-      latency: '---',
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800',
-      description: 'Hub aprovado pelo Master Control.',
-      ownerId: 'SYSTEM'
-    };
-    setHubs(prev => [...prev, newHub]);
-    setHubRequests(prev => prev.filter(r => r.id !== requestId));
-    notify("Hub Ativado", `${req.companyName} agora é um node oficial.`);
+  const handleUpdateHub = (hubId: string, updates: Partial<PartnerNode>) => {
+    setHubs(prev => prev.map(h => h.id === hubId ? { ...h, ...updates } : h));
+    notify("Hub Atualizado", `Parâmetros do Nodo ${hubId} sincronizados.`);
   };
 
-  const handleRequestAuth = (req: Omit<AuthorizationRequest, 'id' | 'timestamp' | 'status'>) => {
-    const newReq: AuthorizationRequest = {
-      ...req,
-      id: `AUTH-${Date.now()}`,
-      timestamp: Date.now(),
-      status: 'Pendente'
-    };
-    setAuthRequests(prev => [newReq, ...prev]);
-    notify("Pedido de Autorização", `Solicitação Master enviada por ${req.requesterName}.`);
-  };
-
-  const handleApproveAuth = (authId: string) => {
-    const req = authRequests.find(r => r.id === authId);
-    if (!req) return;
-    setAuthRequests(prev => prev.map(r => r.id === authId ? { ...r, status: 'Aprovado' } : r));
-    
-    if (req.type === 'DELETE_PRODUCT') {
-      setProducts(prev => prev.filter(p => p.id !== req.targetId));
-      notify("Autorização Concedida", "Ação crítica executada: Remoção de Produto.");
-    }
+  const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updates } : p));
+    notify("Ativo Atualizado", `Catálogo R2 atualizado para o item ${productId}.`);
   };
 
   const handleUpdateUser = (userId: string, updates: Partial<User>) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    notify("Utilizador Atualizado", `Alterações sincronizadas para ${userId}.`);
+    notify("Utilizador Atualizado", `Perfil de ${userId} modificado.`);
   };
 
-  const handleAddUser = (u: User) => {
-    const pendingUser = { ...u, status: 'Pendente' as const };
-    setUsers(prev => [...prev, pendingUser]);
-    notify("Novo Registo", `A conta de ${u.name} aguarda validação Master.`);
+  const handleCreateClientByAdmin = (clientData: Partial<User>) => {
+    const newUser: User = {
+      id: `CLI-${Date.now()}`,
+      name: clientData.name || 'Novo Cliente',
+      email: clientData.email || 'cliente@redline.eu',
+      password: Math.random().toString(36).slice(-8),
+      role: 'Cliente',
+      permissions: ['BUY'],
+      tier: 'Bronze',
+      status: 'Ativo',
+      joinedAt: Date.now(),
+      ...clientData
+    };
+    setUsers(prev => [...prev, newUser]);
+    notify("Cliente Provisionado", `Entidade ${newUser.name} injetada no Grid. Password: ${newUser.password}`);
   };
 
   const handleImpersonate = (targetUser: User) => {
@@ -155,7 +135,7 @@ const App: React.FC = () => {
     setAdminBuffer(user);
     setUser(targetUser);
     setActiveTab('account');
-    notify("Shadow Session", `Simulando acesso como ${targetUser.name}.`);
+    notify("Sessão Shadow", `Simulando acesso como ${targetUser.name}.`);
   };
 
   const handleStopImpersonation = () => {
@@ -163,7 +143,7 @@ const App: React.FC = () => {
       setUser(adminBuffer);
       setAdminBuffer(null);
       setActiveTab('production');
-      notify("Master Recovered", "Sessão de Administrador restabelecida.");
+      notify("Sessão Master", "Controle de Administrador restabelecido.");
     }
   };
 
@@ -183,22 +163,37 @@ const App: React.FC = () => {
       )}
 
       <div className="pt-32 lg:pt-40 min-h-screen">
-        {activeTab === 'home' && <Hero onStart={() => setActiveTab('products')} onB2B={() => setActiveTab('partners')} onRegister={() => setShowLogin(true)} language={language} />}
+        {activeTab === 'home' && (
+          <Hero 
+            onStart={() => setActiveTab('products')} 
+            onB2B={() => setActiveTab('partners')} 
+            onRegister={() => setShowLogin(true)} 
+            language={language} 
+            hubsCount={hubs.length}
+            usersCount={users.length}
+            ordersCount={orders.length}
+            productsCount={products.length}
+          />
+        )}
         {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} />}
         {activeTab === 'live' && <PublicGrid orders={orders} hubs={hubs} language={language} />}
-        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={handleRegisterHub} onTicketSubmit={(t) => setTickets(prev => [t, ...prev])} />}
+        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => setHubRequests(prev => [...prev, req])} onTicketSubmit={(t) => setTickets(prev => [t, ...prev])} />}
         {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={(t) => setTickets(prev => [t, ...prev])} />}
         
         {activeTab === 'production' && (
           <Backoffice 
             orders={orders} hubs={hubs} users={users} user={user} products={products}
             hubRequests={hubRequests} authRequests={authRequests}
-            onApproveHub={handleApproveHub}
-            onApproveAuth={handleApproveAuth}
+            onApproveHub={(id) => {}} 
+            onApproveAuth={(id) => {}}
             onUpdateStatus={handleUpdateOrderStatus}
             onUpdateUser={handleUpdateUser}
+            onUpdateHub={handleUpdateHub}
+            onUpdateProduct={handleUpdateProduct}
+            onUpdateOrder={handleUpdateOrderGranular}
             onImpersonate={handleImpersonate}
-            onCreateUser={handleAddUser}
+            onCreateUser={(u) => setUsers(prev => [...prev, u])}
+            onCreateClient={handleCreateClientByAdmin}
             language={language}
           />
         )}
@@ -210,7 +205,7 @@ const App: React.FC = () => {
             tickets={tickets.filter(t => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? t.targetHubId === user.managedHubId : t.creatorId === user.id))}
             hubs={hubs} products={products}
             onUpdateStatus={handleUpdateOrderStatus}
-            onRequestAuth={handleRequestAuth}
+            onRequestAuth={(req) => setAuthRequests(prev => [...prev, { ...req, id: `AUTH-${Date.now()}`, timestamp: Date.now(), status: 'Pendente' }])}
             language={language} onLogout={() => { setUser(null); setActiveTab('home'); }}
           />
         )}
@@ -229,7 +224,7 @@ const App: React.FC = () => {
       )}
       
       <SupportChat language={language} />
-      {showLogin && <LoginPanel onLogin={(u) => { setUser(u); setShowLogin(false); }} onBack={() => setShowLogin(false)} registeredUsers={users} language={language} onRegisterUser={handleAddUser} />}
+      {showLogin && <LoginPanel onLogin={(u) => { setUser(u); setShowLogin(false); }} onBack={() => setShowLogin(false)} registeredUsers={users} language={language} onRegisterUser={(u) => setUsers(prev => [...prev, u])} />}
     </Layout>
   );
 };

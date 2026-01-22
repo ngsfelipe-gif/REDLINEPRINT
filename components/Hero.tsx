@@ -1,10 +1,20 @@
 
 import React from 'react';
-import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers } from 'lucide-react';
+import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers, Users, ShoppingCart, Package } from 'lucide-react';
 import { Language } from '../types';
 
-// Fixed missing language prop in Hero component
-const Hero: React.FC<{ onStart: () => void, onB2B: () => void, onRegister: () => void, language: Language }> = ({ onStart, onB2B, onRegister, language }) => {
+interface HeroProps {
+  onStart: () => void;
+  onB2B: () => void;
+  onRegister: () => void;
+  language: Language;
+  hubsCount?: number;
+  usersCount?: number;
+  ordersCount?: number;
+  productsCount?: number;
+}
+
+const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsCount = 0, usersCount = 0, ordersCount = 0, productsCount = 0 }) => {
   return (
     <div className="space-y-32">
       {/* Hero Section Master */}
@@ -47,24 +57,24 @@ const Hero: React.FC<{ onStart: () => void, onB2B: () => void, onRegister: () =>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-16 border-t border-gray-100">
                <div className="space-y-3">
-                  <Target className="w-6 h-6 text-red-600" /> 
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Precisão de Node</span>
-                  <span className="text-2xl font-brand font-black italic">0.01mm</span>
+                  <Server className="w-6 h-6 text-red-600" /> 
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Hubs no Grid</span>
+                  <span className="text-2xl font-brand font-black italic">{hubsCount} Units</span>
                </div>
                <div className="space-y-3">
-                  <Cpu className="w-6 h-6 text-red-600" /> 
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">IA Pre-Flight</span>
-                  <span className="text-2xl font-brand font-black italic">Active</span>
+                  <ShoppingCart className="w-6 h-6 text-red-600" /> 
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Encomendas</span>
+                  <span className="text-2xl font-brand font-black italic">{ordersCount} Live</span>
                </div>
                <div className="space-y-3">
-                  <Globe className="w-6 h-6 text-red-600" /> 
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Nodes Globais</span>
-                  <span className="text-2xl font-brand font-black italic">14 Units</span>
+                  <Package className="w-6 h-6 text-red-600" /> 
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Ativos R2</span>
+                  <span className="text-2xl font-brand font-black italic">{productsCount} Modules</span>
                </div>
                <div className="space-y-3">
-                  <Zap className="w-6 h-6 text-red-600" /> 
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Sincronia R2</span>
-                  <span className="text-2xl font-brand font-black italic">Realtime</span>
+                  <Users className="w-6 h-6 text-red-600" /> 
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Entidades</span>
+                  <span className="text-2xl font-brand font-black italic">{usersCount} Active</span>
                </div>
             </div>
           </div>

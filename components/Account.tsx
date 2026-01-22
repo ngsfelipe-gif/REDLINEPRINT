@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key } from 'lucide-react';
+import { Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, Layers } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 interface AccountProps {
@@ -28,7 +28,6 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
   const totalEarnings = orders.reduce((acc, o) => acc + parseFloat(o.value), 0);
 
   const handleDeleteProduct = (productId: string) => {
-    // Ações críticas agora exigem autorização Master
     onRequestAuth({
       type: 'DELETE_PRODUCT',
       requesterId: user.id,
@@ -50,6 +49,8 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
     doc.text(`PRODUTO: ${order.product}`, 20, 90);
     doc.text(`VALOR: €${order.value}`, 20, 100);
     doc.text(`NODE DE PRODUÇÃO: ${order.nodeId}`, 20, 110);
+    doc.text(`DIMENSÕES: ${order.dimensions || 'N/A'}`, 20, 120);
+    doc.text(`MATERIAL: ${order.material}`, 20, 130);
     doc.save(`REDLINE_CERT_${order.id}.pdf`);
   };
 
@@ -99,7 +100,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
            <div className="flex justify-between items-end">
               <h3 className="text-6xl font-brand font-black italic uppercase leading-none">Produção <br/><span className="text-red-600">e Manufatura.</span></h3>
               <div className="bg-gray-50 px-8 py-4 rounded-3xl text-[12px] font-black uppercase italic text-gray-400 flex items-center">
-                <ShieldCheck className="w-4 h-4 mr-3 text-red-600" /> Sincronização Segura Ativa
+                <ShieldCheck className="w-4 h-4 mr-3 text-red-600" /> Sincronização Master Ativa
               </div>
            </div>
            <div className="grid grid-cols-1 gap-10">
@@ -114,10 +115,16 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-[12px] font-black uppercase text-gray-400 italic">
                          <div><span className="block text-gray-300 mb-2">Ref ID</span>{o.id}</div>
-                         <div><span className="block text-gray-300 mb-2">Tamanho</span>{o.width}x{o.height}{o.unit}</div>
+                         <div><span className="block text-gray-300 mb-2">Tamanho</span>{o.dimensions || `${o.width}x${o.height}${o.unit}`}</div>
                          <div><span className="block text-gray-300 mb-2">Node Destino</span>{o.nodeId}</div>
                          <div><span className="block text-gray-300 mb-2">Valor Ativo</span>€{o.value}</div>
                       </div>
+                      {o.fileName && (
+                        <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-2xl w-fit border border-gray-100 shadow-inner">
+                           <FileCheck className="w-4 h-4 text-red-600" />
+                           <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Asset: {o.fileName}</span>
+                        </div>
+                      )}
                    </div>
                    <div className="flex space-x-4">
                       <button onClick={() => setSelectedJobId(selectedJobId === o.id ? null : o.id)} className="p-10 bg-gray-100 rounded-full text-black hover:bg-black hover:text-white transition-all shadow-xl">
@@ -148,6 +155,15 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                              </div>
                            ))}
                         </div>
+                        {o.observations && (
+                          <div className="mt-8 p-8 bg-white rounded-[2rem] border border-gray-100 space-y-4">
+                             <div className="flex items-center space-x-3 text-red-600">
+                                <Maximize2 className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Especificações de Engenharia:</span>
+                             </div>
+                             <p className="text-[12px] font-medium text-gray-600 italic leading-relaxed">{o.observations}</p>
+                          </div>
+                        )}
                      </div>
                    )}
                 </div>
