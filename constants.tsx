@@ -12,11 +12,11 @@ export const MATERIALS = [
 ];
 
 export const FINISHES = [
-  'Corte Bruto (Sem Acabamento)', 'Corte Reto Laser de Precisão', 'Corte Especial (Die-Cut Digital)', 'Ilhós Perimetral Reforçado 15mm', 'Verniz Localizado 3D High-Build', 'Plastificação Mate Soft-Touch', 'Laminagem Anti-Graffiti', 'Dobra em Cruz (Flyers)'
+  'Corte Bruto (Sem Acabamento)', 'Corte Reto Laser de Precisão', 'Corte Especial (Die-Cut Digital)', 'Ilhós Perimetral Reforçado 15mm', 'Verniz Localizado 3D High-Build', 'Plastificação Mate Soft-Touch', 'Laminagem Anti-Graffiti', 'Dobra em Cruz (Flyers)', 'Furo de 5mm (Tags)', 'Canto Redondo (Cartões)'
 ];
 
 /**
- * Gera a lista inicial de produtos industriais.
+ * Gera a lista inicial de produtos industriais expandida.
  */
 const generateProducts = (): ExtendedProduct[] => {
   const items: ExtendedProduct[] = [];
@@ -28,20 +28,20 @@ const generateProducts = (): ExtendedProduct[] => {
     [Category.Packaging]: ['https://images.unsplash.com/photo-1595079676339-1534801ad6cf', 'https://images.unsplash.com/photo-1528698851214-41da9281a85c'],
     [Category.Textile]: ['https://images.unsplash.com/photo-1591337676887-a217a6970c8a', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab'],
     [Category.CommercialPrint]: ['https://images.unsplash.com/photo-1544947950-fa07a98d237f', 'https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14'],
-    [Category.SmartSolution]: ['https://images.unsplash.com/photo-1517245386807-bb43f82c33c4'],
-    [Category.OfficeSupplies]: ['https://images.unsplash.com/photo-1586075010620-22524317b62a'],
-    [Category.Events]: ['https://images.unsplash.com/photo-1540575467063-178a50c2df87']
+    [Category.SmartSolution]: ['https://images.unsplash.com/photo-1517245386807-bb43f82c33c4', 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b'],
+    [Category.OfficeSupplies]: ['https://images.unsplash.com/photo-1586075010620-22524317b62a', 'https://images.unsplash.com/photo-1516383274235-5f42d6c6426d'],
+    [Category.Events]: ['https://images.unsplash.com/photo-1540575467063-178a50c2df87', 'https://images.unsplash.com/photo-1475721027785-f74dea327912']
   };
 
   const productNames: Record<string, string[]> = {
-    [Category.LargeFormat]: ['Lona Frontlight', 'Lona Mesh', 'Vinil Fosco', 'Vinil Brilho', 'Alumínio Dibond', 'PVC Expandido', 'Acrílico Cristal', 'Backlight Film'],
-    [Category.SmallFormat]: ['Cartão de Visita Silk', 'Cartão de Visita Reciclado', 'Flyer A5 Standard', 'Flyer A6 Premium', 'Folheto Bifold', 'Folheto Trifold'],
-    [Category.Packaging]: ['Caixa de Envio P', 'Caixa de Envio M', 'Caixa de Envio G', 'Saco de Papel Kraft', 'Saco de Luxo Laminado'],
-    [Category.Textile]: ['T-Shirt Algodão', 'Sweatshirt Premium', 'Tote Bag Orgânico', 'Boné Industrial', 'Polo Piqué'],
-    [Category.CommercialPrint]: ['Catálogo A4 PUR', 'Relatório Anual', 'Agenda Corporativa', 'Menu Restaurante'],
-    [Category.SmartSolution]: ['Cartão NFC Metal', 'Cartão NFC PVC', 'Tag Ativo R2', 'Placa Smart Feedback'],
-    [Category.OfficeSupplies]: ['Papel de Carta', 'Envelope DL', 'Envelope C5', 'Pasta de Documentos'],
-    [Category.Events]: ['Roll-up Standard', 'Roll-up Premium', 'Banner de X', 'Pop-up Wall 3x3']
+    [Category.LargeFormat]: ['Lona Frontlight R2', 'Lona Mesh Industrial', 'Vinil Fosco UV', 'Vinil Brilho Cast', 'Alumínio Dibond 3mm', 'PVC Expandido 5mm', 'Acrílico Cristal Laser', 'Backlight Film Pro', 'Wall Mural Texture', 'Outdoor Banner Mesh'],
+    [Category.SmallFormat]: ['Cartão de Visita Silk 450g', 'Cartão Reciclado Eco-Fibre', 'Flyer A5 Standard', 'Flyer A6 Premium', 'Folheto Bifold 170g', 'Folheto Trifold 135g', 'Postcard Gloss', 'Ticket Roll Thermal'],
+    [Category.Packaging]: ['Caixa de Envio Eco P', 'Caixa de Envio M Premium', 'Caixa de Envio G Heavy Duty', 'Saco Kraft Bio', 'Saco de Luxo Laminado', 'Pizza Box Custom', 'Bottle Carrier 4-pack'],
+    [Category.Textile]: ['T-Shirt Algodão 180g', 'Sweatshirt Premium 320g', 'Tote Bag Orgânico Canvas', 'Boné Industrial R2', 'Polo Piqué Corporate', 'Apron Canvas Pro', 'Sublimation Mug Pro', 'Avental Industrial R2'],
+    [Category.CommercialPrint]: ['Catálogo A4 PUR Perfect', 'Relatório Anual Hardcover', 'Agenda Corporativa Wire-O', 'Menu Restaurante Waterproof', 'Lookbook High-End', 'Magazine Glossy'],
+    [Category.SmartSolution]: ['Cartão NFC Metal Titanium', 'Cartão NFC PVC Hybrid', 'Tag Ativo R2 RFID', 'Placa Smart Feedback', 'Wristband NFC Event', 'Keyfob Smart Access'],
+    [Category.OfficeSupplies]: ['Papel de Carta Letterhead', 'Envelope DL Windowed', 'Envelope C5 Security', 'Pasta de Documentos Die-Cut', 'Notepad Grid R2', 'Sticker Sheet Branded', 'Selo de Cera Digital'],
+    [Category.Events]: ['Roll-up Standard 85cm', 'Roll-up Premium 100cm', 'Banner de X Portable', 'Pop-up Wall 3x3 Fabric', 'Counter Event Pro', 'Flag Banner Wind-Blade']
   };
 
   categories.forEach((cat) => {
@@ -52,20 +52,20 @@ const generateProducts = (): ExtendedProduct[] => {
         id: `${cat.slice(0, 2).toLowerCase()}-${i + 1}`,
         name,
         category: cat,
-        description: `Solução industrial premium para ${cat.toLowerCase()}. Protocolo REDLINE R2.`,
-        basePrice: Math.floor(Math.random() * 50) + 10,
+        description: `Solução industrial premium para ${cat.toLowerCase()}. Protocolo REDLINE R2. Calibração garantida.`,
+        basePrice: Math.floor(Math.random() * 50) + 15,
         unit: cat === Category.LargeFormat ? 'm2' : 'un',
-        image: `${imgs[i % imgs.length]}?q=80&w=800`,
-        badge: i % 5 === 0 ? 'NOVO' : (i % 7 === 0 ? 'ECO' : undefined),
+        image: `${imgs[i % imgs.length]}?q=80&w=1000`,
+        badge: i % 4 === 0 ? 'NOVO' : (i % 6 === 0 ? 'ECO' : (i % 8 === 0 ? 'PRO' : undefined)),
         status: 'Ativo',
         ownerHubId: 'SYSTEM',
         specs: {
-          weight: `${Math.floor(Math.random() * 400) + 100}g`,
-          durability: `${Math.floor(Math.random() * 5) + 2} Anos`,
-          usage: 'Profissional',
-          weatherResistance: Math.floor(Math.random() * 100),
-          ecoLevel: Math.floor(Math.random() * 100),
-          precisionLevel: 'Ultra'
+          weight: `${Math.floor(Math.random() * 400) + 120}g`,
+          durability: `${Math.floor(Math.random() * 6) + 3} Anos`,
+          usage: i % 2 === 0 ? 'Industrial Heavy' : 'Comercial Premium',
+          weatherResistance: Math.floor(Math.random() * 60) + 40,
+          ecoLevel: Math.floor(Math.random() * 70) + 30,
+          precisionLevel: 'Atomic R2'
         }
       });
     });
@@ -100,6 +100,18 @@ export const MOCK_NODES: PartnerNode[] = [
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800',
     description: 'Centro de excelência para acabamentos especiais e impressão comercial de alta fidelidade.',
     ownerId: 'SYSTEM'
+  },
+  { 
+    id: 'NODE-MAD', 
+    name: 'Madrid Tech Unit', 
+    location: 'Madrid, ES', 
+    specialization: [Category.SmartSolution, Category.OfficeSupplies], 
+    status: 'Online', 
+    capacity: 65, 
+    latency: '5ms', 
+    image: 'https://images.unsplash.com/photo-1558444479-c8f027d6a5ad?q=80&w=800',
+    description: 'Unidade dedicada a soluções inteligentes NFC e produção acelerada de material corporativo.',
+    ownerId: 'SYSTEM'
   }
 ];
 
@@ -109,7 +121,6 @@ export const MOCK_JOBS: ProductionJob[] = [
     client: 'Elon Musk', 
     clientId: 'b2b-01', 
     product: 'Lona Mesh Giga', 
-    // Fix: Using correct status 'Em Produção' to match type definition
     status: 'Em Produção', 
     priority: true, 
     deadline: 'Hoje', 
@@ -121,7 +132,6 @@ export const MOCK_JOBS: ProductionJob[] = [
     quantity: '1', 
     progress: 60, 
     nodeId: 'NODE-FRA',
-    // Fix: Added missing history property to satisfy the ProductionJob interface.
     history: [
       { timestamp: Date.now() - 3600000, status: 'Em Produção', author: 'System', note: 'Job injetado via Grid Industrial.' }
     ]

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, User, Printer, Award, Globe, LogIn, LogOut, Menu, 
   ChevronDown, Twitter, Linkedin, Github, Instagram, Mail, Shield, 
-  Cpu, Zap, Activity, Radio, MapPin, ExternalLink, ShieldCheck, Terminal
+  Cpu, Zap, Activity, Radio, MapPin, ExternalLink, ShieldCheck, Terminal, Server
 } from 'lucide-react';
 import { User as UserType, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -56,6 +56,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             <button onClick={() => setActiveTab('live')} className={`hover:text-red-600 flex items-center space-x-2 transition-all ${activeTab === 'live' ? 'text-red-600' : ''}`}>
               <Activity className="w-3 h-3" />
               <span>Grid Live</span>
+            </button>
+            <button onClick={() => setActiveTab('partners')} className={`hover:text-black flex items-center space-x-2 transition-all ${activeTab === 'partners' ? 'text-black' : ''}`}>
+              <Server className="w-3 h-3" />
+              <span>Nodos</span>
             </button>
             {user && (user.role === 'Administrador' || user.role === 'B2B_Admin') && (
               <button onClick={() => setActiveTab('production')} className={`hover:text-black transition-all ${activeTab === 'production' ? 'text-black' : ''}`}>{t.nav_production}</button>

@@ -48,6 +48,7 @@ export interface SupportTicket {
   priority: 'Alta' | 'Média' | 'Baixa';
   timestamp: number;
   creatorId: string;
+  targetHubId?: string; // Direcionado a um Hub específico
   messages: SupportMessage[];
 }
 
@@ -59,6 +60,17 @@ export interface HubRegistrationRequest {
   machinePark: string;
   timestamp: number;
   status: 'Pendente' | 'Aprovado' | 'Recusado';
+}
+
+export interface AuthorizationRequest {
+  id: string;
+  type: 'DELETE_PRODUCT' | 'UPDATE_PRICE' | 'BLOCK_USER';
+  requesterId: string;
+  requesterName: string;
+  targetId: string;
+  details: string;
+  timestamp: number;
+  status: 'Pendente' | 'Aprovado' | 'Rejeitado';
 }
 
 export interface ProductionJob {
