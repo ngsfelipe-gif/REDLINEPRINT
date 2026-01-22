@@ -8,6 +8,7 @@ import Backoffice from './components/Backoffice';
 import Account from './components/Account';
 import LoginPanel from './components/LoginPanel';
 import B2BPartners from './components/B2BPartners';
+import PublicGrid from './components/PublicGrid';
 import { MOCK_JOBS, MOCK_NODES, INITIAL_PRODUCTS } from './constants';
 import { User, ProductionJob, PartnerNode, ExtendedProduct, Language, ProductionLog } from './types';
 import { TRANSLATIONS } from './translations';
@@ -24,7 +25,7 @@ const App: React.FC = () => {
     { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() }
   ]);
   const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES);
-  const [orders, setOrders] = useState<ProductionJob[]>([]);
+  const [orders, setOrders] = useState<ProductionJob[]>(MOCK_JOBS);
   const [products, setProducts] = useState<ExtendedProduct[]>(INITIAL_PRODUCTS.map(p => ({...p, status: 'Ativo', ownerHubId: p.ownerHubId || 'SYSTEM'})));
   
   const [showLogin, setShowLogin] = useState(false);
@@ -76,6 +77,11 @@ const App: React.FC = () => {
     notify("Utilizador Ativado", `Entidade ${u.name} registada no cluster.`);
   };
 
+  const handleUpdateUser = (userId: string, updates: Partial<User>) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+    notify("Utilizador Atualizado", `Permissões/Status de ${userId} sincronizados.`);
+  };
+
   return (
     <Layout 
       activeTab={activeTab} setActiveTab={setActiveTab} user={user} 
@@ -99,6 +105,10 @@ const App: React.FC = () => {
             user={user} hubs={hubs} products={products} language={language}
           />
         )}
+
+        {activeTab === 'live' && (
+          <PublicGrid orders={orders} hubs={hubs} language={language} />
+        )}
         
         {activeTab === 'production' && (
           <Backoffice 
@@ -106,6 +116,7 @@ const App: React.FC = () => {
             onUpdateStatus={handleUpdateOrderStatus}
             onCreateHub={handleAddHub}
             onCreateUser={handleAddUser}
+            onUpdateUser={handleUpdateUser}
             language={language}
           />
         )}

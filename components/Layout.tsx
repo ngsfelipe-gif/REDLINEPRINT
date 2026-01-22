@@ -53,6 +53,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
 
           <div className="hidden lg:flex items-center space-x-8 font-black text-[9px] uppercase tracking-widest text-gray-400">
             <button onClick={() => setActiveTab('products')} className={`hover:text-black transition-all ${activeTab === 'products' ? 'text-black' : ''}`}>{t.nav_catalog}</button>
+            <button onClick={() => setActiveTab('live')} className={`hover:text-red-600 flex items-center space-x-2 transition-all ${activeTab === 'live' ? 'text-red-600' : ''}`}>
+              <Activity className="w-3 h-3" />
+              <span>Grid Live</span>
+            </button>
             {user && (user.role === 'Administrador' || user.role === 'B2B_Admin') && (
               <button onClick={() => setActiveTab('production')} className={`hover:text-black transition-all ${activeTab === 'production' ? 'text-black' : ''}`}>{t.nav_production}</button>
             )}
