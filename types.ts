@@ -24,7 +24,7 @@ export interface User {
   name: string;
   email: string;
   password?: string;
-  role: 'Cliente' | 'B2B_Admin' | 'Administrador';
+  role: 'Cliente' | 'B2B_Admin' | 'Administrador' | 'Utilizador_Standard';
   permissions: string[];
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Platina';
   status: 'Ativo' | 'Pendente' | 'Bloqueado';
@@ -78,7 +78,7 @@ export interface ProductionJob {
   client: string;
   clientId: string;
   product: string;
-  status: 'Aguardando Aprovação' | 'Aprovado' | 'Em Produção' | 'Expedição' | 'Concluído';
+  status: 'Pendente_Admin' | 'Aguardando Aprovação' | 'Aprovado' | 'Em Produção' | 'Expedição' | 'Concluído' | 'Rejeitado';
   value: string;
   nodeId: string;
   progress: number;
@@ -109,6 +109,8 @@ export interface PartnerNode {
   description: string;
   ownerId: string;
   specialization?: Category[];
+  primaryCommission?: number;   // Percentagem de comissão HUB (0-100)
+  secondaryCommission?: number; // Camada secundária de comissão (0-100)
 }
 
 export interface ExtendedProduct {

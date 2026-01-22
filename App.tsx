@@ -23,7 +23,8 @@ const App: React.FC = () => {
   
   const [users, setUsers] = useState<User[]>([
     { id: 'ADMIN-01', name: 'Super Admin', email: 'admin@redline.eu', password: 'admin', role: 'Administrador', permissions: ['ALL'], tier: 'Platina', status: 'Ativo', joinedAt: Date.now() },
-    { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() }
+    { id: 'HUB-FRA-01', name: 'Frankfurt Hub', email: 'fra@redline.eu', password: 'hub', role: 'B2B_Admin', managedHubId: 'NODE-FRA', permissions: ['PRODUCTION'], tier: 'Ouro', status: 'Ativo', joinedAt: Date.now() },
+    { id: 'STD-01', name: 'Utilizador Standard', email: 'user@redline.eu', password: 'user', role: 'Utilizador_Standard', permissions: ['BUY'], tier: 'Bronze', status: 'Ativo', joinedAt: Date.now() }
   ]);
   const [hubs, setHubs] = useState<PartnerNode[]>(MOCK_NODES);
   const [hubRequests, setHubRequests] = useState<HubRegistrationRequest[]>([]);
@@ -100,39 +101,59 @@ const App: React.FC = () => {
   };
 
   const handleCreateOrder = (order: ProductionJob) => {
-    setOrders(prev => [order, ...prev]);
-    notify("Encomenda Recebida", `Job ${order.id} injetado no grid industrial.`, "success");
+    const hierarchicalOrder: ProductionJob = {
+      ...order,
+      status: 'Pendente_Admin' // Forçar aprovação admin antes de ir para o Hub
+    };
+    setOrders(prev => [hierarchicalOrder, ...prev]);
+    notify("Job Injetado", `Protocolo ${order.id} aguardando validação Master Admin.`, "sync");
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: ProductionJob['status'], nodeId?: string, note?: string) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { 
-      ...o, 
-      status: newStatus, 
-      nodeId: nodeId || o.nodeId, 
-      progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : o.progress),
-      history: [...o.history, { timestamp: Date.now(), status: newStatus, author: user?.name || 'Sistema', note: note || `Status alterado para ${newStatus}.` }]
-    } : o));
-    notify("Status Atualizado", `Job ${orderId} movido para ${newStatus}.`, "sync");
+    // Validação de Hierarquia
+    setOrders(prev => prev.map(o => {
+      if (o.id !== orderId) return o;
+      
+      // Regra: Hub só pode passar para 'Em Produção' se já estiver 'Aprovado' pelo Admin
+      if (user?.role === 'B2B_Admin' && newStatus === 'Em Produção' && o.status !== 'Aprovado') {
+        notify("Acesso Negado", "Aprovação Admin requerida para iniciar produção.", "error");
+        return o;
+      }
+
+      return { 
+        ...o, 
+        status: newStatus, 
+        nodeId: nodeId || o.nodeId, 
+        progress: newStatus === 'Concluído' ? 100 : (newStatus === 'Em Produção' ? 50 : o.progress),
+        history: [...o.history, { 
+          timestamp: Date.now(), 
+          status: newStatus, 
+          author: user?.name || 'Sistema R3', 
+          note: note || `Status alterado para ${newStatus} via Terminal Central.` 
+        }]
+      };
+    }));
+    notify("Protocolo Atualizado", `Job ${orderId} -> ${newStatus}.`, "sync");
   };
 
   const handleUpdateOrderGranular = (orderId: string, updates: Partial<ProductionJob>) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
-    notify("Master Control Update", `Dados do Job ${orderId} modificados com sucesso.`, "sync");
+    notify("Master Update", `Dados do Job ${orderId} sincronizados.`, "sync");
   };
 
   const handleUpdateHub = (hubId: string, updates: Partial<PartnerNode>) => {
     setHubs(prev => prev.map(h => h.id === hubId ? { ...h, ...updates } : h));
-    notify("Nodo Sincronizado", `Parâmetros do Hub ${hubId} atualizados.`, "sync");
+    notify("Nodo Sincronizado", `Hub ${hubId} atualizado.`, "sync");
   };
 
   const handleUpdateProduct = (productId: string, updates: Partial<ExtendedProduct>) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updates } : p));
-    notify("Ativo Atualizado", `Especificações do produto ${productId} re-sincronizadas.`, "sync");
+    notify("Ativo Atualizado", `Catálogo resincronizado.`, "sync");
   };
 
   const handleUpdateUser = (userId: string, updates: Partial<User>) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    notify("Perfil Modificado", `Dados do utilizador ${userId} atualizados.`, "sync");
+    notify("Perfil Modificado", `Utilizador ${userId} atualizado.`, "sync");
   };
 
   const handleCreateClientByAdmin = (clientData: Partial<User>) => {
@@ -141,7 +162,7 @@ const App: React.FC = () => {
       name: clientData.name || 'Novo Cliente',
       email: clientData.email || 'cliente@redline.eu',
       password: Math.random().toString(36).slice(-8),
-      role: 'Cliente',
+      role: clientData.role || 'Utilizador_Standard',
       permissions: ['BUY'],
       tier: 'Bronze',
       status: 'Ativo',
@@ -149,7 +170,7 @@ const App: React.FC = () => {
       ...clientData
     };
     setUsers(prev => [...prev, newUser]);
-    notify("Entidade Injetada", `Cliente ${newUser.name} provisionado com sucesso.`, "success");
+    notify("Entidade Injetada", `Entidade ${newUser.name} provisionada.`, "success");
   };
 
   const handleImpersonate = (targetUser: User) => {

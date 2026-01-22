@@ -87,7 +87,9 @@ export const MOCK_NODES: PartnerNode[] = [
     latency: '0.2ms', 
     image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800',
     description: 'A maior unidade de impressão da Europa Central. Especializada em grandes volumes e embalagens industriais.',
-    ownerId: 'SYSTEM'
+    ownerId: 'SYSTEM',
+    primaryCommission: 15,
+    secondaryCommission: 5
   },
   { 
     id: 'NODE-LIS', 
@@ -99,7 +101,9 @@ export const MOCK_NODES: PartnerNode[] = [
     latency: '12ms', 
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800',
     description: 'Centro de excelência para acabamentos especiais e impressão comercial de alta fidelidade.',
-    ownerId: 'SYSTEM'
+    ownerId: 'SYSTEM',
+    primaryCommission: 12,
+    secondaryCommission: 3
   },
   { 
     id: 'NODE-MAD', 
@@ -111,7 +115,9 @@ export const MOCK_NODES: PartnerNode[] = [
     latency: '5ms', 
     image: 'https://images.unsplash.com/photo-1558444479-c8f027d6a5ad?q=80&w=800',
     description: 'Unidade dedicada a soluções inteligentes NFC e produção acelerada de material corporativo.',
-    ownerId: 'SYSTEM'
+    ownerId: 'SYSTEM',
+    primaryCommission: 10,
+    secondaryCommission: 2
   }
 ];
 

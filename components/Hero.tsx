@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers, Users, ShoppingCart, Package, Activity, Monitor, BarChart3, Radio, RefreshCw } from 'lucide-react';
+import { ArrowRight, Zap, Globe, ShieldCheck, Cpu, Target, UserPlus, Server, Box, Layers, Users, ShoppingCart, Package, Activity, Monitor, BarChart3, Radio, RefreshCw, Terminal } from 'lucide-react';
 import { Language, PartnerNode, User } from '../types';
 
 interface HeroProps {
@@ -91,71 +91,93 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
         </div>
       </section>
 
-      {/* R2 GLOBAL TELEMETRY DASHBOARD - Substituto do Mapa */}
+      {/* R2 GLOBAL TELEMETRY DASHBOARD - FUTURISTIC REFINEMENT */}
       <section className="bg-black py-40 relative overflow-hidden">
         <div className="absolute inset-0 industrial-grid opacity-5" />
+        
+        {/* Animated Laser Scan Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+           <div className="absolute top-1/4 left-0 w-full h-[1px] bg-red-600/30 blur-sm animate-[pulse_3s_infinite]" />
+           <div className="absolute top-3/4 left-0 w-full h-[1px] bg-red-600/30 blur-sm animate-[pulse_4s_infinite]" />
+        </div>
+
         <div className="max-w-[1500px] mx-auto px-6 relative z-10">
            <div className="flex flex-col lg:flex-row justify-between items-end gap-12 mb-24">
               <div className="space-y-6">
-                 <h2 className="text-7xl font-brand font-black italic uppercase text-white tracking-tighter leading-none">R2 <span className="text-red-600">Grid Telemetry.</span></h2>
-                 <p className="text-[12px] font-black uppercase tracking-[0.6em] text-gray-500 italic">
-                    Fluxo de produção e monitorização de carga dos nodos industriais em tempo real.
-                 </p>
+                 <div className="flex items-center space-x-4 mb-2">
+                    <Terminal className="w-5 h-5 text-red-600" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-500">Telemetry Stream v3.0</span>
+                 </div>
+                 <h2 className="text-7xl font-brand font-black italic uppercase text-white tracking-tighter leading-none">R2 <span className="text-red-600">Grid Monitoring.</span></h2>
               </div>
-              <div className="flex items-center space-x-6 bg-white/5 p-4 rounded-3xl border border-white/10">
-                 <RefreshCw className="w-5 h-5 text-red-600 animate-spin" />
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Syncing Cluster... 0.002ms</span>
+              <div className="flex items-center space-x-6 bg-white/5 p-6 rounded-[2.5rem] border border-white/10 backdrop-blur-3xl shadow-2xl">
+                 <RefreshCw className="w-6 h-6 text-red-600 animate-spin" />
+                 <div>
+                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest block mb-1">Grid Handshake</span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Sync: Cluster-Central (0.002ms)</span>
+                 </div>
               </div>
            </div>
 
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Main Activity Monitor */}
-              <div className="lg:col-span-8 bg-[#070707] rounded-[4rem] border border-white/5 p-12 shadow-2xl relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 p-12 text-white/[0.02] font-brand font-black italic text-[15vw] select-none pointer-events-none">R3</div>
+              {/* Main Activity Monitor with Visual Enhancements */}
+              <div className="lg:col-span-8 bg-[#070707] rounded-[5rem] border border-white/10 p-16 shadow-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-16 text-white/[0.03] font-brand font-black italic text-[20vw] select-none pointer-events-none">R3</div>
                  
-                 <div className="flex items-center justify-between mb-16 relative z-10">
-                    <div className="flex items-center space-x-4">
-                       <Activity className="w-8 h-8 text-red-600" />
-                       <h4 className="text-3xl font-brand font-black italic text-white uppercase">Throughput Monitor</h4>
+                 <div className="flex items-center justify-between mb-20 relative z-10">
+                    <div className="flex items-center space-x-6">
+                       <div className="p-4 bg-red-600/10 rounded-2xl border border-red-600/30">
+                          <Activity className="w-8 h-8 text-red-600" />
+                       </div>
+                       <h4 className="text-4xl font-brand font-black italic text-white uppercase tracking-tighter">Industrial Throughput</h4>
                     </div>
-                    <div className="text-[10px] font-mono text-gray-500 uppercase">Master Node: Verified</div>
+                    <div className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-6 py-2 rounded-full border border-white/10">Master Auth: Verified</div>
                  </div>
 
-                 {/* Simulated Real-time Chart/Grid */}
-                 <div className="flex items-end justify-between h-64 gap-2 px-4 border-b border-white/5 pb-4">
-                    {Array.from({ length: 40 }).map((_, i) => (
+                 {/* Real-time Dynamic Grid Chart */}
+                 <div className="relative h-72 flex items-end justify-between gap-1.5 px-6 border-b border-white/5 pb-6 overflow-hidden">
+                    {/* Background Visual Guide Lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between opacity-10 pointer-events-none pb-6">
+                       <div className="w-full h-[1px] bg-white/50" />
+                       <div className="w-full h-[1px] bg-white/50" />
+                       <div className="w-full h-[1px] bg-white/50" />
+                    </div>
+
+                    {Array.from({ length: 48 }).map((_, i) => (
                       <div 
                         key={i} 
-                        className="bg-red-600/20 hover:bg-red-600 transition-all duration-500 rounded-t-lg flex-grow relative group/bar"
-                        style={{ height: `${Math.floor(Math.random() * 80) + 10}%` }}
+                        className="bg-red-600/20 hover:bg-red-600 transition-all duration-700 rounded-t-sm flex-grow relative group/bar"
+                        style={{ height: `${Math.floor(Math.random() * 85) + 10}%` }}
                       >
-                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black px-2 py-1 rounded text-[8px] font-black opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                         <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white text-black px-3 py-1.5 rounded-lg text-[9px] font-black opacity-0 group-hover/bar:opacity-100 transition-all shadow-2xl z-20 scale-125 border-b-4 border-red-600">
                             {Math.floor(Math.random() * 100)}%
                          </div>
                       </div>
                     ))}
                  </div>
-                 <div className="flex justify-between mt-6 text-[8px] font-black text-gray-700 uppercase tracking-widest italic">
-                    <span>00:00:00</span>
-                    <span>Industrial Stream Flow</span>
-                    <span>{new Date().toLocaleTimeString()}</span>
+                 <div className="flex justify-between mt-8 text-[9px] font-black text-gray-600 uppercase tracking-widest italic">
+                    <span className="flex items-center"><Target className="w-3 h-3 mr-2" /> Start Protocol</span>
+                    <span>Industrial Pulse Frequency (R3-Standard)</span>
+                    <span className="text-white">{new Date().toLocaleTimeString()} (UTC)</span>
                  </div>
               </div>
 
-              {/* Sidebar Stats */}
+              {/* Sidebar Metrics with Futuristic UX */}
               <div className="lg:col-span-4 space-y-8">
-                 {/* Hub Status List */}
-                 <div className="bg-[#0A0A0A] rounded-[3.5rem] border border-white/5 p-10 space-y-8 shadow-xl">
-                    <h5 className="text-[11px] font-black uppercase text-gray-500 tracking-[0.4em] mb-4">Node Saturation</h5>
-                    {hubs.map((h, i) => (
-                      <div key={h.id} className="space-y-3">
+                 <div className="bg-[#0A0A0A] rounded-[4rem] border border-white/10 p-12 space-y-10 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 blur-3xl rounded-full" />
+                    <h5 className="text-[11px] font-black uppercase text-gray-500 tracking-[0.5em] mb-6 flex items-center">
+                       <Server className="w-4 h-4 mr-4 text-red-600" /> Operational Load
+                    </h5>
+                    {hubs.map((h) => (
+                      <div key={h.id} className="space-y-4">
                          <div className="flex justify-between items-end">
-                            <span className="text-[10px] font-black text-white uppercase italic">{h.name}</span>
-                            <span className="text-[12px] font-brand font-black italic text-red-600">{h.capacity}%</span>
+                            <span className="text-[11px] font-black text-white uppercase italic tracking-widest">{h.name}</span>
+                            <span className="text-[14px] font-brand font-black italic text-red-600">{h.capacity}%</span>
                          </div>
-                         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                         <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
                             <div 
-                              className="h-full bg-red-600 transition-all duration-1000" 
+                              className="h-full bg-gradient-to-r from-red-900 to-red-600 rounded-full transition-all duration-[2000ms]" 
                               style={{ width: `${h.capacity}%` }} 
                             />
                          </div>
@@ -163,17 +185,17 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
                     ))}
                  </div>
 
-                 {/* Master Metrics */}
+                 {/* Master Global KPIs */}
                  <div className="grid grid-cols-2 gap-8">
-                    <div className="bg-red-600 rounded-[3rem] p-8 text-white shadow-2xl shadow-red-600/20">
-                       <Radio className="w-8 h-8 mb-6 animate-pulse" />
-                       <span className="text-4xl font-brand font-black italic block leading-none">{usersCount}</span>
-                       <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-60">Entities Linked</span>
+                    <div className="bg-red-600 rounded-[3.5rem] p-10 text-white shadow-2xl shadow-red-600/30 group hover:scale-105 transition-transform">
+                       <Radio className="w-10 h-10 mb-8 animate-pulse" />
+                       <span className="text-5xl font-brand font-black italic block leading-none">{usersCount}</span>
+                       <span className="text-[9px] font-black uppercase tracking-widest mt-4 opacity-60 block">Linked Entities</span>
                     </div>
-                    <div className="bg-white rounded-[3rem] p-8 text-black shadow-2xl">
-                       <Cpu className="w-8 h-8 mb-6 text-red-600" />
-                       <span className="text-4xl font-brand font-black italic block leading-none">R3</span>
-                       <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-40">Protocol Build</span>
+                    <div className="bg-white rounded-[3.5rem] p-10 text-black shadow-2xl group hover:scale-105 transition-transform">
+                       <Cpu className="w-10 h-10 mb-8 text-red-600" />
+                       <span className="text-5xl font-brand font-black italic block leading-none">R3</span>
+                       <span className="text-[9px] font-black uppercase tracking-widest mt-4 opacity-40 block">Handshake Ver</span>
                     </div>
                  </div>
               </div>
