@@ -17,10 +17,9 @@ export type Permission =
   | 'MANAGE_HUBS' 
   | 'MANAGE_USERS'
   | 'ACCESS_ADMIN_PANEL'
-  | 'APPROVE_BUDGETS'
-  | 'MANAGE_TEAM'
-  | 'ACCESS_BACKOFFICE'
-  | 'MANAGE_CATALOG';
+  | 'MANAGE_CATALOG'
+  | 'HUB_ANALYTICS'
+  | 'CREATE_PRODUCTS';
 
 export type UserRole = 
   | 'Cliente' 
@@ -31,12 +30,24 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: UserRole;
   permissions: Permission[];
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Platina';
-  company?: string;
+  status: 'Ativo' | 'Pendente' | 'Bloqueado';
   joinedAt: number;
-  creditLimit?: number;
+  managedHubId?: string; // Para B2B_Admin
+  createdByHubId?: string; // Para clientes criados por Hubs
+}
+
+export interface HubRegistrationRequest {
+  id: string;
+  companyName: string;
+  email: string;
+  location: string;
+  machinePark: string;
+  timestamp: number;
+  status: 'Pendente' | 'Aprovado' | 'Rejeitado';
 }
 
 export interface PartnerNode {
@@ -49,7 +60,8 @@ export interface PartnerNode {
   latency: string;
   image: string;
   description: string;
-  ownerId: string; // ID do B2B Admin
+  ownerId: string;
+  tempPassword?: string; 
 }
 
 export interface ProductionJob {
@@ -67,25 +79,7 @@ export interface ProductionJob {
   dimensions?: string;
   quantity?: string;
   progress: number;
-  nodeId: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: number;
-  read: boolean;
-  type: 'Confirmed' | 'Production' | 'Alert' | 'System';
-  orderId?: string;
-}
-
-export interface TicketMessage {
-  id: string;
-  authorId: string;
-  authorName: string;
-  text: string;
-  timestamp: number;
+  nodeId: string; 
 }
 
 export interface SupportTicket {
@@ -95,14 +89,21 @@ export interface SupportTicket {
   status: 'Aberto' | 'Em Análise' | 'Resolvido';
   priority: 'Baixa' | 'Normal' | 'Alta' | 'Crítica';
   timestamp: number;
-  messages: TicketMessage[];
+  messages: any[];
   creatorId: string;
-  orderId?: string;
+  targetHubId?: string; 
 }
 
-/**
- * Interface para os produtos no catálogo com detalhes técnicos estendidos.
- */
+// Added Notification interface for the global notification system
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  type: 'System' | 'Order' | 'Alert' | 'Message';
+}
+
 export interface ExtendedProduct {
   id: string;
   name: string;
@@ -111,13 +112,15 @@ export interface ExtendedProduct {
   basePrice: number;
   unit: string;
   image: string;
-  badge?: string;
+  status: 'Ativo' | 'Aguardando Aprovação';
+  ownerHubId: string; // 'SYSTEM' ou ID do Hub
+  // Updated specs to include all properties used in constants.tsx
   specs: {
     weight: string;
     durability: string;
-    usage: string;
-    weatherResistance: number;
-    ecoLevel: number;
     precisionLevel: string;
+    usage?: string;
+    weatherResistance?: number;
+    ecoLevel?: number;
   };
 }

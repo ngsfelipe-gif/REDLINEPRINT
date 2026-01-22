@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { User as UserType, ProductionJob, SupportTicket, Notification } from '../types';
+import { User as UserType, ProductionJob, SupportTicket, PartnerNode, ExtendedProduct, Category } from '../types';
 import { 
-  Activity, Zap, ShieldCheck, Eye, X, Cpu, LogOut, Send, Download, FileText, FileCheck, Plus, Inbox, Clock, AlertCircle
+  Activity, Zap, ShieldCheck, Eye, X, Cpu, LogOut, Send, Download, Plus, Inbox, Globe, Package, Users, Mail, Lock, PlusCircle, UserPlus, Filter, Trash2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -10,374 +10,296 @@ interface AccountProps {
   user: UserType;
   orders: ProductionJob[];
   tickets: SupportTicket[];
-  notifications: Notification[];
-  onAddMessage: (ticketId: string, text: string) => void;
-  onCreateTicket: (ticket: SupportTicket) => void;
+  hubs: PartnerNode[];
+  products: ExtendedProduct[];
   subTab: string;
   setSubTab: (tab: string) => void;
   onLogout: () => void;
-  onApproveOrder: (orderId: string) => void;
+  onCreateProduct: (p: ExtendedProduct) => void;
+  onRegisterLocalClient: (u: UserType) => void;
 }
 
 const Account: React.FC<AccountProps> = ({ 
-  user, orders, tickets, notifications, onAddMessage, onCreateTicket,
-  subTab, setSubTab, onLogout, onApproveOrder 
+  user, orders, tickets, hubs, products, subTab, setSubTab, onLogout, onCreateProduct, onRegisterLocalClient
 }) => {
-  const [selectedOrder, setSelectedOrder] = useState<ProductionJob | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [replyText, setReplyText] = useState('');
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', category: Category.LargeFormat, price: '10' });
+  const [newClient, setNewClient] = useState({ name: '', email: '', password: '' });
 
   const isAdmin = user.role === 'Administrador';
-  const myOrders = isAdmin ? orders : orders.filter(o => o.clientId === user.id);
-  const myTickets = isAdmin ? tickets : tickets.filter(t => t.creatorId === user.id);
-  const deliveredOrders = myOrders.filter(o => o.status === 'Entregue');
+  const isB2B = user.role === 'B2B_Admin';
+  
+  // ROLE-BASED DATA FILTERING
+  const myOrders = isAdmin ? orders : (isB2B ? orders.filter(o => o.nodeId === user.managedHubId) : orders.filter(o => o.clientId === user.id));
+  const myProducts = products.filter(p => p.ownerHubId === (isB2B ? user.managedHubId : 'SYSTEM'));
+  const activeProducts = products.filter(p => p.status === 'Ativo');
 
-  const handleGenerateInvoice = (order: ProductionJob) => {
+  const generatePDF = (order: ProductionJob) => {
     const doc = new jsPDF();
-    const invoiceId = `REDLINE-FAT-${order.id}-${Date.now().toString().slice(-4)}`;
-    
-    // Design Industrial Fatura
-    doc.setFillColor(10, 10, 10);
-    doc.rect(0, 0, 210, 60, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(32);
-    doc.text('REDLINE PRINT', 20, 35);
-    doc.setFontSize(9);
-    doc.text(`INDUSTRIAL INVOICE // PROOF OF PRODUCTION // REF: ${invoiceId}`, 20, 48);
-
-    doc.setTextColor(10, 10, 10);
+    doc.setFillColor(204, 0, 0); 
+    doc.rect(0,0,210,40,'F');
+    doc.setTextColor(255); 
+    doc.setFontSize(22); 
+    doc.text("REDLINE PRINT R2", 20, 25);
     doc.setFontSize(10);
-    doc.text('EMISSOR:', 20, 80);
-    doc.setFontSize(9);
-    doc.text('Redline Systems industrial cluster FRA-01', 20, 86);
-    doc.text('Frankfurt-on-Main, Germany', 20, 91);
+    doc.text("PROTOCOLO INDUSTRIAL DE PRODUÇÃO", 20, 32);
+
+    doc.setTextColor(0); 
+    doc.setFontSize(14); 
+    doc.text(`Identificador de Ordem: ${order.id}`, 20, 60);
+    doc.text(`Cliente: ${order.client}`, 20, 75);
+    doc.text(`Produto Master: ${order.product}`, 20, 90);
+    doc.text(`Unidade Fabril (Node): ${order.nodeId}`, 20, 105);
+    doc.text(`Status Atual: ${order.status}`, 20, 120);
     
-    doc.setFontSize(10);
-    doc.text('CLIENTE:', 120, 80);
-    doc.setFontSize(9);
-    doc.text(order.client, 120, 86);
-    doc.text(`ID: ${order.clientId}`, 120, 91);
-
-    doc.setFillColor(245, 245, 247);
-    doc.rect(15, 110, 180, 12, 'F');
-    doc.setFontSize(9);
-    doc.text('DESCRIÇÃO TÉCNICA', 20, 117.5);
-    doc.text('VOLUME', 140, 117.5);
-    doc.text('TOTAL EUR', 170, 117.5);
-
-    doc.text(order.product, 20, 135);
-    doc.text(order.quantity || '1', 140, 135);
-    doc.text(`${order.value}`, 170, 135);
+    doc.setFontSize(18); 
+    doc.setTextColor(204,0,0); 
+    doc.text(`INVESTIMENTO TOTAL: EUR ${order.value}`, 20, 150);
     
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Material: ${order.material || 'Standard Industrial'}`, 20, 142);
-    doc.text(`Node Hub: ${order.nodeId}`, 20, 147);
-
-    doc.setTextColor(180, 180, 180);
-    doc.text(`R2-HASH: ${btoa(order.id).slice(0, 20)}`, 20, 275);
-    doc.text('Documento gerado automaticamente pelo Ecossistema REDLINE R2.', 20, 280);
-
-    doc.save(`${invoiceId}.pdf`);
-  };
-
-  const handleSendMessage = () => {
-    if (!selectedTicket || !replyText.trim()) return;
-    onAddMessage(selectedTicket.id, replyText);
-    setReplyText('');
+    doc.setTextColor(150);
+    doc.text("Documento autenticado via Grid Redline R2 Cluster.", 20, 280);
+    doc.save(`REDLINE_${order.id}.pdf`);
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 sm:px-12 py-12 industrial-grid animate-in fade-in duration-700">
+    <div className="max-w-[1600px] mx-auto px-6 sm:px-12 pb-24 industrial-grid animate-in fade-in">
+      {/* ACCOUNT HEADER */}
       <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 p-10 lg:p-16 mb-16 flex flex-col lg:flex-row justify-between items-center gap-10">
-        <div className="flex items-center space-x-8">
-           <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center font-brand text-4xl font-black italic text-white shadow-2xl border-b-[8px] border-red-600">
+        <div className="flex items-center space-x-10">
+           <div className="w-28 h-28 bg-black rounded-[2.5rem] flex items-center justify-center font-brand text-5xl font-black italic text-white shadow-2xl border-b-[10px] border-red-600">
              {user.name.charAt(0)}
            </div>
            <div>
-              <h2 className="text-5xl md:text-6xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">{user.name}</h2>
-              <div className="flex items-center space-x-4 mt-3">
-                 <span className="px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100 shadow-sm">{user.role}</span>
-                 <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">ID: {user.id}</span>
+              <h2 className="text-5xl md:text-7xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">{user.name}</h2>
+              <div className="flex items-center space-x-5 mt-4">
+                <span className="px-5 py-2 bg-red-50 text-red-600 rounded-full text-[11px] font-black uppercase tracking-widest border border-red-100 shadow-sm">
+                  {user.role} Industrial
+                </span>
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">ID: {user.id}</span>
               </div>
            </div>
         </div>
-
-        <div className="flex flex-wrap bg-gray-50 p-2 rounded-[2.5rem] gap-2 shadow-inner border border-gray-100">
-           {['overview', 'orders', 'inbox', 'financeiro'].map(tab => (
-             <button 
-               key={tab} 
-               onClick={() => setSubTab(tab)}
-               className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${subTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-black hover:bg-white'}`}
-             >
-               {tab}
-             </button>
+        
+        <div className="flex flex-wrap bg-gray-50 p-2.5 rounded-[3rem] gap-3 shadow-inner border border-gray-100">
+           {['overview', 'orders', 'products', 'clients', 'inbox'].map(tab => (
+             (isB2B || isAdmin || (tab !== 'products' && tab !== 'clients')) && (
+               <button 
+                 key={tab} 
+                 onClick={() => setSubTab(tab)} 
+                 className={`px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all ${subTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-black hover:bg-white'}`}
+               >
+                 {tab}
+               </button>
+             )
            ))}
-           <button onClick={onLogout} className="px-6 py-4 text-gray-400 hover:text-red-600 transition-all"><LogOut className="w-6 h-6"/></button>
+           <button onClick={onLogout} className="px-8 py-5 text-gray-400 hover:text-red-600 transition-all hover:rotate-12">
+             <LogOut className="w-7 h-7"/>
+           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
+        {/* MAIN WORKSPACE */}
         <div className="xl:col-span-8 space-y-12">
            {subTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in slide-in-from-bottom-6">
-                 <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl border-b-[15px] border-red-600 hover:scale-[1.02] transition-transform">
-                    <Activity className="w-12 h-12 text-red-600 mb-10" />
-                    <span className="text-7xl font-brand font-black italic block leading-none mb-2">{myOrders.length}</span>
-                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.5em]">Pedidos na Rede</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in slide-in-from-bottom-10">
+                 <div className="bg-black text-white p-14 rounded-[4rem] shadow-2xl border-b-[20px] border-red-600 flex flex-col justify-between group hover:scale-[1.02] transition-transform">
+                    <Activity className="w-12 h-12 text-red-600 mb-12" />
+                    <span className="text-8xl font-brand font-black italic block leading-none">{myOrders.length}</span>
+                    <span className="text-[11px] font-black uppercase text-gray-500 tracking-[0.5em]">Assets no Grid</span>
                  </div>
-                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-2xl transition-all">
-                    <Zap className="w-12 h-12 text-red-600 mb-10" />
-                    <span className="text-7xl font-brand font-black italic block leading-none mb-2">{deliveredOrders.length}</span>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Concluídos R2</span>
+                 <div className="bg-white border border-gray-100 p-14 rounded-[4rem] shadow-sm flex flex-col justify-between hover:shadow-2xl transition-all">
+                    <Zap className="w-12 h-12 text-red-600 mb-12" />
+                    <span className="text-8xl font-brand font-black italic block leading-none">{isB2B ? myProducts.length : orders.filter(o => o.clientId === user.id && o.status === 'Entregue').length}</span>
+                    <span className="text-[11px] font-black uppercase text-gray-400 tracking-[0.5em]">{isB2B ? 'Meus Ativos' : 'Finalizados'}</span>
                  </div>
-                 <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm hover:shadow-2xl transition-all">
-                    <ShieldCheck className="w-12 h-12 text-red-600 mb-10" />
-                    <span className="text-4xl font-brand font-black italic block leading-none uppercase mb-2">{user.tier} RANK</span>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.5em]">Auth Tier</span>
+                 <div className="bg-white border border-gray-100 p-14 rounded-[4rem] shadow-sm flex flex-col justify-between hover:shadow-2xl transition-all">
+                    <ShieldCheck className="w-12 h-12 text-red-600 mb-12" />
+                    <span className="text-5xl font-brand font-black italic block leading-none uppercase">{user.tier} RANK</span>
+                    <span className="text-[11px] font-black uppercase text-gray-400 tracking-[0.5em]">Protocolo de Acesso</span>
                  </div>
               </div>
            )}
 
            {subTab === 'orders' && (
-              <div className="space-y-8 animate-in slide-in-from-bottom-6">
-                 {myOrders.map(order => (
-                   <div key={order.id} className="bg-white border border-gray-100 p-10 rounded-[3.5rem] shadow-sm hover:shadow-2xl hover:border-red-600 transition-all group">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-                         <div className="flex items-center space-x-8">
-                            <div className="w-16 h-16 bg-black text-white rounded-[1.5rem] flex items-center justify-center font-brand font-black italic text-2xl group-hover:bg-red-600 transition-colors">
-                               {order.id.slice(-1)}
-                            </div>
-                            <div>
-                               <h5 className="text-3xl font-brand font-black italic uppercase leading-none mb-1 text-black">{order.product}</h5>
-                               <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Ordem: {order.id} // Node: {order.nodeId}</span>
-                            </div>
-                         </div>
-                         <div className="text-right">
-                            <span className="text-[11px] font-black text-red-600 uppercase tracking-widest block mb-2">{order.status}</span>
-                            <div className="w-48 h-2 bg-gray-100 rounded-full overflow-hidden">
-                               <div className="h-full bg-red-600 shimmer transition-all duration-1000" style={{ width: `${order.progress}%` }} />
-                            </div>
-                         </div>
-                      </div>
-                      <div className="flex justify-between items-center pt-8 border-t border-gray-50">
-                         <span className="text-3xl font-brand font-black italic text-black">€{order.value}</span>
-                         <div className="flex space-x-4">
-                            {order.status === 'Entregue' && (
-                              <button onClick={() => handleGenerateInvoice(order)} className="flex items-center space-x-3 bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-xl">
-                                <Download className="w-4 h-4" /> <span>PDF</span>
-                              </button>
-                            )}
-                            <button onClick={() => setSelectedOrder(order)} className="p-4 bg-gray-50 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm"><Eye className="w-5 h-5"/></button>
-                         </div>
-                      </div>
-                   </div>
-                 ))}
+              <div className="space-y-8 animate-in slide-in-from-bottom-10">
+                {myOrders.length > 0 ? myOrders.map(o => (
+                  <div key={o.id} className="bg-white border border-gray-100 p-12 rounded-[4rem] shadow-xl group flex flex-col md:flex-row justify-between items-center gap-10">
+                     <div className="flex items-center space-x-10">
+                        <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center font-brand font-black italic text-3xl shadow-xl group-hover:bg-red-600 transition-colors">
+                           {o.id.slice(-1)}
+                        </div>
+                        <div>
+                           <h5 className="text-3xl font-brand font-black italic uppercase leading-none mb-2 text-black">{o.product}</h5>
+                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Job ID: {o.id} // Node: {o.nodeId}</span>
+                        </div>
+                     </div>
+                     <div className="flex items-center space-x-12">
+                        <div className="text-right">
+                           <span className="text-[10px] font-black text-red-600 uppercase tracking-widest block mb-1">{o.status}</span>
+                           <span className="text-3xl font-brand font-black italic">€{o.value}</span>
+                        </div>
+                        <button onClick={() => generatePDF(o)} className="p-5 bg-red-50 text-red-600 rounded-3xl hover:bg-red-600 hover:text-white transition-all shadow-xl">
+                          <Download className="w-6 h-6"/>
+                        </button>
+                     </div>
+                  </div>
+                )) : (
+                  <div className="p-32 text-center opacity-10">
+                     <Package className="w-32 h-32 mx-auto mb-10" />
+                     <p className="text-[14px] font-black uppercase tracking-[1em]">Grid Vazio</p>
+                  </div>
+                )}
               </div>
            )}
 
-           {subTab === 'inbox' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[700px] animate-in slide-in-from-bottom-6">
-                 <div className="lg:col-span-5 bg-white border border-gray-100 rounded-[3.5rem] overflow-y-auto p-8 space-y-6 shadow-xl">
-                    <div className="flex justify-between items-center mb-6">
-                       <h4 className="text-[12px] font-black uppercase tracking-[0.3em] text-red-600">Terminal de Suporte</h4>
-                       <Plus className="w-6 h-6 text-gray-200 cursor-pointer hover:text-black transition-all" />
-                    </div>
-                    {myTickets.map(ticket => (
-                      <div 
-                         key={ticket.id} 
-                         onClick={() => setSelectedTicket(ticket)}
-                         className={`p-8 rounded-[2.5rem] cursor-pointer transition-all border-l-[12px] ${selectedTicket?.id === ticket.id ? 'bg-black text-white border-red-600 shadow-2xl scale-105' : 'bg-gray-50 border-gray-100 hover:border-black'}`}
-                      >
-                         <h5 className="text-[12px] font-black uppercase tracking-widest mb-2 line-clamp-1">{ticket.subject}</h5>
-                         <div className="flex justify-between items-center">
-                            <span className={`text-[8px] font-black uppercase tracking-widest ${selectedTicket?.id === ticket.id ? 'text-red-600' : 'text-gray-400'}`}>{ticket.status}</span>
-                            <span className="text-[8px] font-mono opacity-40">{new Date(ticket.timestamp).toLocaleDateString()}</span>
-                         </div>
-                      </div>
-                    ))}
+           {subTab === 'products' && (isB2B || isAdmin) && (
+              <div className="space-y-12 animate-in slide-in-from-bottom-10">
+                 <div className="flex justify-between items-center">
+                    <h3 className="text-4xl font-brand font-black italic uppercase">Gestão de <span className="text-red-600">Assets Industriais.</span></h3>
+                    <button onClick={() => setShowAddProduct(true)} className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3 shadow-xl">
+                       <PlusCircle className="w-5 h-5"/> <span>Novo Ativo Gráfico</span>
+                    </button>
                  </div>
-
-                 <div className="lg:col-span-7 bg-white border border-gray-100 rounded-[3.5rem] flex flex-col overflow-hidden shadow-2xl">
-                    {selectedTicket ? (
-                      <>
-                         <div className="p-10 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {myProducts.length > 0 ? myProducts.map(p => (
+                      <div key={p.id} className="bg-white border border-gray-100 p-8 rounded-[3.5rem] shadow-sm relative overflow-hidden group hover:border-black transition-all">
+                         <div className="flex items-center space-x-6">
+                            <img src={p.image} className="w-24 h-24 rounded-2xl object-cover shadow-lg" />
                             <div>
-                               <h4 className="text-xl font-brand font-black italic uppercase leading-none mb-1 text-black">{selectedTicket.subject}</h4>
-                               <span className="text-[9px] font-black text-red-600 uppercase tracking-[0.5em]">{selectedTicket.category} // {selectedTicket.id}</span>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                               <Clock className="w-4 h-4 text-gray-300" />
-                               <span className="text-[8px] font-black uppercase text-gray-400">Live Sync Ready</span>
+                               <h5 className="text-2xl font-brand font-black italic uppercase leading-none mb-2">{p.name}</h5>
+                               <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${p.status === 'Ativo' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600 animate-pulse'}`}>
+                                 {p.status}
+                               </span>
                             </div>
                          </div>
-                         <div className="flex-grow overflow-y-auto p-10 space-y-8 industrial-grid">
-                            {selectedTicket.messages.map(msg => (
-                              <div key={msg.id} className={`flex flex-col ${msg.authorId === user.id ? 'items-end' : 'items-start'}`}>
-                                 <div className={`max-w-[85%] p-6 rounded-[2rem] text-[11px] font-bold uppercase leading-relaxed tracking-wider shadow-lg ${msg.authorId === user.id ? 'bg-red-600 text-white rounded-tr-none' : 'bg-black text-white rounded-tl-none'}`}>
-                                    {msg.text}
-                                 </div>
-                                 <span className="text-[8px] font-black text-gray-300 mt-3 uppercase tracking-widest">{msg.authorName} // {new Date(msg.timestamp).toLocaleTimeString()}</span>
-                              </div>
-                            ))}
-                         </div>
-                         <div className="p-8 border-t border-gray-100 bg-white">
-                            <div className="flex space-x-4">
-                               <input 
-                                  value={replyText}
-                                  onChange={e => setReplyText(e.target.value)}
-                                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                                  placeholder="INSERIR RESPOSTA TÉCNICA..." 
-                                  className="flex-grow bg-gray-50 border-2 border-transparent p-5 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none focus:border-red-600 shadow-inner" 
-                               />
-                               <button onClick={handleSendMessage} className="bg-black text-white p-5 rounded-2xl hover:bg-red-600 transition-all shadow-xl">
-                                  <Send className="w-6 h-6" />
-                               </button>
-                            </div>
-                         </div>
-                      </>
-                    ) : (
-                      <div className="flex-grow flex flex-col items-center justify-center text-center p-20 opacity-10">
-                         <Inbox className="w-32 h-32 mb-8" />
-                         <p className="text-[12px] font-black uppercase tracking-[1em]">Selecione um Ticket</p>
                       </div>
+                    )) : (
+                      <div className="p-20 text-center col-span-2 opacity-20 italic font-black uppercase tracking-[0.5em]">Sem produtos próprios no catálogo.</div>
                     )}
                  </div>
               </div>
            )}
 
-           {subTab === 'financeiro' && (
-              <div className="space-y-10 animate-in slide-in-from-bottom-6">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-white border border-gray-100 p-12 rounded-[3.5rem] shadow-sm flex flex-col justify-between">
-                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] block mb-4">Volume Faturado</span>
-                       <span className="text-6xl font-brand font-black italic">€{(myOrders.reduce((acc, o) => acc + parseFloat(o.value), 0)).toLocaleString()}</span>
-                    </div>
-                    <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl flex flex-col justify-between border-b-[15px] border-red-600">
-                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] block mb-4">Crédito Disponível</span>
-                       <span className="text-6xl font-brand font-black italic text-red-600">€15,0k</span>
-                    </div>
+           {subTab === 'clients' && (isB2B || isAdmin) && (
+              <div className="space-y-12 animate-in slide-in-from-bottom-10">
+                 <div className="flex justify-between items-center">
+                    <h3 className="text-4xl font-brand font-black italic uppercase">Meus <span className="text-red-600">Clientes Hub.</span></h3>
+                    <button onClick={() => setShowAddClient(true)} className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all flex items-center space-x-3 shadow-xl">
+                       <UserPlus className="w-5 h-5"/> <span>Novo Cliente Local</span>
+                    </button>
                  </div>
-
-                 <div className="bg-white rounded-[4rem] border border-gray-100 shadow-2xl overflow-hidden">
-                    <div className="p-10 border-b border-gray-50">
-                       <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-red-600">Arquivo Fiscal Automático</h4>
-                    </div>
-                    <div className="divide-y divide-gray-50">
-                       {deliveredOrders.length === 0 ? (
-                         <div className="p-32 text-center opacity-10">
-                            <FileText className="w-24 h-24 mx-auto mb-6" />
-                            <p className="text-[12px] font-black uppercase tracking-[1em]">Sem Documentos</p>
-                         </div>
-                       ) : (
-                         deliveredOrders.map(o => (
-                           <div key={o.id} className="p-10 flex items-center justify-between group hover:bg-gray-50 transition-all">
-                              <div className="flex items-center space-x-10">
-                                 <div className="p-6 bg-gray-100 rounded-3xl text-gray-300 group-hover:bg-red-600 group-hover:text-white transition-all shadow-sm">
-                                    <FileCheck className="w-8 h-8" />
-                                 </div>
-                                 <div>
-                                    <h5 className="text-[14px] font-black uppercase tracking-widest text-black">FATURA_{o.id}</h5>
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mt-1">{new Date(o.timestamp).toLocaleDateString()} // Node: {o.nodeId}</span>
-                                 </div>
-                              </div>
-                              <div className="flex items-center space-x-12">
-                                 <span className="text-2xl font-brand font-black italic text-black">€{o.value}</span>
-                                 <button onClick={() => handleGenerateInvoice(o)} className="flex items-center space-x-3 text-[10px] font-black uppercase text-red-600 hover:text-black tracking-[0.3em] transition-all bg-red-50 px-6 py-3 rounded-2xl group border border-red-100">
-                                    <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" /> <span>PDF</span>
-                                 </button>
-                              </div>
-                           </div>
-                         ))
-                       )}
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="p-16 bg-gray-50 rounded-[4rem] text-center opacity-40 border border-gray-100 border-dashed">
+                       <Users className="w-12 h-12 mx-auto mb-6 text-red-600"/>
+                       <p className="text-[10px] font-black uppercase tracking-widest">Base de Dados em Sincronização Local</p>
                     </div>
                  </div>
               </div>
            )}
         </div>
 
-        <div className="xl:col-span-4 space-y-8">
-           <div className="bg-black text-white p-12 rounded-[4rem] shadow-2xl relative overflow-hidden border-b-[20px] border-red-600 animate-in slide-in-from-right-10">
-              <div className="absolute top-0 right-0 p-8 opacity-10">
-                 <ShieldCheck className="w-32 h-32" />
-              </div>
-              <Cpu className="w-12 h-12 text-red-600 mb-12" />
-              <h4 className="text-4xl font-brand font-black italic uppercase tracking-tighter mb-10 leading-tight text-white">Status da <br /> Identidade.</h4>
-              <div className="space-y-6">
-                 <div className="flex justify-between items-center text-[10px] font-black uppercase border-b border-white/10 pb-6">
-                    <span className="text-gray-600">Hub Local</span>
-                    <span className="text-red-600">FRA-MASTER</span>
+        {/* SIDEBAR TELEMETRY */}
+        <div className="xl:col-span-4 space-y-10">
+           <div className="bg-black text-white p-14 rounded-[4.5rem] shadow-2xl border-b-[25px] border-red-600 animate-in slide-in-from-right-10 duration-1000">
+              <Cpu className="w-16 h-16 text-red-600 mb-14 animate-pulse"/>
+              <h4 className="text-5xl font-brand font-black italic uppercase tracking-tighter mb-12 leading-[0.9]">
+                Célula <br/> <span className="text-red-600">{user.managedHubId || 'Master'}</span>
+              </h4>
+              <div className="space-y-8 font-mono text-[11px] opacity-70">
+                 <div className="flex justify-between border-b border-white/10 pb-6">
+                    <span>SYNC GRID:</span> <span className="text-green-500">OPT-IN ACTIVE</span>
                  </div>
-                 <div className="flex justify-between items-center text-[10px] font-black uppercase border-b border-white/10 pb-6">
-                    <span className="text-gray-600">Status Sync</span>
-                    <span className="text-green-500">Opt-in Active</span>
+                 <div className="flex justify-between">
+                    <span>R2 HASH:</span> <span>{btoa(user.id).slice(0,12)}</span>
                  </div>
-                 <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                    <span className="text-gray-600">Rank Industrial</span>
-                    <span className="text-white">TOP Tier 1%</span>
+                 <div className="flex justify-between">
+                    <span>MEMBRO DESDE:</span> <span>{new Date(user.joinedAt).toLocaleDateString()}</span>
                  </div>
               </div>
-              <button className="w-full mt-12 bg-white/5 border border-white/10 p-6 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all">Relatório Detalhado</button>
-           </div>
-
-           <div className="bg-white border border-gray-100 p-12 rounded-[4rem] shadow-xl animate-in slide-in-from-right-10 delay-200">
-              <div className="flex items-center space-x-4 mb-8">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-                <h5 className="text-[10px] font-black uppercase tracking-widest text-black">Alertas R2</h5>
-              </div>
-              {notifications.slice(0, 3).map(n => (
-                <div key={n.id} className="mb-6 pb-6 border-b border-gray-50 last:border-0 last:mb-0">
-                  <span className="text-[8px] font-black text-red-600 uppercase tracking-widest block mb-1">{n.title}</span>
-                  <p className="text-[10px] font-medium text-gray-400 line-clamp-2 italic">{n.message}</p>
-                </div>
-              ))}
            </div>
         </div>
       </div>
 
-      {/* MODAL DETALHE ORDEM */}
-      {selectedOrder && (
-         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl animate-in fade-in">
-             <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in-95">
-                <div className="w-full md:w-[350px] bg-black text-white p-12 flex flex-col justify-between border-r-[15px] border-red-600">
-                    <div>
-                      <Cpu className="w-10 h-10 text-red-600 mb-10" />
-                      <h4 className="text-4xl font-brand font-black italic uppercase tracking-tighter mb-8 leading-none">Dados do <br /> Módulo.</h4>
-                      <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-500">Transmissão Ativa via Hub {selectedOrder.nodeId}.</p>
-                    </div>
-                    <button onClick={() => setSelectedOrder(null)} className="flex items-center space-x-4 text-[10px] font-black uppercase tracking-[0.4em] hover:text-red-600 transition-all">
-                       <X className="w-6 h-6" /> <span>Fechar Terminal</span>
-                    </button>
-                </div>
-                <div className="flex-grow p-16 industrial-grid overflow-y-auto max-h-[85vh]">
-                    <div className="mb-12">
-                       <h3 className="text-5xl font-brand font-black italic uppercase tracking-tighter leading-none text-black mb-4">{selectedOrder.product}</h3>
-                       <span className="text-4xl font-brand font-black italic text-red-600">€{selectedOrder.value}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-8 mb-12">
-                       <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
-                          <span className="text-[8px] font-black uppercase text-gray-400 block mb-2">Especificação Técnica</span>
-                          <p className="text-[11px] font-black uppercase leading-relaxed text-gray-600">{selectedOrder.material || 'N/A'}</p>
-                       </div>
-                       <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
-                          <span className="text-[8px] font-black uppercase text-gray-400 block mb-2">Volume / Unidade</span>
-                          <p className="text-[11px] font-black uppercase leading-relaxed text-gray-600">{selectedOrder.quantity || '1'} Unid.</p>
-                       </div>
-                    </div>
+      {/* MODAL: ADD PRODUCT (HUB B2B) */}
+      {showAddProduct && (
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl animate-in fade-in">
+           <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl p-16 border-[10px] border-red-600">
+              <h3 className="text-4xl font-brand font-black italic uppercase mb-12">Adicionar <br/><span className="text-red-600">Ativo ao Catálogo.</span></h3>
+              <form onSubmit={(e) => { 
+                e.preventDefault(); 
+                onCreateProduct({ 
+                  id: `PRD-${Date.now()}`, 
+                  name: newProduct.name, 
+                  category: newProduct.category, 
+                  description: 'Novo produto adicionado via terminal Hub B2B.', 
+                  basePrice: parseFloat(newProduct.price), 
+                  unit: 'un', 
+                  image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f', 
+                  status: 'Aguardando Aprovação', 
+                  ownerHubId: user.managedHubId || 'SYSTEM', 
+                  specs: { weight: '---', durability: '---', precisionLevel: 'R2 Industrial' } 
+                }); 
+                setShowAddProduct(false); 
+              }} className="space-y-8">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome do Asset</label>
+                    <input type="text" placeholder="EX: FLYER PREMIUM R2" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all" required />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Categoria Grid</label>
+                    <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value as any})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all">
+                       {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Preço Base (€)</label>
+                    <input type="number" step="0.01" placeholder="0.00" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all" required />
+                 </div>
+                 <div className="flex space-x-4 pt-6">
+                    <button type="submit" className="flex-grow bg-black text-white p-8 rounded-[2rem] font-black uppercase text-[12px] tracking-widest hover:bg-red-600 transition-all shadow-2xl">Submeter para Validação Master</button>
+                    <button onClick={() => setShowAddProduct(false)} type="button" className="bg-gray-100 p-8 rounded-[2rem] text-black"><X className="w-8 h-8"/></button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
 
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center text-[9px] font-black uppercase">
-                          <span>Status de Produção</span>
-                          <span className="text-red-600">{selectedOrder.status}</span>
-                       </div>
-                       <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-red-600 shimmer transition-all duration-1000" style={{ width: `${selectedOrder.progress}%` }} />
-                       </div>
-                    </div>
-                </div>
-             </div>
-         </div>
+      {/* MODAL: ADD CLIENT (HUB B2B) */}
+      {showAddClient && (
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl animate-in fade-in">
+           <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl p-16 border-[10px] border-red-600">
+              <h3 className="text-4xl font-brand font-black italic uppercase mb-12">Registar <br/><span className="text-red-600">Entidade Local.</span></h3>
+              <form onSubmit={(e) => { 
+                e.preventDefault(); 
+                onRegisterLocalClient({ 
+                  id: `USR-L-${Date.now()}`, 
+                  name: newClient.name, 
+                  email: newClient.email, 
+                  password: newClient.password, 
+                  role: 'Cliente', 
+                  status: 'Ativo', 
+                  permissions: ['VIEW_ORDERS', 'PLACE_ORDERS'], 
+                  tier: 'Bronze', 
+                  joinedAt: Date.now(), 
+                  createdByHubId: user.managedHubId 
+                }); 
+                setShowAddClient(false); 
+              }} className="space-y-8">
+                 <div className="relative"><Users className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300"/><input type="text" placeholder="NOME DO CLIENTE" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} className="w-full bg-gray-50 pl-16 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all" required /></div>
+                 <div className="relative"><Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300"/><input type="email" placeholder="EMAIL" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} className="w-full bg-gray-50 pl-16 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all" required /></div>
+                 <div className="relative"><Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300"/><input type="password" placeholder="PASSWORD LOCAL" value={newClient.password} onChange={e => setNewClient({...newClient, password: e.target.value})} className="w-full bg-gray-50 pl-16 p-6 rounded-3xl font-black uppercase text-[11px] outline-none border-2 border-transparent focus:border-red-600 transition-all" required /></div>
+                 <div className="flex space-x-4 pt-6">
+                    <button type="submit" className="flex-grow bg-black text-white p-8 rounded-[2rem] font-black uppercase text-[12px] tracking-widest hover:bg-red-600 transition-all shadow-2xl">Registar no Hub</button>
+                    <button onClick={() => setShowAddClient(false)} type="button" className="bg-gray-100 p-8 rounded-[2rem] text-black"><X className="w-8 h-8"/></button>
+                 </div>
+              </form>
+           </div>
+        </div>
       )}
     </div>
   );
