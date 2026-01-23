@@ -19,7 +19,7 @@ export const generateTechnicalNote = async (product: any, options: any): Promise
     Quantidade: ${options.quantity}.
     Custo Estimado: EUR ${options.price}.
     Use terminologia técnica avançada: 'calibração de perfil ICC FOGRA39', 'densidade ótica', 'deposição UV', 'pre-flight atómico', 'sangrias de segurança'. 
-    Fale sobre a precisão REDLINE R2.`;
+    Fale sobre a precisão REDLINE MARKET R2.`;
 
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -34,49 +34,14 @@ export const generateTechnicalNote = async (product: any, options: any): Promise
 };
 
 /**
- * Uses Gemini 2.5 Flash Image to edit an image based on a prompt.
- */
-export const editImageWithAI = async (base64Image: string, prompt: string): Promise<string | null> => {
-  const ai = getAIClient();
-  try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Image.split(',')[1] || base64Image,
-              mimeType: 'image/png',
-            },
-          },
-          {
-            text: `Edit this image based on the following instruction: ${prompt}. Return the resulting edited image.`,
-          },
-        ],
-      },
-    });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("AI Image Edit Error:", error);
-    return null;
-  }
-};
-
-/**
- * General support chat assistant.
+ * Assistente de suporte geral.
  */
 export const getChatResponse = async (message: string) => {
   const ai = getAIClient();
   const chat = ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
-      systemInstruction: 'You are the REDLINE MARKET support assistant. You are bold, helpful, and professional. Help users with marketplace questions, material choices, and order tracking.',
+      systemInstruction: 'És o assistente de suporte da REDLINE MARKET. És direto, prestável e profissional. Ajuda os utilizadores com questões sobre o marketplace, escolha de materiais e seguimento de encomendas industriais.',
     },
   });
 

@@ -10,7 +10,6 @@ const generateBarcodeBars = (doc: jsPDF, data: string, x: number, y: number, wid
   let currentX = x;
   doc.setFillColor(0, 0, 0);
   
-  // Algoritmo de geração de barras baseado no hash da ordem
   for (let i = 0; i < 35; i++) {
     const isWide = (seed + i) % 3 === 0;
     const barWidth = isWide ? 1.0 : 0.4;
@@ -27,6 +26,22 @@ const generateBarcodeBars = (doc: jsPDF, data: string, x: number, y: number, wid
   doc.text(`* ${data.toUpperCase()} *`, x + (width / 2), y + height + 3, { align: 'center' });
 };
 
+// Fix: Added missing export for downloadOriginalAsset to support component functionality
+export const downloadOriginalAsset = (order: ProductionJob) => {
+  // Mock asset download logic
+  // In a real scenario, this would fetch the actual asset file from the REDLINE R2 storage cluster
+  const dummyContent = `Industrial Asset Binary Stream for Job ${order.id}\nProduct: ${order.product}\nMaterial: ${order.material}\nFinish: ${order.finish}\nDimensions: ${order.dimensions}\nQuantity: ${order.quantity}`;
+  const blob = new Blob([dummyContent], { type: 'application/octet-stream' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', order.fileName || `RL_ASSET_${order.id}.bin`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
 export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | undefined) => {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -34,16 +49,13 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
     format: 'a4'
   });
 
-  // Background Technical Grid
   doc.setDrawColor(240, 240, 240);
   for (let i = 0; i < 210; i += 10) doc.line(i, 0, i, 297);
   for (let i = 0; i < 297; i += 10) doc.line(0, i, 210, i);
 
-  // Brand Header Block
   doc.setFillColor(10, 10, 10);
   doc.rect(0, 0, 210, 50, 'F');
   
-  // Logo & System Info
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(26);
@@ -54,21 +66,18 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
   doc.setFont('courier', 'normal');
-  doc.text('INDUSTRIAL GRID PROTOCOL // R2-CORE-STABLE', 15, 33);
+  doc.text('INDUSTRIAL MARKET GRID // R2-CORE-STABLE', 15, 33);
 
-  // Industrial Status Badge
   doc.setFillColor(204, 0, 0);
   doc.rect(145, 12, 50, 12, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
   doc.text(order.status.toUpperCase(), 170, 20, { align: 'center' });
 
-  // Unique Barcode (Top Right)
   doc.setFillColor(255, 255, 255);
   doc.rect(145, 28, 50, 15, 'F');
   generateBarcodeBars(doc, order.id, 150, 31, 40, 7);
 
-  // Document Title
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -77,7 +86,6 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.setLineWidth(1.5);
   doc.line(15, 68, 80, 68);
 
-  // Main Data Grid
   const drawEntry = (label: string, value: string, x: number, y: number) => {
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
@@ -101,31 +109,25 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   drawEntry('QUANTIDADE:', `${order.quantity} UNIDADES`, 90, 120);
   drawEntry('PRIORIDADE:', order.priority ? 'CRÍTICA (R2)' : 'STANDARD', 145, 120);
 
-  // HUB Processing Unit
   doc.setFillColor(248, 248, 248);
   doc.setDrawColor(220, 220, 220);
   doc.rect(15, 135, 180, 30, 'FD');
-  
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(7);
   doc.text('NODO INDUSTRIAL DE PROCESSAMENTO:', 20, 142);
-  
   doc.setTextColor(204, 0, 0);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${hub?.name || 'CENTRAL REDLINE R2'} // ${hub?.location || 'GLOBAL GRID'}`, 20, 152);
-  
+  doc.text(`${hub?.name || 'CENTRAL REDLINE MARKET R2'} // ${hub?.location || 'GLOBAL GRID'}`, 20, 152);
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.text(`Capacity Sync: ${hub?.capacity || 100}% // Latency: ${hub?.latency || '0.1ms'}`, 20, 159);
 
-  // Pre-flight & Engineering Section
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('CHECKLIST DE ENGENHARIA:', 15, 180);
-  
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   const checklist = [
@@ -136,7 +138,6 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   ];
   checklist.forEach((item, i) => doc.text(item, 20, 190 + (i * 6)));
 
-  // Asset Metadata
   doc.setFillColor(10, 10, 10);
   doc.rect(15, 220, 180, 20, 'F');
   doc.setTextColor(255, 255, 255);
@@ -146,7 +147,6 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.setFont('courier', 'normal');
   doc.text(`FILENAME: ${order.fileName || 'RL_ASSET_MASTER.PDF'}`, 20, 233);
 
-  // Footer Signature Line
   doc.setDrawColor(200, 200, 200);
   doc.line(15, 275, 195, 275);
   doc.setFontSize(7);
@@ -154,17 +154,5 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.text('REDLINE MARKET SYSTEMS // R2-SYNC-SERVICE // AUTENTICAÇÃO VIA BARCODE INDUSTRIAL', 15, 282);
   doc.text(`HASH: ${btoa(order.id).slice(0, 20)}`, 195, 282, { align: 'right' });
 
-  doc.save(`REDLINE_${order.id}_SPEC.pdf`);
-};
-
-export const downloadOriginalAsset = (order: ProductionJob) => {
-  const blob = new Blob([`DATA_STREAM: ${order.fileName}`], { type: 'text/plain' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = order.fileName || `asset_${order.id}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  doc.save(`REDLINE_MARKET_${order.id}_SPEC.pdf`);
 };

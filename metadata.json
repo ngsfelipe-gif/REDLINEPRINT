@@ -1,6 +1,6 @@
 {
   "name": "REDLINE MARKET",
-  "description": "Next-generation digital marketplace and production management system featuring AI-powered prepress and product building.",
+  "description": "Próxima geração de marketplace digital e sistema de gestão de produção com IA integrada.",
   "requestFramePermissions": [
     "camera",
     "microphone"

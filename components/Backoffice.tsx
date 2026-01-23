@@ -107,6 +107,14 @@ const Backoffice: React.FC<BackofficeProps> = ({
     onSound?.('success');
   };
 
+  const handleResetPassword = (targetUser: User) => {
+    const newPassword = prompt(`DEFINIR NOVA PASSWORD MASTER PARA: ${targetUser.name}\n(Esta alteração é imediata no Cluster R2)`);
+    if (newPassword && newPassword.trim()) {
+      onUpdateUser(targetUser.id, { password: newPassword.trim() });
+      onSound?.('success');
+    }
+  };
+
   return (
     <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
       {/* Header Central de Comando */}
@@ -114,7 +122,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         <div>
           <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20 active-glow transition-all">
              <ShieldCheck className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.6</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.7</span>
           </div>
           <h2 className="text-8xl font-brand font-black italic uppercase tracking-tighter leading-none text-black">Torre de <br/><span className="text-red-600">Controlo.</span></h2>
         </div>
@@ -138,7 +146,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       </div>
 
-      {/* VIEW: PRODUCTS MANAGEMENT - SPREADSHEET STYLE */}
+      {/* VIEW: PRODUCTS MANAGEMENT - ENHANCED SPREADSHEET */}
       {activeView === 'products' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-5">
           <div className="bg-white p-8 rounded-[4rem] border border-gray-100 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
@@ -146,7 +154,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
               <div className="p-4 bg-red-600 rounded-3xl text-white shadow-lg"><FileSpreadsheet className="w-8 h-8" /></div>
               <div>
                 <h3 className="text-4xl font-brand font-black italic uppercase leading-none text-black">Product <span className="text-red-600">Spreadsheet.</span></h3>
-                <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-2 flex items-center"><Activity className="w-3 h-3 mr-2" /> Real-time Inventory Injection Matrix // Unit: R2-Stable</p>
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-2 flex items-center"><Activity className="w-3 h-3 mr-2" /> High-Density Inventory Matrix // Cluster Verification Active</p>
               </div>
             </div>
             <div className="flex items-center gap-4 w-full md:w-auto">
@@ -160,122 +168,122 @@ const Backoffice: React.FC<BackofficeProps> = ({
                   className="bg-transparent flex-grow p-3 font-black text-[11px] uppercase outline-none" 
                 />
               </div>
-              <button onClick={() => setShowCreateModal('product')} className="bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all shadow-xl flex items-center gap-3">
+              <button onClick={() => setShowCreateModal('product')} className="bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all shadow-xl flex items-center gap-3 active:scale-95">
                 <Plus className="w-4 h-4" /> <span>Add Module</span>
               </button>
             </div>
           </div>
 
           <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 overflow-hidden relative">
-            <div className="overflow-x-auto custom-scrollbar max-h-[800px]">
-              <table className="w-full text-left border-collapse table-fixed min-w-[1500px]">
-                <thead className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200">
-                  <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                    <th className="px-8 py-8 w-48">Module ID</th>
-                    <th className="px-8 py-8 w-40">Asset Image</th>
-                    <th className="px-8 py-8 w-64">Name Axis</th>
-                    <th className="px-8 py-8 w-64">Category Cluster</th>
-                    <th className="px-8 py-8 w-80">Tech Description</th>
-                    <th className="px-8 py-8 w-40">Base (RC)</th>
-                    <th className="px-8 py-8 w-32">Unit</th>
-                    <th className="px-8 py-8 w-40">Badge</th>
-                    <th className="px-8 py-8 w-48">Status Grid</th>
-                    <th className="px-8 py-8 w-48">Owner Hub</th>
-                    <th className="px-8 py-8 w-32 text-center">Protocol</th>
+            <div className="overflow-x-auto custom-scrollbar max-h-[850px]">
+              <table className="w-full text-left border-collapse table-fixed min-w-[1600px]">
+                <thead className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b-2 border-gray-100">
+                  <tr className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">
+                    <th className="px-8 py-10 w-44">Module ID</th>
+                    <th className="px-8 py-10 w-40">Asset Image</th>
+                    <th className="px-8 py-10 w-72">Name Axis</th>
+                    <th className="px-8 py-10 w-64">Category Cluster</th>
+                    <th className="px-8 py-10 w-96">Tech Description</th>
+                    <th className="px-8 py-10 w-44">Base (RC)</th>
+                    <th className="px-8 py-10 w-32">Unit</th>
+                    <th className="px-8 py-10 w-40">Badge</th>
+                    <th className="px-8 py-10 w-52">Status Grid</th>
+                    <th className="px-8 py-10 w-52">Owner Hub</th>
+                    <th className="px-8 py-10 w-32 text-center">Protocol</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredItems.map((p: ExtendedProduct) => (
-                    <tr key={p.id} className="hover:bg-red-50/10 transition-colors group">
-                      <td className="px-8 py-6 font-mono text-[10px] font-bold text-gray-300">
-                        <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 w-fit">{p.id}</div>
+                    <tr key={p.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-8 py-8">
+                        <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 w-fit font-mono text-[10px] font-bold text-gray-500">{p.id}</div>
                       </td>
-                      <td className="px-8 py-6">
-                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-md group/img border-2 border-transparent hover:border-red-600 transition-all cursor-pointer">
-                          <img src={p.image} className="w-full h-full object-cover group-hover/img:scale-125 transition-transform duration-700 grayscale hover:grayscale-0" />
+                      <td className="px-8 py-8">
+                        <div className="relative w-24 h-24 rounded-3xl overflow-hidden shadow-lg group/img border-2 border-transparent hover:border-red-600 transition-all cursor-pointer">
+                          <img src={p.image} className="w-full h-full object-cover group-hover/img:scale-125 transition-transform duration-700 grayscale group-hover:grayscale-0" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity" onClick={() => {
                             const newUrl = prompt('Enter new Asset Image URL:', p.image);
                             if(newUrl) onUpdateProduct(p.id, { image: newUrl });
                           }}>
-                            <Edit className="w-5 h-5 text-white" />
+                            <Edit className="w-6 h-6 text-white" />
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <input 
                           type="text" 
                           value={p.name} 
                           onChange={(e) => onUpdateProduct(p.id, { name: e.target.value })}
-                          className="w-full bg-transparent p-3 rounded-xl font-brand font-black italic uppercase text-lg outline-none focus:bg-white focus:ring-2 focus:ring-red-600/10 transition-all border border-transparent hover:border-gray-200" 
+                          className="w-full bg-transparent p-3 rounded-xl font-brand font-black italic uppercase text-xl outline-none focus:bg-white focus:ring-4 focus:ring-red-600/5 transition-all border border-transparent hover:border-gray-200" 
                         />
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <select 
                           value={p.category} 
                           onChange={(e) => onUpdateProduct(p.id, { category: e.target.value as Category })}
-                          className="w-full bg-transparent p-3 rounded-xl font-black uppercase text-[11px] outline-none appearance-none border border-transparent hover:border-gray-200 cursor-pointer"
+                          className="w-full bg-gray-50/50 p-4 rounded-2xl font-black uppercase text-[11px] outline-none appearance-none border border-gray-100 hover:border-red-600/20 cursor-pointer transition-all"
                         >
                           {Object.values(Category).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <textarea 
                           value={p.description} 
                           onChange={(e) => onUpdateProduct(p.id, { description: e.target.value })}
-                          className="w-full bg-transparent p-3 rounded-xl text-[11px] font-medium text-gray-500 italic outline-none resize-none h-16 border border-transparent hover:border-gray-200 focus:bg-white" 
+                          className="w-full bg-transparent p-4 rounded-2xl text-[11px] font-medium text-gray-500 italic outline-none resize-none h-20 border border-transparent hover:border-gray-200 focus:bg-white focus:ring-4 focus:ring-red-600/5 transition-all" 
                         />
                       </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center space-x-2 bg-gray-50/50 p-3 rounded-xl border border-gray-100 group-hover:bg-white transition-all">
+                      <td className="px-8 py-8">
+                        <div className="flex items-center space-x-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:shadow-md transition-all">
                           <input 
                             type="number" 
                             value={p.basePrice} 
                             onChange={(e) => onUpdateProduct(p.id, { basePrice: parseFloat(e.target.value) })}
-                            className="bg-transparent w-full font-brand font-black italic text-xl outline-none text-red-600" 
+                            className="bg-transparent w-full font-brand font-black italic text-2xl outline-none text-red-600 text-right" 
                           />
-                          <span className="text-[9px] font-black text-yellow-500">RC</span>
+                          <span className="text-[10px] font-black text-yellow-500">RC</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <input 
                           type="text" 
                           value={p.unit} 
                           onChange={(e) => onUpdateProduct(p.id, { unit: e.target.value })}
-                          className="w-full bg-transparent p-3 rounded-xl font-black text-[11px] uppercase outline-none text-gray-400 border border-transparent hover:border-gray-200" 
+                          className="w-full bg-transparent p-3 rounded-xl font-black text-[11px] uppercase outline-none text-gray-400 border border-transparent text-center" 
                         />
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                          <input 
                           type="text" 
                           value={p.badge || ''} 
                           placeholder="NONE"
                           onChange={(e) => onUpdateProduct(p.id, { badge: e.target.value })}
-                          className="w-full bg-transparent p-3 rounded-xl font-black text-[10px] uppercase outline-none text-red-600 border border-transparent hover:border-gray-200" 
+                          className="w-full bg-transparent p-3 rounded-xl font-black text-[10px] uppercase outline-none text-red-600 border border-transparent text-center italic" 
                         />
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <select 
                           value={p.status} 
                           onChange={(e) => onUpdateProduct(p.id, { status: e.target.value as any })}
-                          className={`w-full p-3 rounded-full font-black uppercase text-[9px] outline-none appearance-none border shadow-sm cursor-pointer transition-all ${p.status === 'Ativo' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
+                          className={`w-full p-4 rounded-full font-black uppercase text-[10px] outline-none appearance-none border shadow-sm cursor-pointer transition-all ${p.status === 'Ativo' ? 'bg-green-50 text-green-600 border-green-100 hover:bg-green-100' : 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100'}`}
                         >
                           <option value="Ativo">Online / Stable</option>
                           <option value="Aguardando Aprovação">Pending / Alpha</option>
                         </select>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-8">
                         <select 
                           value={p.ownerHubId} 
                           onChange={(e) => onUpdateProduct(p.id, { ownerHubId: e.target.value })}
-                          className="w-full bg-transparent p-3 rounded-xl font-black text-[10px] uppercase outline-none appearance-none border border-transparent hover:border-gray-200 cursor-pointer"
+                          className="w-full bg-gray-100 p-4 rounded-2xl font-black text-[10px] uppercase outline-none appearance-none border border-transparent hover:border-black cursor-pointer transition-all"
                         >
                           <option value="SYSTEM">Central Master</option>
                           {hubs.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                         </select>
                       </td>
-                      <td className="px-8 py-6 text-center">
-                        <button onClick={() => { if(confirm('INITIATE DELETE PROTOCOL?')) onUpdateProduct(p.id, { ...p, status: 'Aguardando Aprovação' }); }} className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all">
-                          <Trash2 className="w-4 h-4" />
+                      <td className="px-8 py-8 text-center">
+                        <button onClick={() => { if(confirm('INITIATE DELETE PROTOCOL FOR MODULE '+p.id+'?')) onUpdateProduct(p.id, { ...p, status: 'Aguardando Aprovação' }); }} className="p-5 bg-gray-100 text-gray-400 rounded-3xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90">
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </td>
                     </tr>
@@ -283,8 +291,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 </tbody>
               </table>
             </div>
-            {/* Visual Grid Lines Overlay for high density feel */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] industrial-grid" />
+            <div className="absolute inset-0 pointer-events-none opacity-[0.02] industrial-grid" />
           </div>
         </div>
       )}
@@ -752,7 +759,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                       <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white text-3xl font-brand font-black italic shadow-xl ${u.role === 'B2B_Admin' ? 'bg-red-600' : 'bg-black'}`}>{u.name[0]}</div>
                       <div className="flex space-x-2">
                          <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Eye className="w-5 h-5" /></button>
-                         <button onClick={() => { const newPass = prompt(`DEFINIR NOVA PASSWORD MASTER PARA: ${u.name}`); if (newPass) onUpdateUser(u.id, { password: newPass }); }} title="Reset Password" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><KeyRound className="w-5 h-5" /></button>
+                         <button onClick={() => handleResetPassword(u)} title="Reset Password" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><KeyRound className="w-5 h-5" /></button>
                          <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Edit className="w-5 h-5" /></button>
                          <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md active:scale-90"><Trash2 className="w-5 h-5" /></button>
                       </div>
@@ -840,8 +847,13 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           </select>
                        </div>
                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Redefinir Password</label>
-                          <input type="password" placeholder="DEIXE EM BRANCO PARA MANTER" onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, password: e.target.value || editingItem.data.password}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4 flex items-center gap-2"><Lock className="w-3 h-3"/> Master Password Reset</label>
+                          <input 
+                            type="password" 
+                            placeholder="NOVA PASSWORD (DEIXE EM BRANCO PARA MANTER)" 
+                            onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, password: e.target.value || editingItem.data.password}})} 
+                            className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" 
+                          />
                        </div>
                     </>
                  )}

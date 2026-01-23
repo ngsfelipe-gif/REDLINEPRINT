@@ -117,23 +117,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
 
       {/* Futuristic R2 Footer */}
       <footer className="relative bg-[#0A0A0A] text-white pt-32 pb-12 px-8 mt-24 overflow-hidden">
-        {/* Animated Laser Top Line */}
         <div className="absolute top-0 left-0 w-full h-[2px] bg-red-600/20">
            <div className="laser-line"></div>
         </div>
-        
-        {/* Background Grid Accent */}
         <div className="absolute inset-0 industrial-grid opacity-[0.03] pointer-events-none"></div>
-        
-        {/* Large Background Text Decoration */}
         <div className="absolute bottom-[-10%] left-[-5%] text-[20vw] font-brand font-black italic text-white/[0.02] select-none pointer-events-none uppercase tracking-tighter">
           Redline Market
         </div>
 
         <div className="max-w-[1500px] mx-auto relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-20 mb-32">
-            
-            {/* Branding Column */}
             <div className="space-y-10">
               <div className="flex items-center space-x-4 group cursor-pointer" onClick={() => setActiveTab('home')}>
                 <div className="p-2.5 bg-red-600 rounded-xl rotate-12 group-hover:rotate-0 transition-all shadow-[0_0_30px_rgba(204,0,0,0.4)]">
@@ -154,7 +147,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
               </div>
             </div>
 
-            {/* Navigation Column */}
             <div className="space-y-10">
                <h4 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center">
                   <Terminal className="w-4 h-4 mr-3" /> Grid Access
@@ -171,7 +163,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
                </ul>
             </div>
 
-            {/* Real-time Telemetry Column */}
             <div className="space-y-10">
                <h4 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center">
                   <Activity className="w-4 h-4 mr-3" /> Live Telemetry
@@ -200,7 +191,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
                </div>
             </div>
 
-            {/* Sync Column */}
             <div className="space-y-10">
                <h4 className="text-[10px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center">
                   <Radio className="w-4 h-4 mr-3" /> Grid Sync
@@ -220,7 +210,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
 
           </div>
 
-          {/* Bottom Bar */}
           <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center space-x-10 text-[9px] font-black text-gray-600 uppercase tracking-widest italic">
                <span>© 2025 REDLINE MARKET SYSTEMS</span>
