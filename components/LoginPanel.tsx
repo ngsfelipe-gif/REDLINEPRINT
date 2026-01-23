@@ -57,17 +57,22 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
       <div className="relative w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-[#0A0A0A] rounded-[5rem] border border-white/5 overflow-hidden shadow-[0_0_150px_rgba(204,0,0,0.3)] m-auto">
         
         {isProcessing && (
-          <div className="absolute inset-0 z-[6000] bg-black/98 flex flex-col items-center justify-center text-center p-16 animate-in fade-in transition-all duration-700">
+          <div className="absolute inset-0 z-[6000] premium-glass-dark flex flex-col items-center justify-center text-center p-16 animate-in fade-in transition-all duration-700">
              <div className="relative mb-12">
                 <div className="absolute inset-0 laser-v2 z-10" />
-                <div className="p-10 bg-red-600/10 rounded-[3rem] border border-red-600/30 status-pulse">
+                <div className="p-10 bg-red-600/20 rounded-[4rem] border border-red-600/40 shadow-[0_0_100px_rgba(204,0,0,0.3)] status-pulse">
                    <Cpu className="w-24 h-24 text-red-600 animate-spin" />
                 </div>
              </div>
              <h3 className="text-6xl font-brand font-black italic text-white uppercase tracking-tighter mb-4 glitch-loader" data-text="Autenticação Quântica.">Autenticação <br/><span className="text-red-600">Quântica.</span></h3>
-             <div className="flex items-center space-x-4">
-                <Loader2 className="w-4 h-4 text-red-600 animate-spin" />
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.6em] animate-pulse italic">Injetando Handshake no Cluster R2-Central...</p>
+             <div className="flex flex-col items-center space-y-4">
+                <div className="flex items-center space-x-4">
+                   <Loader2 className="w-4 h-4 text-red-600 animate-spin" />
+                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.6em] animate-pulse italic">Injetando Handshake no Cluster R2-Central...</p>
+                </div>
+                <div className="w-64 h-1 bg-white/5 rounded-full overflow-hidden mt-4">
+                   <div className="h-full bg-red-600 animate-[flow-horizontal_3s_infinite_linear]" style={{ width: '100%' }} />
+                </div>
              </div>
           </div>
         )}
@@ -88,7 +93,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
             <h2 className="text-8xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter mb-12">GRID <br/> <span className="text-red-600">ACCESS.</span></h2>
             
             <div className="space-y-8">
-              <div className="bg-white/5 p-10 rounded-[4rem] border border-white/5 backdrop-blur-3xl hover:border-red-600/20 transition-all shadow-2xl overflow-hidden relative group/aura">
+              <div className="premium-glass p-10 rounded-[4rem] backdrop-blur-3xl hover:border-red-600/20 transition-all shadow-2xl overflow-hidden relative group/aura">
                  <div className="absolute inset-0 data-shimmer opacity-10" />
                  <p className="text-[13px] text-gray-400 leading-relaxed font-black uppercase tracking-widest italic border-l-4 border-red-600 pl-10 relative z-10">
                     Acesso exclusivo para entidades certificadas. O terminal monitoriza latência, reputação e rendimento de produção em tempo real.
@@ -96,14 +101,14 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               </div>
 
               <div className="grid grid-cols-2 gap-6">
-                 <button onClick={() => quickLogin('admin')} className="bg-white/5 hover:bg-red-600 p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn shadow-xl">
+                 <button onClick={() => quickLogin('admin')} className="bg-white/5 hover:bg-red-600 p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn shadow-xl hover:scale-105 active-glow">
                     <span className="block text-gray-500 group-hover/btn:text-white mb-2 italic opacity-60">Role: Super Admin</span>
                     <div className="flex items-center justify-between">
                        <span>Master Control</span>
                        <ArrowRight className="w-4 h-4 opacity-0 group-hover/btn:opacity-100 transition-all translate-x-[-10px] group-hover/btn:translate-x-0" />
                     </div>
                  </button>
-                 <button onClick={() => quickLogin('hub')} className="bg-white/5 hover:bg-black p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn shadow-xl">
+                 <button onClick={() => quickLogin('hub')} className="bg-white/5 hover:bg-black p-8 rounded-[3rem] text-[10px] font-black uppercase tracking-widest text-left border border-white/5 transition-all group/btn shadow-xl hover:scale-105 active-glow">
                     <span className="block text-gray-500 group-hover/btn:text-white mb-2 italic opacity-60">Role: Hub Partner</span>
                     <div className="flex items-center justify-between">
                        <span>Frankfurt Unit</span>
@@ -178,7 +183,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
             
             <button 
               type="submit" 
-              className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase text-[11px] tracking-[0.6em] hover:bg-red-600 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex items-center justify-center space-x-6 group border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0"
+              className="w-full bg-black text-white p-10 rounded-[3rem] font-black uppercase text-[11px] tracking-[0.6em] hover:bg-red-600 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex items-center justify-center space-x-6 group border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0 active-glow"
             >
                <span>Injetar no Grid</span> <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
             </button>

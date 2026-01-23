@@ -222,10 +222,10 @@ const App: React.FC = () => {
       onLogout={() => { playSound('click'); setUser(null); setActiveTab('home'); }}
     >
       {adminBuffer && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-10 py-4 rounded-full flex items-center space-x-6 shadow-[0_0_60px_rgba(204,0,0,0.6)] border border-white/30 animate-bounce">
-           <ShieldCheck className="w-6 h-6" />
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] premium-glass-dark text-white px-10 py-4 rounded-full flex items-center space-x-6 shadow-[0_0_80px_rgba(204,0,0,0.4)] border border-red-600/30 active-glow">
+           <ShieldCheck className="w-6 h-6 text-red-600" />
            <span className="text-[11px] font-black uppercase tracking-[0.3em]">Protocolo Sombra: {user?.name}</span>
-           <button onClick={handleStopImpersonation} className="bg-white text-red-600 px-6 py-2 rounded-full text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all shadow-lg">Sair</button>
+           <button onClick={handleStopImpersonation} className="bg-red-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all shadow-lg active-glow">Sair</button>
         </div>
       )}
 
@@ -289,17 +289,20 @@ const App: React.FC = () => {
       </div>
 
       {activeToast && (
-        <div className={`fixed bottom-10 right-10 z-[3000] bg-black/90 backdrop-blur-3xl text-white p-8 rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.5)] border-l-[15px] animate-in slide-in-from-right-10 w-[400px] border-red-600 overflow-hidden group`}>
+        <div className={`fixed bottom-10 right-10 z-[3000] premium-glass-dark text-white p-8 rounded-[2.5rem] shadow-[0_50px_120px_rgba(0,0,0,0.6)] border-l-[15px] border-red-600 animate-in slide-in-from-right-10 w-[420px] overflow-hidden group active-glow`}>
            <div className="absolute inset-0 data-shimmer opacity-20 pointer-events-none" />
            <div className="flex items-center space-x-6 relative z-10">
-              {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : (activeToast.type === 'loading' ? <Database className="w-8 h-8 text-red-600 animate-pulse" /> : <Zap className="w-8 h-8 text-red-600 animate-pulse" />)}
+              <div className="p-4 bg-red-600/20 rounded-2xl shadow-[0_0_20px_rgba(204,0,0,0.3)]">
+                 {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : (activeToast.type === 'loading' ? <Database className="w-8 h-8 text-red-600 animate-pulse" /> : <Zap className="w-8 h-8 text-red-600 animate-pulse" />)}
+              </div>
               <div>
                  <h4 className="text-[12px] font-black uppercase text-red-600 tracking-widest">{activeToast.title}</h4>
-                 <p className="text-[13px] font-bold text-gray-400 mt-1 italic">{activeToast.msg}</p>
+                 <p className="text-[13px] font-bold text-gray-400 mt-1 italic leading-tight">{activeToast.msg}</p>
               </div>
            </div>
-           <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600/20">
-              <div className="h-full bg-red-600 transition-all duration-[5000ms] ease-linear" style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
+           {/* Progress Indicator for Loading Toast */}
+           <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600/10">
+              <div className="h-full bg-red-600 transition-all duration-[5000ms] ease-linear shadow-[0_0_15px_rgba(204,0,0,1)]" style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
            </div>
         </div>
       )}

@@ -105,17 +105,24 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
 
   return (
     <div className="max-w-[1700px] mx-auto px-10 py-12 industrial-grid min-h-screen pt-40 lg:pt-48">
-      {/* Sincronização Global Overlay */}
+      {/* Sincronização Global Overlay - Enhanced UI */}
       {isSyncing && (
-        <div className="fixed inset-0 z-[7000] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center animate-in fade-in transition-all duration-1000">
-           <div className="relative mb-16">
-              <div className="absolute inset-0 status-pulse" />
-              <div className="p-16 bg-red-600/10 rounded-full border border-red-600/30">
-                 <Loader2 className="w-32 h-32 text-red-600 animate-spin" />
+        <div className="fixed inset-0 z-[7000] bg-black/80 backdrop-blur-2xl flex flex-col items-center justify-center animate-in fade-in transition-all duration-1000">
+           <div className="premium-glass-dark p-24 rounded-[6rem] shadow-[0_0_200px_rgba(204,0,0,0.2)] flex flex-col items-center border border-white/10 group">
+              <div className="relative mb-16">
+                 <div className="absolute inset-0 status-pulse scale-150" />
+                 <div className="p-16 bg-red-600/20 rounded-full border border-red-600/40 shadow-[0_0_80px_rgba(204,0,0,0.4)]">
+                    <Loader2 className="w-32 h-32 text-red-600 animate-spin" />
+                 </div>
+              </div>
+              <h3 className="text-7xl font-brand font-black italic text-white uppercase tracking-tighter mb-4 glitch-loader" data-text="Global Sync Active.">Global <span className="text-red-600">Sync Active.</span></h3>
+              <p className="text-[12px] font-black text-gray-500 uppercase tracking-[1em] animate-pulse">Injetando Protocolo no Cluster Central...</p>
+              
+              {/* Progress Line */}
+              <div className="w-96 h-1.5 bg-white/5 rounded-full overflow-hidden mt-12 border border-white/5">
+                 <div className="h-full bg-red-600 animate-[flow-horizontal_2s_infinite_linear]" style={{ width: '100%' }} />
               </div>
            </div>
-           <h3 className="text-7xl font-brand font-black italic text-white uppercase tracking-tighter mb-4 glitch-loader" data-text="Global Sync Active.">Global <span className="text-red-600">Sync Active.</span></h3>
-           <p className="text-[12px] font-black text-gray-500 uppercase tracking-[1em] animate-pulse">Injetando Protocolo no Cluster Central...</p>
         </div>
       )}
 
@@ -123,14 +130,14 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
          <div className="space-y-24 animate-in fade-in duration-700">
             <div className="flex flex-col xl:flex-row justify-between items-end gap-12">
                <div className="space-y-10">
-                 <div className="flex items-center space-x-3 bg-black text-white px-5 py-2.5 rounded-full w-fit shadow-lg">
+                 <div className="flex items-center space-x-3 bg-black text-white px-5 py-2.5 rounded-full w-fit shadow-lg active-glow">
                     <LayoutGrid className="w-3.5 h-3.5 text-red-600" />
                     <span className="text-[11px] font-black uppercase tracking-[0.4em]">R2-Inventory // Cluster Central</span>
                  </div>
                  <h3 className="text-8xl md:text-9xl font-brand font-black italic uppercase text-black tracking-tighter leading-[0.8] mb-4">Módulos <br/><span className="text-red-600">Industriais.</span></h3>
                  <div className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide">
                     {categories.map(cat => (
-                      <button key={cat} onClick={() => { onSound?.('click'); setActiveCategory(cat); setCurrentPage(1); }} className={`px-12 py-5 rounded-full text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${activeCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-2xl scale-105' : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'}`}>{cat}</button>
+                      <button key={cat} onClick={() => { onSound?.('click'); setActiveCategory(cat); setCurrentPage(1); }} className={`px-12 py-5 rounded-full text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${activeCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-2xl scale-105 active-glow' : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'}`}>{cat}</button>
                     ))}
                  </div>
                </div>
@@ -149,14 +156,14 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-16">
                {paginatedProducts.map(p => (
                  <div key={p.id} onClick={() => { onSound?.('click'); setSelectedProduct(p); }} className={`bg-white border-[3px] rounded-[5rem] p-12 transition-all duration-700 cursor-pointer relative group flex flex-col h-full ${selectedProduct?.id === p.id ? 'border-red-600 shadow-[0_80px_150px_rgba(204,0,0,0.15)] scale-[1.04]' : 'border-transparent hover:border-black shadow-xl hover:shadow-2xl'}`}>
-                    {p.badge && <div className="absolute top-12 right-12 bg-black text-white px-6 py-2.5 rounded-full text-[10px] font-black z-10 shadow-xl tracking-[0.3em] uppercase border border-white/20 animate-pulse">{p.badge}</div>}
+                    {p.badge && <div className="absolute top-12 right-12 bg-black text-white px-6 py-2.5 rounded-full text-[10px] font-black z-10 shadow-xl tracking-[0.3em] uppercase border border-white/20 animate-pulse active-glow">{p.badge}</div>}
                     
                     <div className="w-full aspect-[4/5] rounded-[4rem] overflow-hidden mb-12 shadow-inner bg-gray-50 relative border border-gray-100">
                        <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-[2s]" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                        
                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center space-x-4 opacity-0 group-hover:opacity-100 transition-all translate-y-6 group-hover:translate-y-0 duration-500">
-                          <button onClick={(e) => { e.stopPropagation(); onSound?.('click'); setDetailProduct(p); }} className="bg-white text-black p-6 rounded-3xl hover:bg-red-600 hover:text-white transition-all shadow-2xl flex items-center space-x-3">
+                          <button onClick={(e) => { e.stopPropagation(); onSound?.('click'); setDetailProduct(p); }} className="bg-white text-black p-6 rounded-3xl hover:bg-red-600 hover:text-white transition-all shadow-2xl flex items-center space-x-3 active-glow">
                             <Info className="w-6 h-6" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Detalhes R2</span>
                           </button>
@@ -203,7 +210,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                                <span className="text-[11px] font-black uppercase text-red-600 italic tracking-[0.2em] animate-pulse">LOGIN PARA ACESSO</span>
                              )}
                           </div>
-                          <div className={`p-8 rounded-[2rem] transition-all duration-700 ${selectedProduct?.id === p.id ? 'bg-red-600 text-white animate-pulse shadow-[0_0_50px_rgba(204,0,0,0.4)] scale-110 rotate-12' : 'bg-gray-50 text-gray-200 group-hover:bg-black group-hover:text-white hover:rotate-12'}`}>
+                          <div className={`p-8 rounded-[2rem] transition-all duration-700 ${selectedProduct?.id === p.id ? 'bg-red-600 text-white animate-pulse shadow-[0_0_50px_rgba(204,0,0,0.4)] scale-110 rotate-12 active-glow' : 'bg-gray-50 text-gray-200 group-hover:bg-black group-hover:text-white hover:rotate-12'}`}>
                              <Zap className="w-10 h-10" />
                           </div>
                        </div>
@@ -217,7 +224,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                  <button onClick={() => { onSound?.('click'); setCurrentPage(prev => Math.max(prev - 1, 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === 1} className="p-10 bg-white border-2 border-gray-100 rounded-full disabled:opacity-20 hover:bg-black hover:text-white transition-all shadow-2xl hover:scale-110 active:scale-95"><ChevronLeft className="w-12 h-12" /></button>
                  <div className="flex items-center space-x-6">
                     {Array.from({ length: totalPages }).map((_, i) => (
-                      <button key={i} onClick={() => { onSound?.('click'); setCurrentPage(i + 1); window.scrollTo({top: 0, behavior: 'smooth'}); }} className={`w-18 h-18 rounded-[2.5rem] font-brand font-black italic text-3xl transition-all duration-500 ${currentPage === i + 1 ? 'bg-red-600 text-white shadow-[0_20px_40px_rgba(204,0,0,0.3)] scale-125' : 'bg-gray-100 text-gray-400 hover:bg-black hover:text-white'}`}>{i + 1}</button>
+                      <button key={i} onClick={() => { onSound?.('click'); setCurrentPage(i + 1); window.scrollTo({top: 0, behavior: 'smooth'}); }} className={`w-18 h-18 rounded-[2.5rem] font-brand font-black italic text-3xl transition-all duration-500 ${currentPage === i + 1 ? 'bg-red-600 text-white shadow-[0_20px_40px_rgba(204,0,0,0.3)] scale-125 active-glow' : 'bg-gray-100 text-gray-400 hover:bg-black hover:text-white'}`}>{i + 1}</button>
                     ))}
                  </div>
                  <button onClick={() => { onSound?.('click'); setCurrentPage(prev => Math.min(prev + 1, totalPages)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={currentPage === totalPages} className="p-10 bg-white border-2 border-gray-100 rounded-full disabled:opacity-20 hover:bg-black hover:text-white transition-all shadow-2xl hover:scale-110 active:scale-95"><ChevronRight className="w-12 h-12" /></button>
@@ -225,8 +232,8 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
             )}
 
             {selectedProduct && (
-              <div className="sticky bottom-10 left-0 w-full z-40 animate-in slide-in-from-bottom-10 duration-1000">
-                <button onClick={() => { onSound?.('click'); setStep(2); }} className="w-full bg-black text-white p-16 rounded-[5rem] font-brand font-black italic uppercase tracking-[0.8em] text-3xl hover:bg-red-600 transition-all shadow-[0_40px_100px_rgba(0,0,0,0.4)] flex items-center justify-center group border-b-[15px] border-gray-900 overflow-hidden relative">
+              <div className="sticky bottom-10 left-0 w-full z-40 animate-in slide-in-from-bottom-10 duration-1000 px-10">
+                <button onClick={() => { onSound?.('click'); setStep(2); }} className="w-full bg-black text-white p-16 rounded-[5rem] font-brand font-black italic uppercase tracking-[0.8em] text-3xl hover:bg-red-600 transition-all shadow-[0_40px_100px_rgba(0,0,0,0.4)] flex items-center justify-center group border-b-[15px] border-gray-900 overflow-hidden relative active-glow">
                    <div className="absolute inset-0 industrial-grid opacity-10 pointer-events-none" />
                    <span className="relative z-10">Configurar {selectedProduct.name}</span> 
                    <ArrowRight className="ml-12 w-12 h-12 animate-pulse group-hover:translate-x-4 transition-transform relative z-10 text-red-600" />
@@ -239,7 +246,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
       {detailProduct && (
         <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6 lg:p-16 animate-in fade-in duration-500">
            <div className="bg-white w-full max-w-[1400px] rounded-[6rem] shadow-[0_0_150px_rgba(0,0,0,0.5)] border-[15px] border-black relative overflow-hidden flex flex-col lg:flex-row h-full max-h-[90vh] quantum-aura">
-              <button onClick={() => { onSound?.('click'); setDetailProduct(null); }} className="absolute top-12 right-12 z-[70] p-6 bg-black text-white rounded-full hover:bg-red-600 hover:rotate-90 transition-all shadow-2xl"><X className="w-10 h-10"/></button>
+              <button onClick={() => { onSound?.('click'); setDetailProduct(null); }} className="absolute top-12 right-12 z-[70] p-6 bg-black text-white rounded-full hover:bg-red-600 hover:rotate-90 transition-all shadow-2xl active-glow"><X className="w-10 h-10"/></button>
               
               <div className="lg:w-1/2 relative bg-gray-50 h-full overflow-hidden">
                  <img src={detailProduct.image} className="w-full h-full object-cover animate-in zoom-in duration-[10s]" />
@@ -283,7 +290,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                        <span className="text-[11px] font-black uppercase tracking-[0.5em] text-red-600 block mb-2 italic">Preço Base do Módulo</span>
                        <span className="text-7xl font-brand font-black italic">€{detailProduct.basePrice.toFixed(2)}<span className="text-2xl font-normal opacity-30">/{detailProduct.unit}</span></span>
                     </div>
-                    <button onClick={() => { onSound?.('click'); setSelectedProduct(detailProduct); setDetailProduct(null); setStep(2); }} className="relative z-10 bg-red-600 text-white p-10 rounded-3xl hover:bg-white hover:text-black transition-all shadow-xl hover:scale-105 active:scale-95">
+                    <button onClick={() => { onSound?.('click'); setSelectedProduct(detailProduct); setDetailProduct(null); setStep(2); }} className="relative z-10 bg-red-600 text-white p-10 rounded-3xl hover:bg-white hover:text-black transition-all shadow-xl hover:scale-105 active:scale-95 active-glow">
                        <Zap className="w-12 h-12" />
                     </button>
                  </div>
@@ -296,7 +303,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
          <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-24 animate-in slide-in-from-right-10 relative overflow-hidden">
             <button onClick={() => { onSound?.('click'); setStep(1); }} className="absolute top-12 right-12 p-6 text-gray-200 hover:text-black hover:rotate-90 transition-all"><X className="w-12 h-12"/></button>
             <div className="flex items-center space-x-8 mb-20">
-               <div className="p-8 bg-red-600 rounded-3xl text-white shadow-xl status-pulse"><Settings className="w-12 h-12 animate-spin-slow" /></div>
+               <div className="p-8 bg-red-600 rounded-3xl text-white shadow-xl status-pulse active-glow"><Settings className="w-12 h-12 animate-spin-slow" /></div>
                <h3 className="text-7xl font-brand font-black italic uppercase text-black leading-none tracking-tighter">GRID <span className="text-red-600">PRESETS.</span></h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
@@ -328,12 +335,17 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                </div>
                <div className="space-y-12">
                   <div className={`relative bg-black text-white p-20 rounded-[5rem] text-center overflow-hidden transition-all border-b-[20px] border-red-900 shadow-2xl group ${isUploading ? 'opacity-50' : 'opacity-100'}`}>
-                     {isUploading && <div className="absolute inset-0 z-20"><div className="laser-v2"></div></div>}
+                     {isUploading && (
+                       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center premium-glass-dark">
+                          <div className="laser-v2"></div>
+                          <p className="text-[10px] font-black uppercase text-white tracking-[0.5em] animate-pulse mt-12">Scanning Binary...</p>
+                       </div>
+                     )}
                      <Upload className="w-20 h-20 text-red-600 mx-auto mb-10 group-hover:scale-110 transition-transform" />
                      <h4 className="text-4xl font-brand font-black italic uppercase mb-6 tracking-tighter leading-none">{config.fileName || 'INJECT ASSET'}</h4>
                      <p className="text-[11px] font-black uppercase text-gray-500 tracking-[0.4em] mb-12 italic">Vector Protocol (PDF / AI / DXF)</p>
                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-                     <button onClick={() => { onSound?.('click'); fileInputRef.current?.click(); }} className="bg-white text-black px-16 py-6 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] hover:bg-red-600 hover:text-white transition-all shadow-2xl active:scale-95">Upload Asset</button>
+                     <button onClick={() => { onSound?.('click'); fileInputRef.current?.click(); }} className="bg-white text-black px-16 py-6 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] hover:bg-red-600 hover:text-white transition-all shadow-2xl active:scale-95 active-glow">Upload Asset</button>
                   </div>
                   <div className="space-y-5">
                     <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] ml-8">Node Route Override</label>
@@ -344,7 +356,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                   </div>
                </div>
             </div>
-            <button onClick={handleOrderSubmit} disabled={!config.fileName || !config.width || !config.height} className="w-full mt-32 bg-black text-white p-16 rounded-[4.5rem] font-brand font-black italic uppercase tracking-[0.5em] text-3xl hover:bg-red-600 transition-all shadow-2xl disabled:opacity-20 flex items-center justify-center space-x-12 group border-b-[15px] border-gray-900 active:translate-y-1 active:border-b-0">
+            <button onClick={handleOrderSubmit} disabled={!config.fileName || !config.width || !config.height} className="w-full mt-32 bg-black text-white p-16 rounded-[4.5rem] font-brand font-black italic uppercase tracking-[0.5em] text-3xl hover:bg-red-600 transition-all shadow-2xl disabled:opacity-20 flex items-center justify-center space-x-12 group border-b-[15px] border-gray-900 active:translate-y-1 active:border-b-0 active-glow">
               <span>{user ? 'Sincronizar Produção' : 'Registar Identidade R2'}</span> <Zap className="w-10 h-10 group-hover:scale-125 transition-transform text-red-600" />
             </button>
          </div>
@@ -360,7 +372,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
            <p className="text-2xl text-gray-400 font-medium italic border-l-8 border-red-600 pl-10 max-w-2xl mx-auto text-left leading-relaxed">
              O protocolo de produção foi injetado com sucesso no cluster central. A Torre de Controlo Master validará os ativos e iniciará a manufatura no node otimizado.
            </p>
-           <button onClick={() => { onSound?.('click'); setStep(1); setSelectedProduct(null); }} className="bg-black text-white px-16 py-8 rounded-[3rem] font-black uppercase text-[12px] tracking-[0.5em] hover:bg-red-600 transition-all shadow-2xl active:scale-95">
+           <button onClick={() => { onSound?.('click'); setStep(1); setSelectedProduct(null); }} className="bg-black text-white px-16 py-8 rounded-[3rem] font-black uppercase text-[12px] tracking-[0.5em] hover:bg-red-600 transition-all shadow-2xl active:scale-95 active-glow">
               Regressar ao Grid Central
            </button>
         </div>

@@ -78,7 +78,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
       {/* Header Central de Comando */}
       <div className="flex flex-col xl:flex-row justify-between items-end mb-20 gap-12 pt-24">
         <div>
-          <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20">
+          <div className="inline-flex items-center space-x-3 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl mb-8 border border-white/20 active-glow transition-all">
              <ShieldCheck className="w-4 h-4" />
              <span className="text-[10px] font-black uppercase tracking-[0.4em]">Super Admin Control v4.6</span>
           </div>
@@ -90,7 +90,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
              <button 
               key={v} 
               onClick={() => { onSound?.('click'); setActiveView(v as any); setSearchTerm(''); }} 
-              className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeView === v ? 'bg-black text-white shadow-2xl scale-105' : 'text-gray-400 hover:bg-gray-50'}`}
+              className={`px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeView === v ? 'bg-black text-white shadow-2xl scale-105 active-glow' : 'text-gray-400 hover:bg-gray-50'}`}
              >
                 {v} 
                 {(v === 'approvals' && pendingAdminApprovals.length > 0) && (
@@ -112,7 +112,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 { label: 'Aguardando Master', val: pendingAdminApprovals.length, icon: Clock, color: 'text-orange-600' },
                 { label: 'Concluídos', val: orders.filter(o=>o.status==='Concluído').length, icon: CheckCircle2, color: 'text-green-600' }
               ].map((stat, i) => (
-                <div key={i} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl flex items-center space-x-6">
+                <div key={i} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl flex items-center space-x-6 hover:scale-105 transition-transform">
                    <div className={`p-4 bg-gray-50 rounded-2xl ${stat.color}`}><stat.icon className="w-8 h-8" /></div>
                    <div>
                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block">{stat.label}</span>
@@ -650,4 +650,5 @@ const Backoffice: React.FC<BackofficeProps> = ({
   );
 };
 
+// Fix export name from Account to Backoffice to match the component name
 export default Backoffice;
