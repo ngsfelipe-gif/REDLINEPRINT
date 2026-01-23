@@ -1,6 +1,6 @@
 {
-  "name": "REDLINE PRINT",
-  "description": "Next-generation digital printing marketplace and production management system featuring AI-powered prepress and product building.",
+  "name": "REDLINE MARKET",
+  "description": "Next-generation digital marketplace and production management system featuring AI-powered prepress and product building.",
   "requestFramePermissions": [
     "camera",
     "microphone"

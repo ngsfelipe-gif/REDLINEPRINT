@@ -1,13 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest } from '../types';
-// Fixed missing imports: MapPin, UserCheck, and User (as UserIcon)
+import { User, ProductionJob, ExtendedProduct, PartnerNode, Language, SupportTicket, AuthorizationRequest, SupportMessage } from '../types';
 import { 
   Activity, Zap, TrendingUp, Package, Clock, ShieldAlert, Download, Edit2, CheckCircle2, X, FileText, 
   Settings, BarChart3, ListChecks, MessageSquare, Trash2, ShieldCheck, Key, FileCheck, Maximize2, 
   Layers, Image as ImageIcon, Box, RefreshCw, ChevronDown, ChevronUp, History, Info, Monitor, 
   Radio, Coins, CreditCard, PieChart, Wallet, Mail, Lock, Server, FileDigit, QrCode, FileDown, 
-  Barcode, Search, Truck, PlayCircle, MapPin, UserCheck, User as UserIcon 
+  Barcode, Search, Truck, PlayCircle, MapPin, UserCheck, User as UserIcon, Send, MessageCircle, KeyRound
 } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 
@@ -19,16 +18,23 @@ interface AccountProps {
   hubs: PartnerNode[];
   language: Language;
   onUpdateStatus: (orderId: string, status: ProductionJob['status'], nodeId?: string, note?: string) => void;
+  onUpdateTicket: (ticketId: string, updates: Partial<SupportTicket>) => void;
+  onAddTicketMessage: (ticketId: string, message: SupportMessage) => void;
   onRequestAuth: (req: Omit<AuthorizationRequest, 'id' | 'timestamp' | 'status'>) => void;
   onLogout: () => void;
   onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading' | 'redcoin') => void;
   onUpdateUser: (userId: string, updates: Partial<User>) => void;
 }
 
-const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs, language, onUpdateStatus, onRequestAuth, onLogout, onSound, onUpdateUser }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'production' | 'finances' | 'profile'>('overview');
+const Account: React.FC<AccountProps> = ({ 
+  user, orders = [], tickets = [], products = [], hubs = [], language, 
+  onUpdateStatus, onUpdateTicket, onAddTicketMessage, onRequestAuth, onLogout, onSound, onUpdateUser 
+}) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'production' | 'finances' | 'profile' | 'tickets'>('overview');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [scanTerm, setScanTerm] = useState('');
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+  const [replyText, setReplyText] = useState('');
   
   const [profileForm, setProfileForm] = useState({ name: user.name, email: user.email, password: user.password || '' });
 
@@ -57,6 +63,20 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
       average: relevantOrders.length > 0 ? totalVolume / relevantOrders.length : 0 
     };
   }, [orders, isB2B, myHub, user]);
+
+  const handleSendReply = () => {
+    if (!activeTicket || !replyText.trim()) return;
+    const newMessage: SupportMessage = {
+      id: `msg-${Date.now()}`,
+      authorId: user.id,
+      authorName: user.name,
+      text: replyText,
+      timestamp: Date.now()
+    };
+    onAddTicketMessage(activeTicket.id, newMessage);
+    setReplyText('');
+    onSound?.('success');
+  };
 
   const handleBarcodeSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +121,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
         
         <div className="flex flex-col items-end gap-8">
           <div className="flex flex-wrap space-x-4 bg-gray-100/50 p-3 rounded-[3.5rem] border border-gray-100 shadow-inner backdrop-blur-md">
-             {['overview', 'production', 'finances', 'profile'].map(tab => (
+             {['overview', 'production', 'finances', 'profile', 'tickets'].map(tab => (
                <button 
                 key={tab} 
                 onClick={() => { onSound?.('click'); setActiveTab(tab as any); }} 
@@ -111,10 +131,12 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                   {tab === 'production' && orders.filter(o => o.status === 'Em Produção').length > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[8px] animate-pulse shadow-lg">{orders.filter(o => o.status === 'Em Produção').length}</span>
                   )}
+                  {tab === 'tickets' && tickets.filter(t => t.status === 'Pendente').length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white rounded-full flex items-center justify-center text-[8px] animate-pulse shadow-lg">{tickets.filter(t => t.status === 'Pendente').length}</span>
+                  )}
                </button>
              ))}
           </div>
-          
           <form onSubmit={handleBarcodeSearch} className="flex bg-black p-1 rounded-full border border-white/10 w-full max-w-sm group focus-within:ring-4 focus-within:ring-red-600/30 transition-all shadow-2xl">
              <div className="flex items-center px-6"><Barcode className="w-5 h-5 text-red-600 group-focus-within:animate-pulse" /></div>
              <input type="text" placeholder="LOCALIZAR BARCODE..." value={scanTerm} onChange={e => setScanTerm(e.target.value)} className="bg-transparent text-white font-mono text-[11px] uppercase p-4 outline-none flex-grow placeholder:text-gray-700" />
@@ -122,6 +144,93 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
           </form>
         </div>
       </div>
+
+      {activeTab === 'tickets' && (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 animate-in fade-in">
+           {/* Sidebar Tickets List */}
+           <div className="xl:col-span-4 space-y-6 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+              {tickets.length > 0 ? tickets.map(t => (
+                <div key={t.id} onClick={() => { onSound?.('click'); setActiveTicket(t); }} className={`p-10 rounded-[3.5rem] cursor-pointer transition-all border-2 relative overflow-hidden group ${activeTicket?.id === t.id ? 'bg-black text-white border-black shadow-2xl scale-[1.02]' : 'bg-white border-transparent hover:border-red-600 shadow-xl'}`}>
+                   <div className="flex justify-between items-start mb-4 relative z-10">
+                      <div>
+                         <span className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">{t.id}</span>
+                         <h5 className={`text-2xl font-brand font-black italic uppercase leading-tight ${activeTicket?.id === t.id ? 'text-white' : 'text-black'}`}>{t.subject}</h5>
+                      </div>
+                      <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase ${t.priority === 'Alta' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{t.priority}</span>
+                   </div>
+                   <div className="flex items-center space-x-4 pt-4 border-t border-gray-50/10 relative z-10">
+                      <span className={`px-4 py-1 rounded-full text-[8px] font-black uppercase ${t.status === 'Pendente' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>{t.status}</span>
+                      <span className="text-[9px] font-black opacity-40 uppercase italic">{t.category}</span>
+                   </div>
+                   <div className="absolute top-0 right-0 p-8 text-red-600/5 group-hover:text-red-600/10 transition-colors"><MessageSquare className="w-32 h-32" /></div>
+                </div>
+              )) : (
+                <div className="p-20 text-center opacity-10 bg-white rounded-[4rem] w-full"><Zap className="w-20 h-20 mx-auto" /><p className="text-2xl font-brand font-black italic uppercase">Grid Silent.</p></div>
+              )}
+           </div>
+
+           {/* Conversation Area */}
+           <div className="xl:col-span-8">
+              {activeTicket ? (
+                <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 h-full min-h-[600px] flex flex-col overflow-hidden animate-in slide-in-from-right-10">
+                   <div className="p-12 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                      <div className="flex items-center space-x-6">
+                         <div className="p-5 bg-black rounded-3xl text-red-600 shadow-xl"><MessageSquare className="w-8 h-8" /></div>
+                         <div>
+                            <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">{activeTicket.id} // SECURE SUPPORT PROTOCOL</span>
+                            <h4 className="text-4xl font-brand font-black italic uppercase text-black leading-none">{activeTicket.subject}</h4>
+                         </div>
+                      </div>
+                      <button onClick={() => setActiveTicket(null)} className="p-4 bg-gray-100 rounded-full hover:bg-black hover:text-white transition-all"><X className="w-6 h-6"/></button>
+                   </div>
+
+                   <div className="flex-grow p-12 overflow-y-auto space-y-8 industrial-grid custom-scrollbar">
+                      {activeTicket.messages.map((m, i) => (
+                        <div key={m.id} className={`flex ${m.authorId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
+                           <div className={`max-w-[75%] p-8 rounded-[3rem] shadow-xl relative ${m.authorId === user.id ? 'bg-black text-white rounded-tr-none' : 'bg-red-600 text-white rounded-tl-none'}`}>
+                              <div className="flex justify-between items-center mb-4 opacity-50">
+                                 <span className="text-[8px] font-black uppercase tracking-widest">{m.authorName}</span>
+                                 <span className="text-[8px] font-black">{new Date(m.timestamp).toLocaleString()}</span>
+                              </div>
+                              <p className="text-[14px] font-bold leading-relaxed italic">"{m.text}"</p>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+
+                   {activeTicket.status !== 'Concluído' && (
+                     <div className="p-10 border-t border-gray-100 bg-gray-50/80 backdrop-blur-xl">
+                        <div className="bg-white p-2 rounded-[3.5rem] shadow-inner border-2 border-gray-100 flex focus-within:border-red-600 transition-all">
+                           <textarea 
+                              placeholder="ENVIAR RESPOSTA AO SUPORTE..." 
+                              value={replyText}
+                              onChange={e => setReplyText(e.target.value)}
+                              className="bg-transparent flex-grow p-8 font-black uppercase text-[12px] outline-none h-24 resize-none"
+                           />
+                           <div className="flex flex-col justify-end p-4">
+                              <button onClick={handleSendReply} className="p-6 bg-black text-white rounded-[2.5rem] hover:bg-red-600 transition-all shadow-xl active-glow group">
+                                 <Send className="w-8 h-8 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                              </button>
+                           </div>
+                        </div>
+                     </div>
+                   )}
+                </div>
+              ) : (
+                <div className="h-full min-h-[600px] bg-white rounded-[5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center p-20 space-y-12">
+                   <div className="relative">
+                      <MessageCircle className="w-40 h-40 text-gray-100" />
+                      <div className="absolute inset-0 flex items-center justify-center"><Activity className="w-16 h-16 text-red-600/20 animate-pulse" /></div>
+                   </div>
+                   <div>
+                      <h4 className="text-5xl font-brand font-black italic uppercase text-gray-200 leading-none mb-6 tracking-tighter">Support Grid <br/>Inativo.</h4>
+                      <p className="text-[11px] font-black text-gray-300 uppercase tracking-[0.4em] max-w-sm">Selecione um protocolo de ticket para visualizar a conversa ou abrir um novo pedido via Terminal de Engenharia.</p>
+                   </div>
+                </div>
+              )}
+           </div>
+        </div>
+      )}
 
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-10 animate-in slide-in-from-bottom-10">
@@ -149,7 +258,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
         </div>
       )}
 
-      {/* VIEW: FINANCES - MASTER LEDGER */}
+      {/* VIEW: FINANCES */}
       {activeTab === 'finances' && (
         <div className="space-y-12 animate-in fade-in">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -330,7 +439,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                                </div>
                             </div>
                             
-                            {/* Barcode Scanner UI Replacement */}
+                            {/* Barcode Scanner UI */}
                             <div className="p-10 bg-black text-white rounded-[3.5rem] shadow-2xl flex flex-col items-center group/barcode hover:scale-105 transition-all duration-700">
                                <div className="flex items-center space-x-4 mb-8">
                                   <Barcode className="w-10 h-10 text-red-600 animate-pulse" />
@@ -385,7 +494,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                             </div>
                          </div>
 
-                         {/* Log with Motion UX */}
+                         {/* Log */}
                          <div className="space-y-10">
                             <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.6em] flex items-center mb-8"><History className="w-6 h-6 mr-4" /> Operational Audit Log</h5>
                             <div className="space-y-8 border-l-[3px] border-red-100 pl-10 ml-3 py-4">

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, User, Printer, Award, Globe, LogIn, LogOut, Menu, 
   ChevronDown, Twitter, Linkedin, Github, Instagram, Mail, Shield, 
-  Cpu, Zap, Activity, Radio, MapPin, ExternalLink, ShieldCheck, Terminal, Server
+  Cpu, Zap, Activity, Radio, MapPin, ExternalLink, ShieldCheck, Terminal, Server,
+  Package, Barcode, CreditCard, Truck, Store
 } from 'lucide-react';
 import { User as UserType, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -19,6 +20,25 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+const AnimatedLogo = ({ isScrolled }: { isScrolled: boolean }) => {
+  const [iconIndex, setIconIndex] = useState(0);
+  const icons = [ShoppingCart, Package, Barcode, CreditCard, Truck, Store];
+  const CurrentIcon = icons[iconIndex];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIconIndex((prev) => (prev + 1) % icons.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [icons.length]);
+
+  return (
+    <div className={`bg-[#CC0000] p-1.5 rounded-lg transition-all duration-700 shadow-lg ${isScrolled ? 'scale-90' : 'scale-100'}`}>
+      <CurrentIcon className="text-white w-5 h-5 animate-in fade-in zoom-in duration-500" />
+    </div>
+  );
+};
+
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, language, setLanguage, onLoginClick, onLogout }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -33,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFDFD]">
       <div className={`bg-black text-white text-[9px] font-black tracking-[0.4em] uppercase py-2 text-center z-[70] fixed w-full transition-all duration-500 ${isScrolled ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-        REDLINE // R2 INDUSTRIAL GRID // {language} VERSION
+        REDLINE // R2 INDUSTRIAL MARKET GRID // {language} VERSION
       </div>
 
       <nav className={`fixed left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-50 transition-all duration-500 rounded-full flex items-center justify-between shadow-2xl border ${
@@ -43,11 +63,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
       }`}>
         <div className="flex items-center space-x-10">
           <div className="flex items-center space-x-2 cursor-pointer group" onClick={() => setActiveTab('home')}>
-            <div className={`bg-[#CC0000] p-1.5 rounded-lg rotate-12 group-hover:rotate-0 transition-all shadow-lg ${isScrolled ? 'scale-90' : 'scale-100'}`}>
-              <Printer className="text-white w-5 h-5" />
-            </div>
+            <AnimatedLogo isScrolled={isScrolled} />
             <span className={`font-brand tracking-tighter font-black italic transition-all ${isScrolled ? 'text-lg' : 'text-2xl'}`}>
-              REDLINE<span className="text-[#CC0000]">PRINT</span>
+              REDLINE<span className="text-[#CC0000]">MARKET</span>
             </span>
           </div>
 
@@ -55,7 +73,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             <button onClick={() => setActiveTab('products')} className={`hover:text-black transition-all ${activeTab === 'products' ? 'text-black' : ''}`}>{t.nav_catalog}</button>
             <button onClick={() => setActiveTab('live')} className={`hover:text-red-600 flex items-center space-x-2 transition-all ${activeTab === 'live' ? 'text-red-600' : ''}`}>
               <Activity className="w-3 h-3" />
-              <span>Grid Live</span>
+              <span>Market Live</span>
             </button>
             <button onClick={() => setActiveTab('partners')} className={`hover:text-black flex items-center space-x-2 transition-all ${activeTab === 'partners' ? 'text-black' : ''}`}>
               <Server className="w-3 h-3" />
@@ -109,7 +127,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
         
         {/* Large Background Text Decoration */}
         <div className="absolute bottom-[-10%] left-[-5%] text-[20vw] font-brand font-black italic text-white/[0.02] select-none pointer-events-none uppercase tracking-tighter">
-          Redline R2
+          Redline Market
         </div>
 
         <div className="max-w-[1500px] mx-auto relative z-10">
@@ -119,13 +137,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             <div className="space-y-10">
               <div className="flex items-center space-x-4 group cursor-pointer" onClick={() => setActiveTab('home')}>
                 <div className="p-2.5 bg-red-600 rounded-xl rotate-12 group-hover:rotate-0 transition-all shadow-[0_0_30px_rgba(204,0,0,0.4)]">
-                  <Printer className="w-7 h-7 text-white" />
+                  <ShoppingCart className="w-7 h-7 text-white" />
                 </div>
-                <span className="font-brand text-4xl font-black italic tracking-tighter uppercase">REDLINE<span className="text-red-600">PRINT</span></span>
+                <span className="font-brand text-4xl font-black italic tracking-tighter uppercase">REDLINE<span className="text-red-600">MARKET</span></span>
               </div>
               <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest leading-relaxed italic border-l-4 border-red-600 pl-8 max-w-xs">
                 Fabricando ativos visuais atómicos através de um grid global de nodes sincronizados. <br/>
-                <span className="text-white mt-4 block">Protocolo R2 v.4.2-STABLE Cluster Ativo em 14 Unidades.</span>
+                <span className="text-white mt-4 block">Protocolo R2 v.4.2-STABLE Market Cluster Ativo em 14 Unidades.</span>
               </p>
               <div className="flex items-center space-x-4 pt-4">
                  {[Twitter, Linkedin, Github, Instagram].map((Icon, i) => (
@@ -205,7 +223,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
           {/* Bottom Bar */}
           <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center space-x-10 text-[9px] font-black text-gray-600 uppercase tracking-widest italic">
-               <span>© 2025 REDLINE PRINTING SYSTEMS</span>
+               <span>© 2025 REDLINE MARKET SYSTEMS</span>
                <a href="#" className="hover:text-white transition-colors">Privacy Protocol</a>
                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
                <a href="#" className="hover:text-white transition-colors">Compliance R2</a>

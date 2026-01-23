@@ -30,17 +30,17 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
           <div className="lg:col-span-7 space-y-10 animate-in fade-in slide-in-from-left-10 duration-1000">
             <div className="inline-flex items-center space-x-3 bg-black text-white px-5 py-2.5 rounded-full shadow-2xl">
               <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
-              <span className="text-[10px] font-black tracking-[0.4em] uppercase">Rede Descentralizada R2 Ativa</span>
+              <span className="text-[10px] font-black tracking-[0.4em] uppercase">Rede Descentralizada Market R2 Ativa</span>
             </div>
             
             <h1 className="text-6xl md:text-9xl font-brand font-black italic tracking-tighter leading-[0.85] text-black uppercase">
               INDUSTRIAL <br />
-              <span className="text-red-600">PRODUCTION.</span>
+              <span className="text-red-600">MARKET.</span>
             </h1>
             
             <div className="space-y-8">
               <p className="text-xl md:text-3xl text-gray-500 font-medium leading-relaxed max-w-2xl border-l-8 border-red-600 pl-10 italic">
-                A REDLINE PRINT fabrica ativos visuais através de um grid global de nodes industriais sincronizados em tempo real.
+                A REDLINE MARKET fabrica ativos visuais através de um grid global de nodes industriais sincronizados em tempo real.
               </p>
               
               <div className="flex flex-wrap gap-6 pt-4">
@@ -129,7 +129,7 @@ const Hero: React.FC<HeroProps> = ({ onStart, onB2B, onRegister, language, hubsC
                        <div className="p-4 bg-red-600/10 rounded-2xl border border-red-600/30">
                           <Activity className="w-8 h-8 text-red-600" />
                        </div>
-                       <h4 className="text-4xl font-brand font-black italic text-white uppercase tracking-tighter">Industrial Throughput</h4>
+                       <h4 className="text-4xl font-brand font-black italic text-white uppercase tracking-tighter">Market Throughput</h4>
                     </div>
                     <div className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] bg-white/5 px-6 py-2 rounded-full border border-white/10">Master Auth: Verified</div>
                  </div>

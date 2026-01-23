@@ -57,6 +57,8 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
 
   const handleOrderSubmit = () => {
     if (!selectedProduct) return;
+    
+    // Non-logged in users must register first
     if (!user && step === 2) {
       setStep(3);
       return;
@@ -105,7 +107,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
 
   return (
     <div className="max-w-[1700px] mx-auto px-10 py-12 industrial-grid min-h-screen pt-40 lg:pt-48">
-      {/* Sincronização Global Overlay - Enhanced UI */}
+      {/* Sincronização Global Overlay */}
       {isSyncing && (
         <div className="fixed inset-0 z-[7000] bg-black/80 backdrop-blur-2xl flex flex-col items-center justify-center animate-in fade-in transition-all duration-1000">
            <div className="premium-glass-dark p-24 rounded-[6rem] shadow-[0_0_200px_rgba(204,0,0,0.2)] flex flex-col items-center border border-white/10 group">
@@ -117,8 +119,6 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
               </div>
               <h3 className="text-7xl font-brand font-black italic text-white uppercase tracking-tighter mb-4 glitch-loader" data-text="Global Sync Active.">Global <span className="text-red-600">Sync Active.</span></h3>
               <p className="text-[12px] font-black text-gray-500 uppercase tracking-[1em] animate-pulse">Injetando Protocolo no Cluster Central...</p>
-              
-              {/* Progress Line */}
               <div className="w-96 h-1.5 bg-white/5 rounded-full overflow-hidden mt-12 border border-white/5">
                  <div className="h-full bg-red-600 animate-[flow-horizontal_2s_infinite_linear]" style={{ width: '100%' }} />
               </div>
@@ -129,16 +129,26 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
       {step === 1 && (
          <div className="space-y-24 animate-in fade-in duration-700">
             <div className="flex flex-col xl:flex-row justify-between items-end gap-12">
-               <div className="space-y-10">
+               <div className="space-y-10 w-full">
                  <div className="flex items-center space-x-3 bg-black text-white px-5 py-2.5 rounded-full w-fit shadow-lg active-glow">
                     <LayoutGrid className="w-3.5 h-3.5 text-red-600" />
                     <span className="text-[11px] font-black uppercase tracking-[0.4em]">R2-Inventory // Cluster Central</span>
                  </div>
                  <h3 className="text-8xl md:text-9xl font-brand font-black italic uppercase text-black tracking-tighter leading-[0.8] mb-4">Módulos <br/><span className="text-red-600">Industriais.</span></h3>
-                 <div className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide">
-                    {categories.map(cat => (
-                      <button key={cat} onClick={() => { onSound?.('click'); setActiveCategory(cat); setCurrentPage(1); }} className={`px-12 py-5 rounded-full text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${activeCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-2xl scale-105 active-glow' : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'}`}>{cat}</button>
-                    ))}
+                 
+                 {/* Improved Category Filter UI */}
+                 <div className="relative w-full">
+                    <div className="flex overflow-x-auto gap-4 pb-6 custom-scrollbar-hide mask-fade-right">
+                       {categories.map(cat => (
+                         <button 
+                          key={cat} 
+                          onClick={() => { onSound?.('click'); setActiveCategory(cat); setCurrentPage(1); }} 
+                          className={`px-12 py-5 rounded-full text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${activeCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-2xl scale-105 active-glow' : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'}`}
+                         >
+                            {cat}
+                         </button>
+                       ))}
+                    </div>
                  </div>
                </div>
                <div className="flex flex-col items-end gap-8 w-full max-w-xl">
@@ -161,7 +171,6 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                     <div className="w-full aspect-[4/5] rounded-[4rem] overflow-hidden mb-12 shadow-inner bg-gray-50 relative border border-gray-100">
                        <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-[2s]" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                       
                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center space-x-4 opacity-0 group-hover:opacity-100 transition-all translate-y-6 group-hover:translate-y-0 duration-500">
                           <button onClick={(e) => { e.stopPropagation(); onSound?.('click'); setDetailProduct(p); }} className="bg-white text-black p-6 rounded-3xl hover:bg-red-600 hover:text-white transition-all shadow-2xl flex items-center space-x-3 active-glow">
                             <Info className="w-6 h-6" />
@@ -175,9 +184,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                           <span className="text-[11px] font-black uppercase text-red-600 tracking-[0.6em] block opacity-60">{p.category}</span>
                           <h5 className="text-5xl font-brand font-black italic uppercase text-black leading-none tracking-tighter group-hover:text-red-600 transition-colors">{p.name}</h5>
                        </div>
-                       
                        <p className="text-[14px] font-medium text-gray-500 italic line-clamp-2 leading-relaxed h-12 border-l-2 border-gray-100 pl-4">{p.description}</p>
-                       
                        <div className="grid grid-cols-2 gap-6 pt-8 border-t border-gray-50">
                           <div className="flex items-center space-x-4 group/spec">
                              <div className="p-2.5 bg-gray-50 rounded-xl group-hover/spec:bg-red-50 transition-colors">
@@ -198,17 +205,12 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
                              </div>
                           </div>
                        </div>
-
                        <div className="flex justify-between items-center mt-auto pt-10 border-t border-gray-50">
                           <div className="flex flex-col">
                              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1 italic">Preço Atómico</span>
-                             {user || isAdmin || isB2B ? (
-                               <span className="text-5xl font-brand font-black italic text-black">
-                                 €{p.basePrice.toFixed(2)}<span className="text-[12px] font-normal opacity-30 italic">/{p.unit}</span>
-                               </span>
-                             ) : (
-                               <span className="text-[11px] font-black uppercase text-red-600 italic tracking-[0.2em] animate-pulse">LOGIN PARA ACESSO</span>
-                             )}
+                             <span className="text-5xl font-brand font-black italic text-black">
+                               €{p.basePrice.toFixed(2)}<span className="text-[12px] font-normal opacity-30 italic">/{p.unit}</span>
+                             </span>
                           </div>
                           <div className={`p-8 rounded-[2rem] transition-all duration-700 ${selectedProduct?.id === p.id ? 'bg-red-600 text-white animate-pulse shadow-[0_0_50px_rgba(204,0,0,0.4)] scale-110 rotate-12 active-glow' : 'bg-gray-50 text-gray-200 group-hover:bg-black group-hover:text-white hover:rotate-12'}`}>
                              <Zap className="w-10 h-10" />
@@ -243,63 +245,7 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
          </div>
       )}
 
-      {detailProduct && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6 lg:p-16 animate-in fade-in duration-500">
-           <div className="bg-white w-full max-w-[1400px] rounded-[6rem] shadow-[0_0_150px_rgba(0,0,0,0.5)] border-[15px] border-black relative overflow-hidden flex flex-col lg:flex-row h-full max-h-[90vh] quantum-aura">
-              <button onClick={() => { onSound?.('click'); setDetailProduct(null); }} className="absolute top-12 right-12 z-[70] p-6 bg-black text-white rounded-full hover:bg-red-600 hover:rotate-90 transition-all shadow-2xl active-glow"><X className="w-10 h-10"/></button>
-              
-              <div className="lg:w-1/2 relative bg-gray-50 h-full overflow-hidden">
-                 <img src={detailProduct.image} className="w-full h-full object-cover animate-in zoom-in duration-[10s]" />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                 <div className="absolute bottom-20 left-20 text-white space-y-4">
-                    <span className="text-[12px] font-black uppercase tracking-[0.8em] text-red-600 animate-pulse">Inventory Module: {detailProduct.id}</span>
-                    <h3 className="text-8xl font-brand font-black italic uppercase leading-none tracking-tighter">{detailProduct.name}</h3>
-                 </div>
-              </div>
-
-              <div className="lg:w-1/2 p-20 lg:p-32 overflow-y-auto space-y-16 industrial-grid">
-                 <div className="space-y-6">
-                    <h4 className="text-[12px] font-black uppercase text-red-600 tracking-[0.6em] flex items-center">
-                       <Cpu className="w-6 h-6 mr-4" /> Especificação Técnica R2
-                    </h4>
-                    <p className="text-2xl text-gray-500 font-medium leading-relaxed italic border-l-8 border-red-600 pl-10">
-                       {detailProduct.description}
-                    </p>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-12">
-                    {[
-                      { icon: Layers, label: 'Substrato Base', val: detailProduct.specs.weight },
-                      { icon: Shield, label: 'Durabilidade Grid', val: detailProduct.specs.durability },
-                      { icon: HardHat, label: 'Uso Recomendado', val: detailProduct.specs.usage || 'Industrial' },
-                      { icon: Target, label: 'Precisão Atómica', val: detailProduct.specs.precisionLevel },
-                      { icon: Droplets, label: 'Resistência UV', val: `${detailProduct.specs.weatherResistance || 80}%` },
-                      { icon: Globe, label: 'Eco Compliance', val: `Nível ${detailProduct.specs.ecoLevel || 5}` }
-                    ].map((spec, i) => (
-                      <div key={i} className="bg-gray-50 p-10 rounded-[3rem] border-2 border-transparent hover:border-red-600 transition-all group/spec">
-                         <spec.icon className="w-10 h-10 text-red-600 mb-6 group-hover/spec:scale-110 transition-transform" />
-                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">{spec.label}</span>
-                         <span className="text-2xl font-brand font-black italic text-black uppercase tracking-tight">{spec.val}</span>
-                      </div>
-                    ))}
-                 </div>
-
-                 <div className="bg-black text-white p-12 rounded-[4rem] flex justify-between items-center shadow-2xl relative overflow-hidden group/price">
-                    <div className="absolute inset-0 industrial-grid opacity-10" />
-                    <div className="relative z-10">
-                       <span className="text-[11px] font-black uppercase tracking-[0.5em] text-red-600 block mb-2 italic">Preço Base do Módulo</span>
-                       <span className="text-7xl font-brand font-black italic">€{detailProduct.basePrice.toFixed(2)}<span className="text-2xl font-normal opacity-30">/{detailProduct.unit}</span></span>
-                    </div>
-                    <button onClick={() => { onSound?.('click'); setSelectedProduct(detailProduct); setDetailProduct(null); setStep(2); }} className="relative z-10 bg-red-600 text-white p-10 rounded-3xl hover:bg-white hover:text-black transition-all shadow-xl hover:scale-105 active:scale-95 active-glow">
-                       <Zap className="w-12 h-12" />
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {step === 2 && (
+      {step === 2 && selectedProduct && (
          <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-24 animate-in slide-in-from-right-10 relative overflow-hidden">
             <button onClick={() => { onSound?.('click'); setStep(1); }} className="absolute top-12 right-12 p-6 text-gray-200 hover:text-black hover:rotate-90 transition-all"><X className="w-12 h-12"/></button>
             <div className="flex items-center space-x-8 mb-20">
@@ -360,6 +306,70 @@ const ProductBuilder: React.FC<ProductBuilderProps> = ({ onAddOrder, user, hubs,
               <span>{user ? 'Sincronizar Produção' : 'Registar Identidade R2'}</span> <Zap className="w-10 h-10 group-hover:scale-125 transition-transform text-red-600" />
             </button>
          </div>
+      )}
+
+      {/* NEW STEP 3: Identity Registration for Guests */}
+      {step === 3 && (
+        <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 p-24 animate-in slide-in-from-right-10 relative overflow-hidden max-w-4xl mx-auto">
+           <button onClick={() => setStep(2)} className="absolute top-12 right-12 p-6 text-gray-200 hover:text-black hover:rotate-90 transition-all"><X className="w-12 h-12"/></button>
+           
+           <div className="flex flex-col items-center text-center mb-16 space-y-8">
+              <div className="p-10 bg-red-600 rounded-[2.5rem] text-white shadow-xl status-pulse"><UserIcon className="w-12 h-12" /></div>
+              <h3 className="text-6xl font-brand font-black italic uppercase text-black leading-tight tracking-tighter">Identidade <br/><span className="text-red-600">de Protocolo.</span></h3>
+              <p className="text-[13px] text-gray-400 font-bold uppercase tracking-widest italic border-l-4 border-red-600 pl-8 max-w-md mx-auto">
+                Para finalizar a injeção do job, é necessário provisionar um dashboard proprietário para monitorização industrial.
+              </p>
+           </div>
+
+           <div className="space-y-8">
+              <div className="relative group">
+                 <UserIcon className="absolute left-8 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300 group-focus-within:text-red-600 transition-all" />
+                 <input 
+                  type="text" 
+                  placeholder="NOME DA ENTIDADE / CLIENTE" 
+                  value={guestInfo.name} 
+                  onChange={e => setGuestInfo({...guestInfo, name: e.target.value})} 
+                  className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 transition-all shadow-inner" 
+                  required 
+                 />
+              </div>
+              <div className="relative group">
+                 <Mail className="absolute left-8 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300 group-focus-within:text-red-600 transition-all" />
+                 <input 
+                  type="email" 
+                  placeholder="EMAIL DE SINCRONIZAÇÃO" 
+                  value={guestInfo.email} 
+                  onChange={e => setGuestInfo({...guestInfo, email: e.target.value})} 
+                  className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 transition-all shadow-inner" 
+                  required 
+                 />
+              </div>
+              <div className="relative group">
+                 <Lock className="absolute left-8 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300 group-focus-within:text-red-600 transition-all" />
+                 <input 
+                  type="password" 
+                  placeholder="MASTER PASSWORD" 
+                  value={guestInfo.password} 
+                  onChange={e => setGuestInfo({...guestInfo, password: e.target.value})} 
+                  className="w-full bg-gray-50 pl-20 p-8 rounded-[2.5rem] font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 transition-all shadow-inner" 
+                  required 
+                 />
+              </div>
+              
+              <div className="flex items-center space-x-4 p-8 bg-gray-50 rounded-[3rem] border border-gray-100">
+                 <ShieldCheck className="w-8 h-8 text-green-500" />
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Ao confirmar, os seus dados serão encriptados no Cluster R2.</span>
+              </div>
+
+              <button 
+                onClick={handleOrderSubmit}
+                disabled={!guestInfo.name || !guestInfo.email || !guestInfo.password}
+                className="w-full bg-black text-white p-12 rounded-[4rem] font-brand font-black italic uppercase tracking-[0.5em] text-2xl hover:bg-red-600 transition-all shadow-2xl border-b-[15px] border-gray-900 disabled:opacity-20 active-glow"
+              >
+                Injetar & Registar Dash
+              </button>
+           </div>
+        </div>
       )}
 
       {step === 4 && (

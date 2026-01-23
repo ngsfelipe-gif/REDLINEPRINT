@@ -49,7 +49,7 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.setFontSize(26);
   doc.text('REDLINE', 15, 25);
   doc.setTextColor(204, 0, 0);
-  doc.text('PRINT', 60, 25);
+  doc.text('MARKET', 60, 25);
   
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
@@ -151,7 +151,7 @@ export const generateOrderPDF = async (order: ProductionJob, hub: PartnerNode | 
   doc.line(15, 275, 195, 275);
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text('REDLINE PRINTING SYSTEMS // R2-SYNC-SERVICE // AUTENTICAÇÃO VIA BARCODE INDUSTRIAL', 15, 282);
+  doc.text('REDLINE MARKET SYSTEMS // R2-SYNC-SERVICE // AUTENTICAÇÃO VIA BARCODE INDUSTRIAL', 15, 282);
   doc.text(`HASH: ${btoa(order.id).slice(0, 20)}`, 195, 282, { align: 'right' });
 
   doc.save(`REDLINE_${order.id}_SPEC.pdf`);

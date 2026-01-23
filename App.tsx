@@ -11,7 +11,7 @@ import B2BPartners from './components/B2BPartners';
 import PublicGrid from './components/PublicGrid';
 import SupportCenter from './components/SupportCenter';
 import { MOCK_JOBS, MOCK_NODES, INITIAL_PRODUCTS, MOCK_TICKETS } from './constants';
-import { User, ProductionJob, PartnerNode, ExtendedProduct, Language, SupportTicket, HubRegistrationRequest, AuthorizationRequest } from './types';
+import { User, ProductionJob, PartnerNode, ExtendedProduct, Language, SupportTicket, HubRegistrationRequest, AuthorizationRequest, SupportMessage } from './types';
 import { TRANSLATIONS } from './translations';
 import { Zap, ShieldCheck, RefreshCw, Cpu, Database, Coins } from 'lucide-react';
 
@@ -67,7 +67,6 @@ const App: React.FC = () => {
         case 'error': createBleep(220, 0.4, 'sawtooth', 60); break;
         case 'loading': createBleep(440, 0.3, 'sine', 220); break;
         case 'redcoin': 
-          // High-tech coin collect sound
           createBleep(880, 0.1, 'sine', 1760, 0.1);
           setTimeout(() => createBleep(1760, 0.2, 'sine', 2200, 0.08), 50);
           setTimeout(() => createBleep(2200, 0.3, 'triangle', 440, 0.05), 150);
@@ -104,7 +103,6 @@ const App: React.FC = () => {
         if (hubOwner) handleUpdateUserInternal(hubOwner.id, { balance: (hubOwner.balance || 0) + hubNet });
         handleUpdateUserInternal(o.clientId, { balance: (users.find(u=>u.id===o.clientId)?.balance || 0) + clientCashback });
         
-        // Sensory celebration for REDCOIN earnings
         notify("REDCOIN Reward", `Protocolo ${orderId} liquidado. +${clientCashback.toFixed(2)} REDCOINS em circulação.`, "redcoin");
       }
 
@@ -151,7 +149,7 @@ const App: React.FC = () => {
         tier: 'Bronze',
         status: 'Ativo',
         joinedAt: Date.now(),
-        partnerCommissionRate: 0,
+        partnerCommissionRate: 2.0,
         balance: 0
       };
       setUsers(prev => [...prev, newUser]);
@@ -184,6 +182,16 @@ const App: React.FC = () => {
       return [...prev, updates as ExtendedProduct];
     });
     notify("Inventory Sync", `Módulo ${productId} sincronizado.`, "sync");
+  };
+
+  const handleUpdateTicket = (ticketId: string, updates: Partial<SupportTicket>) => {
+    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+    notify("Protocolo Sync", `Ticket ${ticketId} atualizado no cluster.`, "sync");
+  };
+
+  const handleAddTicketMessage = (ticketId: string, message: SupportMessage) => {
+    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, messages: [...t.messages, message] } : t));
+    notify("Broadcast R2", "Nova transmissão no canal de suporte.", "sync");
   };
 
   const handleCreateClientByAdmin = (clientData: Partial<User>) => {
@@ -223,6 +231,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddTicket = (ticket: SupportTicket) => {
+    setTickets(prev => [ticket, ...prev]);
+    notify("Injeção de Ticket", `Protocolo de suporte ${ticket.id} aberto no Grid.`, "success");
+  };
+
   return (
     <Layout 
       activeTab={activeTab} setActiveTab={(t) => { playSound('click'); setActiveTab(t); }} user={user} 
@@ -254,12 +267,12 @@ const App: React.FC = () => {
         )}
         {activeTab === 'products' && <ProductBuilder onAddOrder={handleCreateOrder} user={user} hubs={hubs} products={products} language={language} notify={notify} onSound={playSound} />}
         {activeTab === 'live' && <PublicGrid orders={orders.filter(o => o.status !== 'Pendente_Admin')} hubs={hubs} language={language} />}
-        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => {}} onTicketSubmit={(t) => {}} />}
-        {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={(t) => {}} />}
+        {activeTab === 'partners' && <B2BPartners hubs={hubs} onApply={(req) => {}} onTicketSubmit={handleAddTicket} />}
+        {activeTab === 'support' && <SupportCenter onOpenTicket={() => {}} hubs={hubs} onTicketSubmit={handleAddTicket} />}
         
         {activeTab === 'production' && (
           <Backoffice 
-            orders={orders} hubs={hubs} users={users} user={user} products={products}
+            orders={orders} hubs={hubs} users={users} user={user} products={products} tickets={tickets}
             hubRequests={hubRequests} authRequests={authRequests}
             onApproveHub={(id) => {}} 
             onApproveAuth={(id) => {}}
@@ -268,6 +281,8 @@ const App: React.FC = () => {
             onUpdateHub={handleUpdateHub}
             onUpdateProduct={handleUpdateProduct}
             onUpdateOrder={handleUpdateOrderGranular}
+            onUpdateTicket={handleUpdateTicket}
+            onAddTicketMessage={handleAddTicketMessage}
             onImpersonate={handleImpersonate}
             onCreateUser={(u) => setUsers(prev => [...prev, u])}
             onCreateClient={handleCreateClientByAdmin}
@@ -286,9 +301,15 @@ const App: React.FC = () => {
                if (user.role === 'B2B_Admin') return o.nodeId === user.managedHubId && o.status !== 'Pendente_Admin';
                return o.clientId === user.id;
             })} 
-            tickets={tickets.filter(t => user.role === 'Administrador' ? true : (user.role === 'B2B_Admin' ? t.targetHubId === user.managedHubId : t.creatorId === user.id))}
+            tickets={tickets.filter(t => {
+                if (user.role === 'Administrador') return true;
+                if (user.role === 'B2B_Admin') return (t.targetHubId === user.managedHubId || t.creatorId === user.id);
+                return t.creatorId === user.id;
+            })}
             hubs={hubs} products={products}
             onUpdateStatus={handleUpdateOrderStatus}
+            onUpdateTicket={handleUpdateTicket}
+            onAddTicketMessage={handleAddTicketMessage}
             onRequestAuth={(req) => setAuthRequests(prev => [...prev, { ...req, id: `AUTH-${Date.now()}`, timestamp: Date.now(), status: 'Pendente' }])}
             language={language} onLogout={() => { setUser(null); setActiveTab('home'); }}
             onSound={playSound}
@@ -312,7 +333,6 @@ const App: React.FC = () => {
                  <p className="text-[13px] font-bold text-gray-400 mt-1 italic leading-tight">{activeToast.msg}</p>
               </div>
            </div>
-           {/* Progress Indicator for Loading Toast */}
            <div className={`absolute bottom-0 left-0 w-full h-1 ${activeToast.type === 'redcoin' ? 'bg-yellow-400/10' : 'bg-red-600/10'}`}>
               <div className={`h-full transition-all duration-[5000ms] ease-linear shadow-[0_0_15px_rgba(0,0,0,1)] ${activeToast.type === 'redcoin' ? 'bg-yellow-400' : 'bg-red-600'}`} style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
            </div>

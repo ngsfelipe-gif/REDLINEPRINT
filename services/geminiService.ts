@@ -76,7 +76,7 @@ export const getChatResponse = async (message: string) => {
   const chat = ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
-      systemInstruction: 'You are the REDLINE PRINT support assistant. You are bold, helpful, and professional. Help users with printing questions, material choices, and order tracking.',
+      systemInstruction: 'You are the REDLINE MARKET support assistant. You are bold, helpful, and professional. Help users with marketplace questions, material choices, and order tracking.',
     },
   });
 

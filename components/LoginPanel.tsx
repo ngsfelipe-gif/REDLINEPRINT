@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound, ArrowRight, ShieldAlert, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Mail, User as UserIcon, ShieldCheck, Printer, X, AlertCircle, Cpu, Zap, Info, KeyRound, ArrowRight, ShieldAlert, Loader2, ShoppingCart, Package, Barcode, CreditCard, Truck, Store } from 'lucide-react';
 import { User as UserType, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 
@@ -12,6 +12,25 @@ interface LoginPanelProps {
   language: Language;
   onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
 }
+
+const AnimatedBrandIcon = () => {
+  const [iconIndex, setIconIndex] = useState(0);
+  const icons = [ShoppingCart, Package, Barcode, CreditCard, Truck, Store];
+  const CurrentIcon = icons[iconIndex];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIconIndex((prev) => (prev + 1) % icons.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [icons.length]);
+
+  return (
+    <div className="bg-red-600 p-3 rounded-2xl shadow-[0_0_30px_rgba(204,0,0,0.4)] rotate-12 transition-all duration-700">
+      <CurrentIcon className="w-8 h-8 text-white animate-in fade-in zoom-in duration-500" />
+    </div>
+  );
+};
 
 const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUsers, onRegisterUser, language, onSound }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -38,7 +57,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
         setError("ERRO DE PROTOCOLO: Credenciais não sincronizadas no Cluster R2.");
         setIsProcessing(false);
       }
-    }, 3000); // Aumentado para melhor percepção visual do loader
+    }, 3000);
   };
 
   const quickLogin = (role: 'admin' | 'hub') => {
@@ -79,15 +98,13 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
 
         {/* Brand Side */}
         <div className="hidden lg:flex flex-col justify-between p-24 bg-[#0F0F0F] text-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity duration-1000"><Printer className="w-[500px] h-[500px]" /></div>
+          <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity duration-1000"><Store className="w-[500px] h-[500px]" /></div>
           <div className="absolute inset-0 industrial-grid opacity-[0.03]" />
           
           <div className="relative z-10">
             <div className="flex items-center space-x-6 mb-32">
-               <div className="bg-red-600 p-3 rounded-2xl shadow-[0_0_30px_rgba(204,0,0,0.4)] rotate-12">
-                  <Printer className="w-8 h-8" />
-               </div>
-               <span className="font-brand text-3xl font-black italic tracking-tighter uppercase">REDLINE <span className="text-red-600">R2</span></span>
+               <AnimatedBrandIcon />
+               <span className="font-brand text-3xl font-black italic tracking-tighter uppercase">REDLINE <span className="text-red-600">MARKET</span></span>
             </div>
             
             <h2 className="text-8xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter mb-12">GRID <br/> <span className="text-red-600">ACCESS.</span></h2>
@@ -96,7 +113,7 @@ const LoginPanel: React.FC<LoginPanelProps> = ({ onLogin, onBack, registeredUser
               <div className="premium-glass p-10 rounded-[4rem] backdrop-blur-3xl hover:border-red-600/20 transition-all shadow-2xl overflow-hidden relative group/aura">
                  <div className="absolute inset-0 data-shimmer opacity-10" />
                  <p className="text-[13px] text-gray-400 leading-relaxed font-black uppercase tracking-widest italic border-l-4 border-red-600 pl-10 relative z-10">
-                    Acesso exclusivo para entidades certificadas. O terminal monitoriza latência, reputação e rendimento de produção em tempo real.
+                    Acesso exclusivo para entidades certificadas. O terminal monitoriza latência, reputação e rendimento de mercado em tempo real.
                  </p>
               </div>
 

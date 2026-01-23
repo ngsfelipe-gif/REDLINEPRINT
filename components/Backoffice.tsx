@@ -1,8 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category } from '../types';
-// Fixed missing Power import from lucide-react
-import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent, Filter, MapPin, ExternalLink, Box, Power } from 'lucide-react';
+import { ProductionJob, User, PartnerNode, ExtendedProduct, Language, HubRegistrationRequest, AuthorizationRequest, Category, SupportTicket, SupportMessage } from '../types';
+import { ShieldCheck, Zap, X, Eye, Server, Activity, Users, Globe, Trash2, UserPlus, CheckCircle2, Terminal, Lock, Unlock, Search, ShieldAlert, Mail, ArrowUpRight, UserCheck, Key, Edit, Save, Plus, Package, ShoppingCart, Calendar, Download, FileText, Image as ImageIcon, KeyRound, ChevronDown, ChevronUp, History, Info, Clock, AlertCircle, CheckCircle, BarChart3, CreditCard, PieChart, Coins, TrendingUp, Settings, RefreshCw, FileDigit, QrCode, FileDown, Barcode, Percent, Filter, MapPin, ExternalLink, Box, Power, MessageSquare, Send, Radio, LayoutGrid, FileSpreadsheet, PlayCircle, Truck } from 'lucide-react';
 import { generateOrderPDF, downloadOriginalAsset } from '../services/pdfService';
 import { MATERIALS, FINISHES } from '../constants';
 
@@ -12,6 +11,7 @@ interface BackofficeProps {
   users: User[];
   user: User | null;
   products: ExtendedProduct[];
+  tickets: SupportTicket[];
   hubRequests: HubRegistrationRequest[];
   authRequests: AuthorizationRequest[];
   language: Language;
@@ -20,6 +20,8 @@ interface BackofficeProps {
   onUpdateHub: (hubId: string, updates: Partial<PartnerNode>) => void;
   onUpdateProduct: (productId: string, updates: Partial<ExtendedProduct>) => void;
   onUpdateOrder: (orderId: string, updates: Partial<ProductionJob>) => void;
+  onUpdateTicket: (ticketId: string, updates: Partial<SupportTicket>) => void;
+  onAddTicketMessage: (ticketId: string, message: SupportMessage) => void;
   onApproveHub: (requestId: string) => void;
   onApproveAuth: (authId: string) => void;
   onImpersonate: (user: User) => void;
@@ -31,17 +33,21 @@ interface BackofficeProps {
 }
 
 const Backoffice: React.FC<BackofficeProps> = ({ 
-  orders, hubs, users, user, products, hubRequests, authRequests, language, onUpdateStatus, onUpdateUser, onUpdateHub, onUpdateProduct, onUpdateOrder, onApproveHub, onApproveAuth, onImpersonate, onCreateUser, onCreateClient, onSound, globalPlatformFee, setGlobalPlatformFee
+  orders = [], hubs = [], users = [], user, products = [], tickets = [], hubRequests = [], authRequests = [], language, 
+  onUpdateStatus, onUpdateUser, onUpdateHub, onUpdateProduct, onUpdateOrder, 
+  onUpdateTicket, onAddTicketMessage, onApproveHub, onApproveAuth, onImpersonate, 
+  onCreateUser, onCreateClient, onSound, globalPlatformFee, setGlobalPlatformFee
 }) => {
-  const [activeView, setActiveView] = useState<'approvals' | 'orders' | 'hubs' | 'users' | 'products' | 'financials'>('approvals');
+  const [activeView, setActiveView] = useState<'approvals' | 'orders' | 'hubs' | 'users' | 'products' | 'financials' | 'tickets'>('approvals');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<{type: 'user' | 'hub' | 'product' | 'order', data: any} | null>(null);
   const [showCreateModal, setShowCreateModal] = useState<'user' | 'product' | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+  const [replyText, setReplyText] = useState('');
 
   if (user?.role !== 'Administrador') return <div className="p-40 text-center font-brand font-black italic text-5xl uppercase opacity-20">Master Protocol Denied.</div>;
 
-  // Real-time synchronization is handled by the 'orders' prop being updated in App.tsx
   const pendingAdminApprovals = useMemo(() => orders.filter(o => o.status === 'Pendente_Admin'), [orders]);
 
   const financials = useMemo(() => {
@@ -68,10 +74,38 @@ const Backoffice: React.FC<BackofficeProps> = ({
     const term = searchTerm.toLowerCase();
     if (activeView === 'users') return users.filter(u => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
     if (activeView === 'orders') return orders.filter(o => o.id.toLowerCase().includes(term) || o.client.toLowerCase().includes(term) || o.product.toLowerCase().includes(term));
-    if (activeView === 'products') return products.filter(p => p.name.toLowerCase().includes(term));
+    if (activeView === 'products') return products.filter(p => p.name.toLowerCase().includes(term) || p.id.toLowerCase().includes(term) || p.category.toLowerCase().includes(term));
     if (activeView === 'hubs') return hubs.filter(h => h.name.toLowerCase().includes(term));
+    if (activeView === 'tickets') return tickets.filter(t => t.id.toLowerCase().includes(term) || t.subject.toLowerCase().includes(term));
     return [];
-  }, [users, orders, products, hubs, activeView, searchTerm]);
+  }, [users, orders, products, hubs, tickets, activeView, searchTerm]);
+
+  const handleSendReply = () => {
+    if (!activeTicket || !replyText.trim()) return;
+    const newMessage: SupportMessage = {
+      id: `msg-${Date.now()}`,
+      authorId: user.id,
+      authorName: user.name,
+      text: replyText,
+      timestamp: Date.now()
+    };
+    onAddTicketMessage(activeTicket.id, newMessage);
+    setReplyText('');
+    onSound?.('success');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingItem) return;
+    
+    if (editingItem.type === 'user') {
+      onUpdateUser(editingItem.data.id, editingItem.data);
+    } else if (editingItem.type === 'hub') {
+      onUpdateHub(editingItem.data.id, editingItem.data);
+    }
+    
+    setEditingItem(null);
+    onSound?.('success');
+  };
 
   return (
     <div className="max-w-[1800px] mx-auto px-8 pb-32 industrial-grid animate-in fade-in">
@@ -86,7 +120,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
         
         <div className="flex flex-wrap bg-white p-3 rounded-[3.5rem] shadow-2xl border border-gray-100 gap-4">
-           {['approvals', 'orders', 'hubs', 'users', 'products', 'financials'].map(v => (
+           {['approvals', 'orders', 'hubs', 'users', 'products', 'financials', 'tickets'].map(v => (
              <button 
               key={v} 
               onClick={() => { onSound?.('click'); setActiveView(v as any); setSearchTerm(''); }} 
@@ -96,12 +130,274 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 {(v === 'approvals' && pendingAdminApprovals.length > 0) && (
                   <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] animate-bounce shadow-lg border-2 border-white">{pendingAdminApprovals.length}</span>
                 )}
+                {(v === 'tickets' && tickets.filter(t => t.status === 'Pendente').length > 0) && (
+                  <span className="absolute -top-2 -right-2 bg-orange-50 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] animate-pulse shadow-lg border-2 border-white">{tickets.filter(t => t.status === 'Pendente').length}</span>
+                )}
              </button>
            ))}
         </div>
       </div>
 
-      {/* VIEW: ORDERS - LISTAGEM COMPLETA E DETALHADA */}
+      {/* VIEW: PRODUCTS MANAGEMENT - SPREADSHEET STYLE */}
+      {activeView === 'products' && (
+        <div className="space-y-8 animate-in slide-in-from-bottom-5">
+          <div className="bg-white p-8 rounded-[4rem] border border-gray-100 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex items-center space-x-6">
+              <div className="p-4 bg-red-600 rounded-3xl text-white shadow-lg"><FileSpreadsheet className="w-8 h-8" /></div>
+              <div>
+                <h3 className="text-4xl font-brand font-black italic uppercase leading-none text-black">Product <span className="text-red-600">Spreadsheet.</span></h3>
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-2 flex items-center"><Activity className="w-3 h-3 mr-2" /> Real-time Inventory Injection Matrix // Unit: R2-Stable</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="bg-gray-50 p-2 rounded-full border border-gray-100 flex items-center flex-grow md:w-96 focus-within:ring-2 focus-within:ring-red-600/10 transition-all">
+                <Search className="w-5 h-5 text-gray-300 ml-4" />
+                <input 
+                  type="text" 
+                  placeholder="FILTER MODULES..." 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                  className="bg-transparent flex-grow p-3 font-black text-[11px] uppercase outline-none" 
+                />
+              </div>
+              <button onClick={() => setShowCreateModal('product')} className="bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all shadow-xl flex items-center gap-3">
+                <Plus className="w-4 h-4" /> <span>Add Module</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[4rem] shadow-2xl border border-gray-100 overflow-hidden relative">
+            <div className="overflow-x-auto custom-scrollbar max-h-[800px]">
+              <table className="w-full text-left border-collapse table-fixed min-w-[1500px]">
+                <thead className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200">
+                  <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                    <th className="px-8 py-8 w-48">Module ID</th>
+                    <th className="px-8 py-8 w-40">Asset Image</th>
+                    <th className="px-8 py-8 w-64">Name Axis</th>
+                    <th className="px-8 py-8 w-64">Category Cluster</th>
+                    <th className="px-8 py-8 w-80">Tech Description</th>
+                    <th className="px-8 py-8 w-40">Base (RC)</th>
+                    <th className="px-8 py-8 w-32">Unit</th>
+                    <th className="px-8 py-8 w-40">Badge</th>
+                    <th className="px-8 py-8 w-48">Status Grid</th>
+                    <th className="px-8 py-8 w-48">Owner Hub</th>
+                    <th className="px-8 py-8 w-32 text-center">Protocol</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredItems.map((p: ExtendedProduct) => (
+                    <tr key={p.id} className="hover:bg-red-50/10 transition-colors group">
+                      <td className="px-8 py-6 font-mono text-[10px] font-bold text-gray-300">
+                        <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 w-fit">{p.id}</div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-md group/img border-2 border-transparent hover:border-red-600 transition-all cursor-pointer">
+                          <img src={p.image} className="w-full h-full object-cover group-hover/img:scale-125 transition-transform duration-700 grayscale hover:grayscale-0" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity" onClick={() => {
+                            const newUrl = prompt('Enter new Asset Image URL:', p.image);
+                            if(newUrl) onUpdateProduct(p.id, { image: newUrl });
+                          }}>
+                            <Edit className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <input 
+                          type="text" 
+                          value={p.name} 
+                          onChange={(e) => onUpdateProduct(p.id, { name: e.target.value })}
+                          className="w-full bg-transparent p-3 rounded-xl font-brand font-black italic uppercase text-lg outline-none focus:bg-white focus:ring-2 focus:ring-red-600/10 transition-all border border-transparent hover:border-gray-200" 
+                        />
+                      </td>
+                      <td className="px-8 py-6">
+                        <select 
+                          value={p.category} 
+                          onChange={(e) => onUpdateProduct(p.id, { category: e.target.value as Category })}
+                          className="w-full bg-transparent p-3 rounded-xl font-black uppercase text-[11px] outline-none appearance-none border border-transparent hover:border-gray-200 cursor-pointer"
+                        >
+                          {Object.values(Category).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-8 py-6">
+                        <textarea 
+                          value={p.description} 
+                          onChange={(e) => onUpdateProduct(p.id, { description: e.target.value })}
+                          className="w-full bg-transparent p-3 rounded-xl text-[11px] font-medium text-gray-500 italic outline-none resize-none h-16 border border-transparent hover:border-gray-200 focus:bg-white" 
+                        />
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center space-x-2 bg-gray-50/50 p-3 rounded-xl border border-gray-100 group-hover:bg-white transition-all">
+                          <input 
+                            type="number" 
+                            value={p.basePrice} 
+                            onChange={(e) => onUpdateProduct(p.id, { basePrice: parseFloat(e.target.value) })}
+                            className="bg-transparent w-full font-brand font-black italic text-xl outline-none text-red-600" 
+                          />
+                          <span className="text-[9px] font-black text-yellow-500">RC</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <input 
+                          type="text" 
+                          value={p.unit} 
+                          onChange={(e) => onUpdateProduct(p.id, { unit: e.target.value })}
+                          className="w-full bg-transparent p-3 rounded-xl font-black text-[11px] uppercase outline-none text-gray-400 border border-transparent hover:border-gray-200" 
+                        />
+                      </td>
+                      <td className="px-8 py-6">
+                         <input 
+                          type="text" 
+                          value={p.badge || ''} 
+                          placeholder="NONE"
+                          onChange={(e) => onUpdateProduct(p.id, { badge: e.target.value })}
+                          className="w-full bg-transparent p-3 rounded-xl font-black text-[10px] uppercase outline-none text-red-600 border border-transparent hover:border-gray-200" 
+                        />
+                      </td>
+                      <td className="px-8 py-6">
+                        <select 
+                          value={p.status} 
+                          onChange={(e) => onUpdateProduct(p.id, { status: e.target.value as any })}
+                          className={`w-full p-3 rounded-full font-black uppercase text-[9px] outline-none appearance-none border shadow-sm cursor-pointer transition-all ${p.status === 'Ativo' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
+                        >
+                          <option value="Ativo">Online / Stable</option>
+                          <option value="Aguardando Aprovação">Pending / Alpha</option>
+                        </select>
+                      </td>
+                      <td className="px-8 py-6">
+                        <select 
+                          value={p.ownerHubId} 
+                          onChange={(e) => onUpdateProduct(p.id, { ownerHubId: e.target.value })}
+                          className="w-full bg-transparent p-3 rounded-xl font-black text-[10px] uppercase outline-none appearance-none border border-transparent hover:border-gray-200 cursor-pointer"
+                        >
+                          <option value="SYSTEM">Central Master</option>
+                          {hubs.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <button onClick={() => { if(confirm('INITIATE DELETE PROTOCOL?')) onUpdateProduct(p.id, { ...p, status: 'Aguardando Aprovação' }); }} className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Visual Grid Lines Overlay for high density feel */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] industrial-grid" />
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: TICKETS - MASTER SUPPORT CONTROL */}
+      {activeView === 'tickets' && (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 animate-in fade-in">
+           {/* Tickets List */}
+           <div className="xl:col-span-4 space-y-6 max-h-[1000px] overflow-y-auto pr-4 custom-scrollbar">
+              <div className="bg-white p-6 rounded-[3rem] shadow-xl border border-gray-100 flex items-center space-x-4 mb-4">
+                 <Search className="w-5 h-5 text-gray-300" />
+                 <input type="text" placeholder="FILTER TICKETS..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent flex-grow outline-none font-black text-[11px] uppercase" />
+              </div>
+              {filteredItems.length > 0 ? (filteredItems as SupportTicket[]).map((t: SupportTicket) => (
+                <div key={t.id} onClick={() => { onSound?.('click'); setActiveTicket(t); }} className={`p-10 rounded-[3.5rem] cursor-pointer transition-all border-2 relative overflow-hidden group ${activeTicket?.id === t.id ? 'bg-black text-white border-black shadow-2xl scale-[1.02]' : 'bg-white border-transparent hover:border-red-600 shadow-xl'}`}>
+                   <div className="flex justify-between items-start mb-4 relative z-10">
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">{t.id}</span>
+                         <h5 className={`text-2xl font-brand font-black italic uppercase leading-tight ${activeTicket?.id === t.id ? 'text-white' : 'text-black'}`}>{t.subject}</h5>
+                      </div>
+                      <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase ${t.priority === 'Alta' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{t.priority}</span>
+                   </div>
+                   <div className="flex items-center space-x-4 pt-4 border-t border-gray-50/10 relative z-10">
+                      <span className={`px-4 py-1 rounded-full text-[8px] font-black uppercase ${t.status === 'Pendente' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>{t.status}</span>
+                      <span className="text-[9px] font-black opacity-40 uppercase">{t.category}</span>
+                   </div>
+                   <div className="absolute top-0 right-0 p-8 text-red-600/5 group-hover:text-red-600/10 transition-colors"><MessageSquare className="w-32 h-32" /></div>
+                </div>
+              )) : (
+                <div className="p-20 text-center opacity-10"><Zap className="w-20 h-20 mx-auto" /><p className="text-2xl font-brand font-black italic uppercase">Grid Silent.</p></div>
+              )}
+           </div>
+
+           {/* Ticket Detail / Conversation */}
+           <div className="xl:col-span-8">
+              {activeTicket ? (
+                <div className="bg-white rounded-[5rem] shadow-2xl border border-gray-100 h-full flex flex-col overflow-hidden animate-in slide-in-from-right-10">
+                   <div className="p-12 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                      <div className="flex items-center space-x-6">
+                         <div className="p-5 bg-black rounded-3xl text-red-600 shadow-xl"><MessageSquare className="w-8 h-8" /></div>
+                         <div>
+                            <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">{activeTicket.id} // GLOBAL SUPPORT CHANNEL</span>
+                            <h4 className="text-4xl font-brand font-black italic uppercase text-black leading-none">{activeTicket.subject}</h4>
+                         </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                         <select 
+                            value={activeTicket.status} 
+                            onChange={(e) => onUpdateTicket(activeTicket.id, { status: e.target.value })}
+                            className="bg-black text-white px-6 py-3 rounded-full text-[10px] font-black uppercase outline-none"
+                         >
+                            <option value="Pendente">Open</option>
+                            <option value="Em Análise">In Analysis</option>
+                            <option value="Concluído">Closed</option>
+                         </select>
+                         <button onClick={() => setActiveTicket(null)} className="p-4 bg-gray-100 rounded-full hover:bg-black hover:text-white transition-all"><X className="w-6 h-6"/></button>
+                      </div>
+                   </div>
+
+                   <div className="flex-grow p-12 overflow-y-auto space-y-8 industrial-grid max-h-[600px] custom-scrollbar">
+                      {activeTicket.messages.map((m, i) => (
+                        <div key={m.id} className={`flex ${m.authorId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4`}>
+                           <div className={`max-w-[70%] p-8 rounded-[3rem] shadow-xl relative group ${m.authorId === user.id ? 'bg-red-600 text-white rounded-tr-none' : 'bg-black text-white rounded-tl-none'}`}>
+                              <div className="flex justify-between items-center mb-4 opacity-50">
+                                 <span className="text-[8px] font-black uppercase tracking-widest">{m.authorName}</span>
+                                 <span className="text-[8px] font-black">{new Date(m.timestamp).toLocaleString()}</span>
+                              </div>
+                              <p className="text-[14px] font-bold leading-relaxed italic">"{m.text}"</p>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+
+                   <div className="p-10 border-t border-gray-100 bg-gray-50/80 backdrop-blur-xl">
+                      <div className="bg-white p-2 rounded-[3.5rem] shadow-inner border-2 border-gray-100 flex focus-within:border-red-600 transition-all">
+                         <textarea 
+                            placeholder="TRANSMIT MASTER RESPONSE..." 
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            className="bg-transparent flex-grow p-8 font-black uppercase text-[12px] outline-none h-24 resize-none"
+                         />
+                         <div className="flex flex-col justify-end p-4">
+                            <button onClick={handleSendReply} className="p-6 bg-black text-white rounded-[2.5rem] hover:bg-red-600 transition-all shadow-xl active-glow group">
+                               <Send className="w-8 h-8 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                            </button>
+                         </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-6 px-10 opacity-30">
+                         <div className="flex items-center space-x-3">
+                            <ShieldCheck className="w-4 h-4" />
+                            <span className="text-[8px] font-black uppercase tracking-widest">Quantum Encryption Active</span>
+                         </div>
+                         <span className="text-[8px] font-black uppercase">v4.2 Internal Channel</span>
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="h-full bg-white rounded-[5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center p-20 space-y-12">
+                   <div className="relative">
+                      <Radio className="w-40 h-40 text-gray-100" />
+                      <div className="absolute inset-0 flex items-center justify-center"><Activity className="w-16 h-16 text-red-600/20 animate-pulse" /></div>
+                   </div>
+                   <div>
+                      <h4 className="text-5xl font-brand font-black italic uppercase text-gray-200 leading-none mb-6 tracking-tighter">Support Grid <br/>Standby.</h4>
+                      <p className="text-[11px] font-black text-gray-300 uppercase tracking-[0.4em] max-w-sm">Aguardando seleção de protocolo para transmissão bidirecional.</p>
+                   </div>
+                </div>
+              )}
+           </div>
+        </div>
+      )}
+
+      {/* VIEW: ORDERS */}
       {activeView === 'orders' && (
         <div className="space-y-10 animate-in fade-in">
            {/* Sumário de Operações do Grid */}
@@ -115,7 +411,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 <div key={i} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl flex items-center space-x-6 hover:scale-105 transition-transform">
                    <div className={`p-4 bg-gray-50 rounded-2xl ${stat.color}`}><stat.icon className="w-8 h-8" /></div>
                    <div>
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block">{stat.label}</span>
+                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-1">{stat.label}</span>
                       <span className="text-4xl font-brand font-black italic">{stat.val}</span>
                    </div>
                 </div>
@@ -205,84 +501,75 @@ const Backoffice: React.FC<BackofficeProps> = ({
                                <tr className="bg-gray-100/30 animate-in slide-in-from-top-4 border-l-8 border-red-600">
                                   <td colSpan={7} className="p-16">
                                      <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
-                                        {/* Detalhes Técnicos Expandidos */}
+                                        {/* OPERATIONAL PARITY - ACTIONS BLOCK */}
+                                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-10 flex flex-col justify-center">
+                                            <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><Settings className="w-6 h-6 mr-4" /> Master Overrides</h5>
+                                            <div className="space-y-4">
+                                                {o.status === 'Aprovado' && (
+                                                  <button onClick={() => onUpdateStatus(o.id, 'Em Produção')} className="w-full bg-black text-white px-8 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-red-600 transition-all flex items-center justify-center space-x-4 shadow-xl">
+                                                     <PlayCircle className="w-5 h-5" /> <span>Force Production</span>
+                                                  </button>
+                                                )}
+                                                {o.status === 'Em Produção' && (
+                                                  <button onClick={() => onUpdateStatus(o.id, 'Expedição')} className="w-full bg-black text-white px-8 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-red-600 transition-all flex items-center justify-center space-x-4 shadow-xl">
+                                                     <Truck className="w-5 h-5" /> <span>Force Dispatch</span>
+                                                  </button>
+                                                )}
+                                                {o.status === 'Expedição' && (
+                                                  <button onClick={() => onUpdateStatus(o.id, 'Concluído')} className="w-full bg-red-600 text-white px-8 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black transition-all flex items-center justify-center space-x-4 shadow-xl">
+                                                     <CheckCircle2 className="w-5 h-5" /> <span>Force Completion</span>
+                                                  </button>
+                                                )}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <button onClick={() => generateOrderPDF(o, hubs.find(h => h.id === o.nodeId))} className="bg-gray-100 text-black px-6 py-4 rounded-2xl font-black uppercase text-[9px] hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
+                                                        <FileDown className="w-4 h-4" /> PDF
+                                                    </button>
+                                                    {o.fileName && (
+                                                        <button onClick={() => downloadOriginalAsset(o)} className="bg-gray-100 text-black px-6 py-4 rounded-2xl font-black uppercase text-[9px] hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                                                            <Download className="w-4 h-4" /> Asset
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* BLUEPRINT BLOCK */}
                                         <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-8">
-                                           <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><FileDigit className="w-5 h-5 mr-3" /> Technical Specification</h5>
+                                           <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><FileDigit className="w-6 h-6 mr-4" /> Technical Spec</h5>
                                            <div className="grid grid-cols-2 gap-6">
                                               <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
                                                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Substrato</span>
-                                                 <span className="text-[11px] font-bold text-black uppercase italic">{o.material}</span>
+                                                 <span className="text-[11px] font-bold text-black uppercase italic leading-tight">{o.material}</span>
                                               </div>
                                               <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
                                                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Acabamento</span>
-                                                 <span className="text-[11px] font-bold text-black uppercase italic">{o.finish}</span>
+                                                 <span className="text-[11px] font-bold text-black uppercase italic leading-tight">{o.finish}</span>
                                               </div>
                                               <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
                                                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Unidades</span>
-                                                 <span className="text-2xl font-brand font-black italic text-black">{o.quantity} u.</span>
+                                                 <span className="text-xl font-brand font-black italic text-black leading-none">{o.quantity} u.</span>
                                               </div>
                                               <div className="p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-600 transition-all">
-                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Injeção</span>
-                                                 <span className="text-[11px] font-bold text-black">{new Date(o.timestamp).toLocaleString()}</span>
-                                              </div>
-                                           </div>
-                                           <div className="p-5 bg-black text-white rounded-3xl flex justify-between items-center group/barcode-c">
-                                              <div className="flex flex-col">
-                                                 <span className="text-[8px] font-black uppercase text-gray-500 mb-1">R2_SECURE_SCAN</span>
-                                                 <span className="text-[10px] font-mono tracking-tighter">{o.id}</span>
-                                              </div>
-                                              <Barcode className="w-12 h-6 text-red-600 group-hover/barcode-c:scale-x-125 transition-transform" />
-                                           </div>
-                                        </div>
-
-                                        {/* Ações, Assets e Links Master */}
-                                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-8">
-                                           <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4"><ExternalLink className="w-5 h-5 mr-3" /> Central Asset Hub</h5>
-                                           <div className="space-y-4">
-                                              <button onClick={() => generateOrderPDF(o, hubs.find(h => h.id === o.nodeId))} className="w-full flex items-center justify-between p-6 bg-black text-white rounded-3xl hover:bg-red-600 transition-all shadow-xl group/btn active:scale-95">
-                                                 <div className="flex items-center space-x-4">
-                                                    <FileText className="w-5 h-5 text-red-600" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Guia de Produção PDF</span>
-                                                 </div>
-                                                 <FileDown className="w-5 h-5 group-hover/btn:translate-y-1 transition-transform" />
-                                              </button>
-                                              
-                                              {o.fileName && (
-                                                <button onClick={() => downloadOriginalAsset(o)} className="w-full flex items-center justify-between p-6 bg-red-600 text-white rounded-3xl hover:bg-black transition-all shadow-xl group/btn active:scale-95">
-                                                   <div className="flex items-center space-x-4">
-                                                      <ImageIcon className="w-5 h-5 text-white" />
-                                                      <span className="text-[10px] font-black uppercase tracking-widest">Baixar Original: {o.fileName}</span>
-                                                   </div>
-                                                   <Download className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                                                </button>
-                                              )}
-                                              
-                                              <div className="p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 text-center flex flex-col items-center justify-center space-y-2 opacity-60 hover:opacity-100 transition-opacity">
-                                                 <ShieldCheck className="w-6 h-6 text-green-500" />
-                                                 <span className="text-[8px] font-black uppercase tracking-widest">Integridade Verificada ISO-R2</span>
+                                                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Dimensões Axis</span>
+                                                 <span className="text-xl font-brand font-black italic text-black leading-none">{o.dimensions || 'N/A'}</span>
                                               </div>
                                            </div>
                                         </div>
 
-                                        {/* Auditoria Operacional Master */}
-                                        <div className="xl:col-span-2 bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 flex flex-col">
-                                           <div className="flex justify-between items-center border-b border-gray-50 pb-4 mb-6">
-                                              <h5 className="text-[11px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center"><History className="w-5 h-5 mr-3" /> Audit Log & Industrial Pulse</h5>
-                                              <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[8px] font-black animate-pulse uppercase">Sync Ativo</div>
-                                           </div>
-                                           <div className="flex-grow max-h-[350px] overflow-y-auto space-y-6 pr-4 custom-scrollbar">
-                                              {o.history?.map((log: any, idx: number) => (
-                                                <div key={idx} className="flex items-start space-x-6 relative group/log-item">
-                                                   <div className="absolute -left-[1px] top-1.5 w-2 h-2 bg-red-600 rounded-full shadow-[0_0_10px_rgba(204,0,0,0.5)] group-hover/log-item:scale-150 transition-transform" />
-                                                   <div className="w-full bg-gray-50/50 p-5 rounded-3xl border border-gray-100 group-hover/log-item:border-red-200 transition-all">
-                                                      <div className="flex justify-between items-center mb-2">
-                                                         <span className="text-[10px] font-black uppercase text-black italic">{log.status}</span>
-                                                         <span className="text-[8px] font-bold text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
-                                                      </div>
-                                                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed">"{log.note}"</p>
-                                                      <div className="mt-3 flex items-center space-x-2 pt-2 border-t border-gray-100/50">
-                                                         <UserCheck className="w-3 h-3 text-gray-400" />
-                                                         <span className="text-[8px] font-black uppercase text-gray-400">Assinado por: {log.author}</span>
+                                        {/* LOG BLOCK */}
+                                        <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-gray-100 space-y-8 col-span-1 xl:col-span-2 overflow-y-auto max-h-[400px] custom-scrollbar">
+                                           <h5 className="text-[12px] font-black uppercase text-red-600 tracking-[0.4em] flex items-center border-b border-gray-50 pb-4 sticky top-0 bg-white z-10"><History className="w-6 h-6 mr-4" /> Operational Audit Log</h5>
+                                           <div className="space-y-6 border-l-2 border-red-100 ml-4 pl-8">
+                                              {o.history.map((h, i) => (
+                                                <div key={i} className="relative group/log">
+                                                   <div className="absolute -left-[41px] top-1 w-4 h-4 bg-red-600 rounded-full border-4 border-white shadow-md group-hover/log:scale-125 transition-transform" />
+                                                   <div className="flex flex-col">
+                                                      <span className="text-[8px] font-black text-gray-400 uppercase block tracking-widest mb-1">{new Date(h.timestamp).toLocaleString()}</span>
+                                                      <span className="text-[11px] font-black text-black uppercase block italic">{h.status}</span>
+                                                      <p className="text-[10px] text-gray-500 font-medium mt-1 leading-relaxed">"{h.note}"</p>
+                                                      <div className="mt-2 flex items-center space-x-2 opacity-30">
+                                                         <UserCheck className="w-3 h-3" />
+                                                         <span className="text-[7px] font-black uppercase tracking-widest">Signed: {h.author}</span>
                                                       </div>
                                                    </div>
                                                 </div>
@@ -302,7 +589,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* VIEW: APPROVALS - MANTÉM FUNCIONALIDADE EXISTENTE */}
+      {/* VIEW: APPROVALS */}
       {activeView === 'approvals' && (
         <div className="space-y-12 animate-in slide-in-from-bottom-5">
            <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl mb-12 flex flex-col lg:flex-row justify-between items-center gap-8">
@@ -359,7 +646,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* VIEWS: HUBS, USERS, PRODUCTS, FINANCIALS - MANTÉM FUNCIONALIDADES EXISTENTES */}
+      {/* VIEW: FINANCIALS */}
       {activeView === 'financials' && (
         <div className="space-y-12 animate-in fade-in">
            <div className="bg-white p-16 rounded-[5rem] border border-gray-100 shadow-2xl flex flex-col lg:flex-row justify-between items-center gap-12 mb-16">
@@ -440,60 +727,51 @@ const Backoffice: React.FC<BackofficeProps> = ({
 
       {/* VIEW: USERS MANAGEMENT */}
       {activeView === 'users' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 animate-in slide-in-from-bottom-5">
-           {filteredItems.map((u: User) => (
-             <div key={u.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 text-black/5"><Users className="w-32 h-32" /></div>
-                <div className="flex justify-between items-start mb-10 relative z-10">
-                   <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white text-3xl font-brand font-black italic shadow-xl ${u.role === 'B2B_Admin' ? 'bg-red-600' : 'bg-black'}`}>{u.name[0]}</div>
-                   <div className="flex space-x-2">
-                      <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Eye className="w-5 h-5" /></button>
-                      <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Edit className="w-5 h-5" /></button>
-                      <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md active:scale-90"><Trash2 className="w-5 h-5" /></button>
-                   </div>
-                </div>
-                <div className="relative z-10">
-                   <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2 leading-none group-hover:text-red-600 transition-colors">{u.name}</h4>
-                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{u.email}</p>
-                   <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
-                      <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
-                      <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600 border border-red-100">{u.tier}</span>
-                      <div className="ml-auto flex items-center space-x-1">
-                        <span className="text-[11px] font-brand font-black italic redcoin-text">{u.balance?.toLocaleString()}</span>
-                        <span className="text-[7px] font-black text-yellow-400">RC</span>
-                      </div>
-                   </div>
-                </div>
-             </div>
-           ))}
-        </div>
-      )}
+        <div className="space-y-12 animate-in slide-in-from-bottom-5">
+           <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
+              <div className="flex items-center space-x-6">
+                 <div className="p-5 bg-black rounded-3xl text-red-600 shadow-xl"><Users className="w-10 h-10" /></div>
+                 <div>
+                    <h3 className="text-4xl font-brand font-black italic uppercase leading-none">Entidades do <br/><span className="text-red-600">Ecossistema.</span></h3>
+                    <p className="text-[11px] font-black uppercase text-gray-400 tracking-widest mt-2 italic">Gerencie acessos, resets e provisionamento de novos parceiros Hub ou clientes Standard.</p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateModal('user')}
+                className="bg-red-600 text-white px-12 py-6 rounded-full font-black uppercase text-[11px] tracking-[0.4em] hover:bg-black transition-all shadow-2xl flex items-center space-x-4 active-glow"
+              >
+                <UserPlus className="w-5 h-5" /> <span>Provisionar Entidade</span>
+              </button>
+           </div>
 
-      {/* VIEW: PRODUCTS MANAGEMENT */}
-      {activeView === 'products' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-8 animate-in slide-in-from-bottom-5">
-           {filteredItems.map((p: ExtendedProduct) => (
-             <div key={p.id} className="bg-white rounded-[4rem] border border-gray-100 shadow-xl overflow-hidden group hover:border-red-600 transition-all flex flex-col h-full">
-                <div className="aspect-square bg-gray-50 relative overflow-hidden">
-                   <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
-                   <div className="absolute top-6 right-6 flex space-x-2 z-10">
-                      <button onClick={() => setEditingItem({type: 'product', data: p})} className="p-4 bg-white/90 backdrop-blur-md rounded-2xl text-black shadow-xl hover:bg-red-600 hover:text-white transition-all"><Edit className="w-4 h-4" /></button>
-                   </div>
-                   <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/20">{p.id}</div>
-                </div>
-                <div className="p-10 flex flex-col flex-grow">
-                   <span className="text-[9px] font-black uppercase text-red-600 tracking-[0.4em] mb-3 block opacity-50">{p.category}</span>
-                   <h5 className="text-3xl font-brand font-black italic uppercase text-black mb-6 leading-none group-hover:text-red-600 transition-colors">{p.name}</h5>
-                   <div className="mt-auto flex justify-between items-end pt-6 border-t border-gray-50">
-                      <div className="flex flex-col">
-                         <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Base Cost (RC)</span>
-                         <span className="text-4xl font-brand font-black italic redcoin-text">{p.basePrice}</span>
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {filteredItems.map((u: User) => (
+                <div key={u.id} className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-xl group hover:border-black transition-all relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-8 text-black/5"><Users className="w-32 h-32" /></div>
+                   <div className="flex justify-between items-start mb-10 relative z-10">
+                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white text-3xl font-brand font-black italic shadow-xl ${u.role === 'B2B_Admin' ? 'bg-red-600' : 'bg-black'}`}>{u.name[0]}</div>
+                      <div className="flex space-x-2">
+                         <button onClick={() => onImpersonate(u)} title="Shadow Mode" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Eye className="w-5 h-5" /></button>
+                         <button onClick={() => { const newPass = prompt(`DEFINIR NOVA PASSWORD MASTER PARA: ${u.name}`); if (newPass) onUpdateUser(u.id, { password: newPass }); }} title="Reset Password" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><KeyRound className="w-5 h-5" /></button>
+                         <button onClick={() => setEditingItem({type: 'user', data: u})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md active:scale-90"><Edit className="w-5 h-5" /></button>
+                         <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md active:scale-90"><Trash2 className="w-5 h-5" /></button>
                       </div>
-                      <div className="p-4 bg-gray-50 rounded-2xl"><Box className="w-6 h-6 text-red-600" /></div>
+                   </div>
+                   <div className="relative z-10">
+                      <h4 className="text-3xl font-brand font-black italic uppercase text-black mb-2 leading-none group-hover:text-red-600 transition-colors">{u.name}</h4>
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{u.email}</p>
+                      <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
+                         <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
+                         <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600 border border-red-100">{u.tier}</span>
+                         <div className="ml-auto flex items-center space-x-1">
+                           <span className="text-[11px] font-brand font-black italic redcoin-text">{u.balance?.toLocaleString()}</span>
+                           <span className="text-[7px] font-black text-yellow-400">RC</span>
+                         </div>
+                      </div>
                    </div>
                 </div>
-             </div>
-           ))}
+              ))}
+           </div>
         </div>
       )}
 
@@ -506,6 +784,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 <div className="flex justify-between items-start mb-10 relative z-10">
                    <div className="p-6 bg-red-600 rounded-[2rem] text-white shadow-xl status-pulse"><Server className="w-8 h-8" /></div>
                    <div className="flex space-x-2">
+                      <button onClick={() => { const newImg = prompt(`MASTER OVERRIDE: NOVA URL DE IMAGEM PARA HUB ${h.name}`, h.image); if (newImg) onUpdateHub(h.id, { image: newImg }); }} title="Update Hub Visuals" className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md"><ImageIcon className="w-5 h-5" /></button>
                       <button onClick={() => setEditingItem({type: 'hub', data: h})} className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-black hover:text-white transition-all shadow-md"><Edit className="w-5 h-5" /></button>
                       <button className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-md"><Power className="w-5 h-5" /></button>
                    </div>
@@ -513,7 +792,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
                 <div className="relative z-10">
                    <h4 className="text-4xl font-brand font-black italic uppercase text-black mb-2 leading-none group-hover:text-red-600 transition-colors">{h.name}</h4>
                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 flex items-center"><MapPin className="w-3 h-3 mr-2" /> {h.location}</p>
-                   
                    <div className="space-y-6 pt-6 border-t border-gray-50">
                       <div className="flex justify-between items-end">
                          <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest italic">Grid Load Sync</span>
@@ -536,13 +814,12 @@ const Backoffice: React.FC<BackofficeProps> = ({
         </div>
       )}
 
-      {/* MODAL: EDIT ITEM (USER / HUB / PRODUCT) */}
+      {/* MODAL: EDIT ITEM (USER / HUB / ORDER) */}
       {editingItem && (
         <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-8 animate-in fade-in">
            <div className="bg-white w-full max-w-2xl rounded-[5rem] p-20 shadow-2xl border-[15px] border-black relative overflow-y-auto max-h-[90vh]">
               <button onClick={() => setEditingItem(null)} className="absolute top-12 right-12 p-4 text-gray-300 hover:text-black hover:rotate-90 transition-all"><X className="w-10 h-10"/></button>
               <h3 className="text-5xl font-brand font-black italic uppercase mb-12 leading-none">Editar <br/><span className="text-red-600">{editingItem.type.toUpperCase()}.</span></h3>
-              
               <div className="space-y-8">
                  {editingItem.type === 'user' && (
                     <>
@@ -559,32 +836,46 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           <select value={editingItem.data.role} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, role: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner">
                              <option value="Utilizador_Standard">Standard Client</option>
                              <option value="B2B_Admin">HUB Partner</option>
+                             <option value="Administrador">Super Admin</option>
+                          </select>
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Redefinir Password</label>
+                          <input type="password" placeholder="DEIXE EM BRANCO PARA MANTER" onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, password: e.target.value || editingItem.data.password}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                       </div>
+                    </>
+                 )}
+                 {editingItem.type === 'hub' && (
+                    <>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome da Unidade Hub</label>
+                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Localização (Cidade, País)</label>
+                          <input type="text" value={editingItem.data.location} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, location: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                       </div>
+                       <div className="grid grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Capacidade (%)</label>
+                            <input type="number" value={editingItem.data.capacity} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, capacity: parseInt(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Latência (ms)</label>
+                            <input type="text" value={editingItem.data.latency} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, latency: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
+                         </div>
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Estado de Sincronização</label>
+                          <select value={editingItem.data.status} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, status: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner">
+                             <option value="Online">Online</option>
+                             <option value="Busy">Busy</option>
+                             <option value="Maintenance">Maintenance</option>
                           </select>
                        </div>
                     </>
                  )}
-                 {editingItem.type === 'product' && (
-                    <>
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Nome do Módulo</label>
-                          <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, name: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
-                       </div>
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Preço Base (€)</label>
-                          <input type="number" value={editingItem.data.basePrice} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, basePrice: parseFloat(e.target.value)}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner" />
-                       </div>
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Descrição Técnica</label>
-                          <textarea value={editingItem.data.description} onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, description: e.target.value}})} className="w-full bg-gray-50 p-6 rounded-3xl font-black uppercase text-[12px] outline-none border-2 border-transparent focus:border-red-600 shadow-inner h-32" />
-                       </div>
-                    </>
-                 )}
-                 <button onClick={() => { 
-                    if(editingItem.type === 'user') onUpdateUser(editingItem.data.id, editingItem.data);
-                    if(editingItem.type === 'product') onUpdateProduct(editingItem.data.id, editingItem.data);
-                    setEditingItem(null); 
-                    onSound?.('success'); 
-                 }} className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">
+                 <button onClick={handleSaveEdit} className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center space-x-6 border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">
                     <Save className="w-6 h-6" /> <span>Sincronizar Alterações Master</span>
                  </button>
               </div>
@@ -598,7 +889,6 @@ const Backoffice: React.FC<BackofficeProps> = ({
            <div className="bg-white w-full max-w-2xl rounded-[5rem] p-20 shadow-2xl border-[15px] border-red-600 relative overflow-y-auto max-h-[90vh]">
               <button onClick={() => setShowCreateModal(null)} className="absolute top-12 right-12 p-4 text-gray-300 hover:text-black hover:rotate-90 transition-all"><X className="w-10 h-10"/></button>
               <h3 className="text-5xl font-brand font-black italic uppercase mb-12 leading-none">Novo <br/><span className="text-red-600">{showCreateModal.toUpperCase()} R3.</span></h3>
-              
               <div className="space-y-8">
                  {showCreateModal === 'user' && (
                     <form onSubmit={(e) => { 
@@ -617,6 +907,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           <option value="Utilizador_Standard">Standard Client</option>
                           <option value="B2B_Admin">HUB Partner</option>
                        </select>
+                       <p className="text-[10px] text-gray-400 uppercase tracking-widest italic text-center">Credenciais serão geradas automaticamente pelo Cluster.</p>
                        <button type="submit" className="w-full bg-black text-white p-12 rounded-[3.5rem] font-black uppercase tracking-[0.5em] text-[13px] hover:bg-red-600 transition-all shadow-2xl border-b-[10px] border-gray-900 active:translate-y-1 active:border-b-0">Provisionar Acesso Master</button>
                     </form>
                  )}
@@ -640,7 +931,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                        setShowCreateModal(null);
                     }} className="space-y-6">
                        <input name="name" type="text" placeholder="NOME DO MÓDULO" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
-                       <input name="price" type="number" placeholder="PREÇO BASE (€)" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
+                       <input name="price" type="number" placeholder="PREÇO BASE (RC)" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner" required />
                        <select name="category" className="w-full bg-gray-50 p-8 rounded-3xl font-black uppercase text-[12px] outline-none border border-transparent focus:border-red-600 shadow-inner appearance-none">
                           {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
                        </select>
