@@ -21,7 +21,7 @@ interface AccountProps {
   onUpdateStatus: (orderId: string, status: ProductionJob['status'], nodeId?: string, note?: string) => void;
   onRequestAuth: (req: Omit<AuthorizationRequest, 'id' | 'timestamp' | 'status'>) => void;
   onLogout: () => void;
-  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
+  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading' | 'redcoin') => void;
   onUpdateUser: (userId: string, updates: Partial<User>) => void;
 }
 
@@ -134,10 +134,13 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
               <span className="text-[11px] font-black uppercase text-gray-500 tracking-widest block mb-12 relative z-10 flex items-center"><Activity className="w-4 h-4 mr-3 text-red-600" /> Volume de Manufatura</span>
               <span className="text-6xl font-brand font-black italic text-white leading-none relative z-10">€{financials.totalVolume.toLocaleString()}</span>
            </div>
-           <div className="bg-red-600 text-white p-14 rounded-[4.5rem] shadow-2xl relative group hover:scale-[1.02] transition-transform">
-              <div className="absolute top-10 right-10"><Zap className="w-10 h-10 animate-pulse text-white/40" /></div>
-              <span className="text-[11px] font-black uppercase text-white/50 tracking-widest block mb-12">{isB2B ? 'Net Hub Earnings' : 'Cashback REDCOIN'}</span>
-              <span className="text-6xl font-brand font-black italic text-white leading-none">€{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
+           <div className="bg-black text-white p-14 rounded-[4.5rem] shadow-2xl relative group hover:scale-[1.02] transition-transform redcoin-badge">
+              <div className="absolute top-10 right-10"><Coins className="w-10 h-10 animate-bounce text-yellow-400/60" /></div>
+              <span className="text-[11px] font-black uppercase text-white/50 tracking-widest block mb-12">{isB2B ? 'Net Hub Earnings' : 'Proprietary REDCOIN Balance'}</span>
+              <div className="flex items-end space-x-3">
+                <span className="text-6xl font-brand font-black italic redcoin-text">{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
+                <span className="text-[10px] font-black uppercase tracking-tighter text-yellow-400 mb-2">RC</span>
+              </div>
            </div>
            <div className="bg-white p-14 rounded-[4.5rem] shadow-xl border border-gray-100 group hover:border-black transition-all">
               <span className="text-[11px] font-black uppercase text-gray-400 tracking-widest block mb-12 flex items-center"><TrendingUp className="w-4 h-4 mr-3 text-red-600" /> Rendimento Médio</span>
@@ -164,13 +167,16 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                  </div>
                  <span className="text-7xl font-brand font-black italic text-black">-€{financials.platformDeduction.toLocaleString()}</span>
               </div>
-              <div className="bg-black p-14 rounded-[5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden group h-[350px]">
+              <div className="bg-black p-14 rounded-[5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden group h-[350px] redcoin-badge">
                  <div className="absolute inset-0 industrial-grid opacity-5" />
                  <div className="flex items-center space-x-6 mb-12 relative z-10">
                     <div className="p-6 bg-red-600 rounded-3xl text-white shadow-lg group-hover:scale-110 transition-transform"><Wallet className="w-10 h-10"/></div>
-                    <h4 className="text-4xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter text-white">Net Earned <br/>Credit.</h4>
+                    <h4 className="text-4xl font-brand font-black italic uppercase leading-[0.8] tracking-tighter text-white">REDCOIN <br/>Net Assets.</h4>
                  </div>
-                 <span className="text-7xl font-brand font-black italic text-white relative z-10">€{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
+                 <div className="flex items-end space-x-4 relative z-10">
+                   <span className="text-7xl font-brand font-black italic redcoin-text">{(isB2B ? financials.netEarnings : financials.cashbackTotal).toLocaleString()}</span>
+                   <span className="text-2xl font-black text-yellow-400 mb-2">RC</span>
+                 </div>
               </div>
            </div>
 
@@ -192,7 +198,7 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                           <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest">Módulo Asset</th>
                           <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Gross Value</th>
                           <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Dedução Platform</th>
-                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Net Liquidação</th>
+                          <th className="px-16 py-8 text-[10px] font-black uppercase text-gray-400 tracking-widest text-right">Net Liquidação (RC)</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -209,7 +215,10 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                                <td className="px-16 py-10 font-brand font-black italic text-black text-xl text-right">€{val.toLocaleString()}</td>
                                <td className="px-16 py-10 font-black text-red-600 text-[13px] text-right">-€{fee.toLocaleString()}</td>
                                <td className="px-16 py-10 text-right">
-                                  <span className="bg-black text-white px-8 py-3 rounded-2xl font-brand font-black italic text-2xl group-hover:bg-red-600 transition-all">€{(val - fee).toLocaleString()}</span>
+                                  <div className="inline-flex items-center space-x-2 bg-black px-8 py-3 rounded-2xl group-hover:scale-105 transition-all">
+                                    <span className="font-brand font-black italic text-2xl redcoin-text">{(val - fee).toLocaleString()}</span>
+                                    <span className="text-[10px] font-black text-yellow-400">RC</span>
+                                  </div>
                                </td>
                             </tr>
                           );
@@ -255,7 +264,10 @@ const Account: React.FC<AccountProps> = ({ user, orders, tickets, products, hubs
                          </div>
                          <div className="space-y-2 text-right">
                             <span className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] block">Valor Ativo</span>
-                            <span className="text-red-600 font-brand font-black italic text-4xl leading-none">€{o.value}</span>
+                            <div className="flex items-center justify-end space-x-2">
+                              <span className="redcoin-text font-brand font-black italic text-4xl leading-none">{o.value}</span>
+                              <span className="text-[10px] font-black text-yellow-400">RC</span>
+                            </div>
                          </div>
                       </div>
                    </div>

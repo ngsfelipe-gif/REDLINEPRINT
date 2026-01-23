@@ -13,7 +13,7 @@ import SupportCenter from './components/SupportCenter';
 import { MOCK_JOBS, MOCK_NODES, INITIAL_PRODUCTS, MOCK_TICKETS } from './constants';
 import { User, ProductionJob, PartnerNode, ExtendedProduct, Language, SupportTicket, HubRegistrationRequest, AuthorizationRequest } from './types';
 import { TRANSLATIONS } from './translations';
-import { Zap, ShieldCheck, RefreshCw, Cpu, Database } from 'lucide-react';
+import { Zap, ShieldCheck, RefreshCw, Cpu, Database, Coins } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -37,21 +37,23 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<ExtendedProduct[]>(INITIAL_PRODUCTS.map(p => ({...p, status: 'Ativo', ownerHubId: p.ownerHubId || 'SYSTEM'})));
   
   const [showLogin, setShowLogin] = useState(false);
-  const [activeToast, setActiveToast] = useState<{title: string, msg: string, type?: 'success' | 'error' | 'sync' | 'loading'} | null>(null);
+  const [activeToast, setActiveToast] = useState<{title: string, msg: string, type?: 'success' | 'error' | 'sync' | 'loading' | 'redcoin'} | null>(null);
 
-  const playSound = useCallback((type: 'click' | 'success' | 'sync' | 'error' | 'loading') => {
+  const playSound = useCallback((type: 'click' | 'success' | 'sync' | 'error' | 'loading' | 'redcoin') => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
       const now = audioCtx.currentTime;
 
-      const createBleep = (freq: number, dur: number, type: OscillatorType = 'sine', slide?: number) => {
+      const createBleep = (freq: number, dur: number, type: OscillatorType = 'sine', slide?: number, volume = 0.05) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, now);
         if (slide) osc.frequency.exponentialRampToValueAtTime(slide, now + dur);
-        gain.gain.setValueAtTime(0.05, now);
+        
+        gain.gain.setValueAtTime(volume, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
@@ -64,12 +66,18 @@ const App: React.FC = () => {
         case 'sync': createBleep(1200, 0.1, 'sine', 1600); createBleep(1400, 0.1, 'sine', 1800); break;
         case 'error': createBleep(220, 0.4, 'sawtooth', 60); break;
         case 'loading': createBleep(440, 0.3, 'sine', 220); break;
+        case 'redcoin': 
+          // High-tech coin collect sound
+          createBleep(880, 0.1, 'sine', 1760, 0.1);
+          setTimeout(() => createBleep(1760, 0.2, 'sine', 2200, 0.08), 50);
+          setTimeout(() => createBleep(2200, 0.3, 'triangle', 440, 0.05), 150);
+          break;
       }
     } catch(e) {}
   }, []);
 
-  const notify = (title: string, msg: string, type: 'success' | 'error' | 'sync' | 'loading' = 'sync') => {
-    playSound(type === 'loading' ? 'loading' : (type === 'sync' ? 'sync' : type));
+  const notify = (title: string, msg: string, type: 'success' | 'error' | 'sync' | 'loading' | 'redcoin' = 'sync') => {
+    playSound(type);
     setActiveToast({ title, msg, type });
     if (type !== 'loading') setTimeout(() => setActiveToast(null), 5000);
   };
@@ -96,7 +104,8 @@ const App: React.FC = () => {
         if (hubOwner) handleUpdateUserInternal(hubOwner.id, { balance: (hubOwner.balance || 0) + hubNet });
         handleUpdateUserInternal(o.clientId, { balance: (users.find(u=>u.id===o.clientId)?.balance || 0) + clientCashback });
         
-        notify("Grid Sync: Liquidado", `Job ${orderId} liquidado. Comissões e Cashback processados.`, "success");
+        // Sensory celebration for REDCOIN earnings
+        notify("REDCOIN Reward", `Protocolo ${orderId} liquidado. +${clientCashback.toFixed(2)} REDCOINS em circulação.`, "redcoin");
       }
 
       return { 
@@ -289,20 +298,23 @@ const App: React.FC = () => {
       </div>
 
       {activeToast && (
-        <div className={`fixed bottom-10 right-10 z-[3000] premium-glass-dark text-white p-8 rounded-[2.5rem] shadow-[0_50px_120px_rgba(0,0,0,0.6)] border-l-[15px] border-red-600 animate-in slide-in-from-right-10 w-[420px] overflow-hidden group active-glow`}>
+        <div className={`fixed bottom-10 right-10 z-[3000] premium-glass-dark text-white p-8 rounded-[2.5rem] shadow-[0_50px_120px_rgba(0,0,0,0.6)] border-l-[15px] ${activeToast.type === 'redcoin' ? 'border-yellow-400 active-glow' : 'border-red-600'} animate-in slide-in-from-right-10 w-[420px] overflow-hidden group`}>
            <div className="absolute inset-0 data-shimmer opacity-20 pointer-events-none" />
            <div className="flex items-center space-x-6 relative z-10">
-              <div className="p-4 bg-red-600/20 rounded-2xl shadow-[0_0_20px_rgba(204,0,0,0.3)]">
-                 {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : (activeToast.type === 'loading' ? <Database className="w-8 h-8 text-red-600 animate-pulse" /> : <Zap className="w-8 h-8 text-red-600 animate-pulse" />)}
+              <div className={`p-4 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.3)] ${activeToast.type === 'redcoin' ? 'bg-yellow-400/20' : 'bg-red-600/20'}`}>
+                 {activeToast.type === 'sync' ? <RefreshCw className="w-8 h-8 text-red-600 animate-spin" /> : 
+                  activeToast.type === 'loading' ? <Database className="w-8 h-8 text-red-600 animate-pulse" /> : 
+                  activeToast.type === 'redcoin' ? <Coins className="w-8 h-8 text-yellow-400 animate-bounce" /> :
+                  <Zap className="w-8 h-8 text-red-600 animate-pulse" />}
               </div>
               <div>
-                 <h4 className="text-[12px] font-black uppercase text-red-600 tracking-widest">{activeToast.title}</h4>
+                 <h4 className={`text-[12px] font-black uppercase tracking-widest ${activeToast.type === 'redcoin' ? 'text-yellow-400' : 'text-red-600'}`}>{activeToast.title}</h4>
                  <p className="text-[13px] font-bold text-gray-400 mt-1 italic leading-tight">{activeToast.msg}</p>
               </div>
            </div>
            {/* Progress Indicator for Loading Toast */}
-           <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600/10">
-              <div className="h-full bg-red-600 transition-all duration-[5000ms] ease-linear shadow-[0_0_15px_rgba(204,0,0,1)]" style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
+           <div className={`absolute bottom-0 left-0 w-full h-1 ${activeToast.type === 'redcoin' ? 'bg-yellow-400/10' : 'bg-red-600/10'}`}>
+              <div className={`h-full transition-all duration-[5000ms] ease-linear shadow-[0_0_15px_rgba(0,0,0,1)] ${activeToast.type === 'redcoin' ? 'bg-yellow-400' : 'bg-red-600'}`} style={{ width: activeToast.type === 'loading' ? '100%' : '0%' }} />
            </div>
         </div>
       )}

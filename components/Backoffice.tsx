@@ -25,7 +25,7 @@ interface BackofficeProps {
   onImpersonate: (user: User) => void;
   onCreateUser: (u: User) => void;
   onCreateClient: (clientData: Partial<User>) => void;
-  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading') => void;
+  onSound?: (type: 'click' | 'success' | 'sync' | 'error' | 'loading' | 'redcoin') => void;
   globalPlatformFee: number;
   setGlobalPlatformFee: (fee: number) => void;
 }
@@ -142,7 +142,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                             <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">ENTIDADE CLIENTE</th>
                             <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">NODE HUB ATRIBUÍDO</th>
                             <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400">ESTADO ATUAL</th>
-                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-right">VALOR ASSET</th>
+                            <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-right">VALOR ASSET (RC)</th>
                             <th className="px-10 py-8 text-[9px] font-black uppercase text-gray-400 text-center">DETALHES</th>
                          </tr>
                       </thead>
@@ -189,7 +189,10 @@ const Backoffice: React.FC<BackofficeProps> = ({
                                    </div>
                                 </td>
                                 <td className="px-10 py-10 text-right">
-                                   <span className="font-brand font-black italic text-black text-2xl">€{o.value}</span>
+                                   <div className="flex items-center justify-end space-x-2">
+                                      <span className="font-brand font-black italic text-black text-2xl redcoin-text">{o.value}</span>
+                                      <span className="text-[8px] font-black text-yellow-400">RC</span>
+                                   </div>
                                 </td>
                                 <td className="px-10 py-10 text-center">
                                    <button className="p-4 bg-gray-100 text-gray-400 rounded-2xl group-hover:bg-black group-hover:text-white transition-all shadow-md">
@@ -333,7 +336,7 @@ const Backoffice: React.FC<BackofficeProps> = ({
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-[12px] font-black uppercase text-gray-400 italic">
                              <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Entidade Cliente</span><span className="text-black not-italic">{o.client}</span></div>
                              <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Módulo Asset</span><span className="text-black not-italic">{o.product}</span></div>
-                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Valor Liquidação</span><span className="text-red-600 not-italic">€{o.value}</span></div>
+                             <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">Valor Liquidação</span><span className="redcoin-text not-italic">{o.value} RC</span></div>
                              <div><span className="text-gray-300 block mb-2 tracking-[0.3em]">HUB Destino</span><span className="text-black not-italic">{hubs.find(h => h.id === o.nodeId)?.name}</span></div>
                           </div>
                        </div>
@@ -384,23 +387,23 @@ const Backoffice: React.FC<BackofficeProps> = ({
               <div className="bg-black text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
                  <div className="absolute inset-0 industrial-grid opacity-5" />
                  <CreditCard className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">Gross Revenue</span>
-                 <span className="text-6xl font-brand font-black italic block">€{financials.totalRevenue.toLocaleString()}</span>
+                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-4">Gross Revenue (RC)</span>
+                 <span className="text-6xl font-brand font-black italic block redcoin-text">{financials.totalRevenue.toLocaleString()}</span>
               </div>
               <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
                  <Coins className="w-12 h-12 text-red-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Platform Share</span>
-                 <span className="text-6xl font-brand font-black italic block">€{financials.totalPlatform.toLocaleString()}</span>
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Platform Share (RC)</span>
+                 <span className="text-6xl font-brand font-black italic block redcoin-text">{financials.totalPlatform.toLocaleString()}</span>
               </div>
               <div className="bg-white p-12 rounded-[4.5rem] border border-gray-100 shadow-xl group hover:border-black transition-all">
                  <PieChart className="w-12 h-12 text-orange-600 mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Hub Payouts</span>
-                 <span className="text-6xl font-brand font-black italic block">€{financials.totalHub.toLocaleString()}</span>
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Hub Payouts (RC)</span>
+                 <span className="text-6xl font-brand font-black italic block redcoin-text">{financials.totalHub.toLocaleString()}</span>
               </div>
-              <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group">
+              <div className="bg-red-600 text-white p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden group redcoin-badge">
                  <TrendingUp className="w-12 h-12 text-white mb-10 group-hover:scale-110 transition-transform" />
-                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-4">Net Industrial</span>
-                 <span className="text-6xl font-brand font-black italic block">€{financials.totalNet.toLocaleString()}</span>
+                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block mb-4">Net Industrial Liquid (RC)</span>
+                 <span className="text-6xl font-brand font-black italic block redcoin-text">{financials.totalNet.toLocaleString()}</span>
               </div>
            </div>
 
@@ -455,7 +458,10 @@ const Backoffice: React.FC<BackofficeProps> = ({
                    <div className="flex items-center space-x-4 pt-6 border-t border-gray-50">
                       <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase text-gray-500">{u.role.replace('_', ' ')}</span>
                       <span className="px-4 py-1.5 bg-red-50 rounded-full text-[9px] font-black uppercase text-red-600 border border-red-100">{u.tier}</span>
-                      <span className="text-[11px] font-brand font-black italic text-black ml-auto">€{u.balance?.toLocaleString()}</span>
+                      <div className="ml-auto flex items-center space-x-1">
+                        <span className="text-[11px] font-brand font-black italic redcoin-text">{u.balance?.toLocaleString()}</span>
+                        <span className="text-[7px] font-black text-yellow-400">RC</span>
+                      </div>
                    </div>
                 </div>
              </div>
@@ -480,8 +486,8 @@ const Backoffice: React.FC<BackofficeProps> = ({
                    <h5 className="text-3xl font-brand font-black italic uppercase text-black mb-6 leading-none group-hover:text-red-600 transition-colors">{p.name}</h5>
                    <div className="mt-auto flex justify-between items-end pt-6 border-t border-gray-50">
                       <div className="flex flex-col">
-                         <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Base Cost</span>
-                         <span className="text-4xl font-brand font-black italic text-black">€{p.basePrice}</span>
+                         <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Base Cost (RC)</span>
+                         <span className="text-4xl font-brand font-black italic redcoin-text">{p.basePrice}</span>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-2xl"><Box className="w-6 h-6 text-red-600" /></div>
                    </div>
@@ -650,5 +656,4 @@ const Backoffice: React.FC<BackofficeProps> = ({
   );
 };
 
-// Fix export name from Account to Backoffice to match the component name
 export default Backoffice;
